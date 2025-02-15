@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>ESPHome Dashboard</title>
+    <style>
+
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>ESPHome Sensor Dashboard</h1>
+        <div class="sensor">
+            <span>Presence Status:</span>
+            <span id="presence">Loading...</span>
+        </div>
+        <div class="sensor">
+            <span>Motion Status:</span>
+            <span id="motion">Loading...</span>
+        </div>
+    </div>
+    <script>
+        async function updateSensorData() {
+            try {
+                const response = await fetch('/sensor.json');
+                const data = await response.json();
+                var word, word2 = "";
+                if (data.presence_status === true) {
+                    word = "detected";
+                }
+                else {
+                    word = "not detected";
+                }
+                if (data.motion_status === true) {
+                    word2 = "detected";
+                }
+                else {
+                    word2 = "not detected";
+                }
+                document.getElementById('presence').textContent = word;
+                document.getElementById('motion').textContent = word2;
+            } catch (error) {
+                console.error('Failed to fetch sensor data:', error);
+            }
+        }
+
+        setInterval(updateSensorData, 1000);
+    </script>
+</body>
+
+</html>

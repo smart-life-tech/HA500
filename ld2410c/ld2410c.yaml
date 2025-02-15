@@ -1,0 +1,83 @@
+esphome:
+  name: totalsense-ld2410c-device
+  friendly_name: TotalSense LD2410C Device
+
+esp32:
+  board: seeed_xiao_esp32c3
+  framework:
+    type: arduino
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API (No encryption key for simplicity)
+api:
+
+# Enable Over-The-Air updates (Fixed format)
+ota:
+  - platform: esphome
+
+wifi:
+  ap:
+    ssid: "TotalSense-Setup"
+    password: "" # Open AP during setup
+
+captive_portal:
+
+# **External Component for LD2410**
+external_components:
+  - source: github://regevbr/esphome@ld2410
+    components: [ld2410]
+
+# UART configuration for LD2410C sensor communication
+uart:
+  id: ld2410_uart
+  tx_pin: 21
+  rx_pin: 20
+  baud_rate: 256000
+  parity: NONE
+  stop_bits: 1
+
+# LD2410C sensor configuration using the external component
+ld2410:
+  uart_id: ld2410_uart
+
+# Binary sensors for motion and presence detection
+binary_sensor:
+  - platform: ld2410
+    has_target:
+      name: "Presence Detection"
+    has_moving_target:
+      name: "Motion Detection"
+    has_still_target:
+      name: "Still Detection"
+  - platform: gpio
+    pin: GPIO4
+    name: "LD2410C Motion Output"
+    device_class: motion
+    filters:
+      - delayed_off: 2s
+
+# **✅ NEW: Add Distance & Energy Sensors**
+sensor:
+  - platform: ld2410
+    moving_distance:
+      name: "LD2410 Moving Distance"
+      unit_of_measurement: "cm"
+      accuracy_decimals: 0
+      filters:
+        - throttle: 0.5s # Update every 0.5 seconds
+    still_distance:
+      name: "LD2410 Still Distance"
+      unit_of_measurement: "cm"
+      accuracy_decimals: 0
+      filters:
+        - throttle: 0.5s
+    moving_energy:
+      name: "LD2410 Moving Energy"
+      unit_of_measurement: "%"
+      accuracy_decimals: 0
+    still_energy:
+      name: "LD2410 Still Energy"
+      unit_of_measurement: "%"
+      accuracy_decimals: 0

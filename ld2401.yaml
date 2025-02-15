@@ -1,0 +1,167 @@
+esphome:
+  name: totalsense-c3-ld2401
+  friendly_name: TOTALSENSE-C3-LD2401
+  includes:
+    - uart_read_line_sensor.h
+
+
+esp32:
+  #board: esp32-c3-devkitm-1
+  board: esp32dev
+  #board: seeed_xiao_esp32c3
+  framework:
+    type: arduino
+
+# Enable logging
+logger:
+  #level: DEBUG
+  level: VERBOSE #makes uart stream available in esphome logstream
+  baud_rate: 115200 #disable logging over uart
+
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: "Gvh95r+mEMBnRqAsPSDErYxl4K6wSFegCHzN1234567="
+
+ota:
+  - platform: esphome
+    password: "cf51b5565f8fc607aff12f6a2ab55d98"
+
+wifi:
+  ssid: "TECNO SPARK 5 Air"
+  password: "1234567890"
+  #ssid: "JEREMY"
+  #password: "605506Jdb"
+# Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Totalsense-C3-Ld2401"
+    password: "0TvgXQwX6lmA"
+
+captive_portal:
+
+web_server:
+  port: 80
+
+
+uart:
+  id: uart_bus
+  rx_pin: GPIO4        # Change this to your actual RX pin20 esp 4
+  tx_pin: GPIO17         # TX pin is optional if you only need to receive data21 esp 17 
+  #baud_rate: 256000
+  baud_rate: 115200
+  #port: "COM4"
+  parity: NONE
+  stop_bits: 1
+  debug:
+    direction: BOTH
+    dummy_receiver: false
+    after:
+      delimiter: "\n"
+    sequence:
+      - lambda: |-
+      
+          // Process the received bytes from this callback
+          std::string data;
+          for (auto byte : bytes) {
+            data.push_back(static_cast<char>(byte));
+          }
+          ESP_LOGD("UART", "Received Data: %s", data.c_str());
+          
+          // Example: Check for keywords in the data
+          if (data.find("PRESENT") != std::string::npos) {
+            ESP_LOGD("LED", "Person detected, turning LED ON");
+            id(led_output).turn_on();
+          } else if (data.find("ABSENT") != std::string::npos) {
+            ESP_LOGD("LED", "No person detected, turning LED OFF");
+            id(led_output).turn_off();
+          }
+
+# LED Output Configuration
+output:
+  - platform: gpio
+    pin: GPIO19  # Change this to your LED GPIO pin
+    id: led_output
+
+# Distance Sensor
+sensor:
+  - platform: template
+    name: "Distance Sensor"
+    id: distance_sensor
+    unit_of_measurement: "cm"
+    accuracy_decimals: 2
+    update_interval: never  # Updates only when new data 
+
+text_sensor:
+- platform: custom
+  lambda: |-
+    auto my_custom_sensor = new UartReadLineSensor(id(uart_bus));
+    App.register_component(my_custom_sensor);
+    my_custom_sensor->add_on_state_callback([](std::string state) {
+        id(log_received_data).execute();
+        if (state == "TURN ON") {
+          id(switch_on).execute();
+        } else if (state == "TURN OFF") {
+          id(switch_off).execute();
+        }
+      });
+    return {my_custom_sensor};
+  text_sensors:
+    id: "uart_readline"
+
+script:
+  - id: log_received_data
+    mode: queued
+    then:
+      - logger.log:
+          format: "Received data: %s"
+          args: ['id(uart_readline).state']
+
+  - id: switch_on
+    mode: queued
+    then:
+      - switch.turn_on: my_switch
+
+  - id: switch_off
+    mode: queued
+    then:
+      - switch.turn_off: my_switch
+
+
+switch:
+  - platform: gpio
+    pin: GPIO5
+    id: my_switch
+    name: "My Switch"
+    icon: mdi:lightbulb
+    restore_mode: RESTORE_DEFAULT_OFF
+    
+
+select:
+  - id: change_baud_rate
+    name: Baud rate
+    platform: template
+    options:
+      - "2400"
+      - "9600"
+      - "38400"
+      - "57600"
+      - "115200"
+      - "256000"
+      - "512000"
+      - "921600"
+    initial_option: "115200"
+    optimistic: true
+    restore_value: True
+    internal: false
+    entity_category: config
+    icon: mdi:swap-horizontal
+    set_action:
+      - lambda: |-
+          id(uart_bus).flush();
+          uint32_t new_baud_rate = stoi(x);
+          ESP_LOGD("change_baud_rate", "Changing baud rate from %i to %i",id(uart_bus).get_baud_rate(), new_baud_rate);
+          if (id(uart_bus).get_baud_rate() != new_baud_rate) {
+            id(uart_bus).set_baud_rate(new_baud_rate);
+            id(uart_bus).load_settings();
+          }
