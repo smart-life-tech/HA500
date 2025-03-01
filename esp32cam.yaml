@@ -1,0 +1,106 @@
+esphome:
+  name: esp32-camera-4
+  friendly_name: ESP32-CAMERA-4
+
+esp32:
+  board: esp32cam
+  framework:
+    type: arduino
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: "9HLR1P/vVsbBBautrFIB6B2M/YzNR2av+Qn5NnkTI4g="
+
+ota:
+  - platform: esphome  # DO NOT REMOVE
+    password: "4498c0576bfad57bb2221157292dcb55"
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  # Enable fallback hotspot (captive portal) in case Wi-Fi connection fails
+  ap:
+    ssid: "Esp32-Camera-4 Fallback Hotspot"
+    password: "yOfkM4dy34Lj"
+
+captive_portal:
+
+# ESP32 Camera Configuration
+esp32_camera:
+  external_clock:
+    pin: GPIO0
+    frequency: 20MHz
+  i2c_pins:
+    sda: GPIO26
+    scl: GPIO27
+  data_pins: [GPIO5, GPIO18, GPIO19, GPIO21, GPIO36, GPIO39, GPIO34, GPIO35]
+  vsync_pin: GPIO25
+  href_pin: GPIO23
+  pixel_clock_pin: GPIO22
+  power_down_pin: GPIO32
+
+  # Image settings
+  name: My ESP32-CAM 
+
+# Flashlight Control
+output:
+  - platform: gpio
+    pin: GPIO4
+    id: gpio_4
+
+light:
+  - platform: binary
+    output: gpio_4
+    name: Flashlight
+
+# ✅ IR Cut Control (ON GPIO2, OFF GPIO14 - DO NOT CHANGE)
+switch:
+  - platform: gpio
+    pin: GPIO2
+    id: ir_on
+    restore_mode: ALWAYS_OFF
+
+  - platform: gpio
+    pin: GPIO14
+    id: ir_off
+    restore_mode: ALWAYS_OFF
+
+# ✅ LDR Sensor for Ambient Light Detection (Using GPIO15)
+sensor:
+  - platform: adc
+    pin: GPIO33  # ✅ LDR Sensor moved to GPIO15 (best working ADC pin)
+    name: "Ambient Light Level"
+    update_interval: 5s
+    filters:
+      - calibrate_linear:
+          - 0.0 -> 100.0  # Adjust based on real-world light levels
+          - 3.3 -> 0.0
+    unit_of_measurement: "%"
+    device_class: illuminance
+    id: ldr_sensor
+    on_value:
+      then:
+        - if:
+            condition:
+              lambda: 'return (id(ldr_sensor).state < 30);'
+            then:
+              - switch.turn_on: ir_off
+              - switch.turn_off: ir_on
+        - if:
+            condition:
+              lambda: 'return (id(ldr_sensor).state >= 30);'
+            then:
+              - switch.turn_on: ir_on
+              - switch.turn_off: ir_off
+
+# ✅ LD2410 Presence Sensor (Using a Single GPIO)
+binary_sensor:
+  - platform: gpio
+    pin: GPIO12  # ✅ Change if needed
+    name: "LD2410 Presence Trigger"
+    device_class: motion
