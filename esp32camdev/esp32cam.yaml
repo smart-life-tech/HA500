@@ -1,84 +1,83 @@
+# Camera GPIOs: 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17, 18
+
+# Other GPIOs: 3 (LDR), 19 (IR on), 20 (IR off), 21 (Flashlight), 14 (Presence)
+
+# Conflicts: None—all assigned GPIOs are unique and avoid the camera pins.
+
+#esp32cam.yaml
 esphome:
   name: esp32-camera-4
   friendly_name: ESP32-CAMERA-4
 
 esp32:
-  board: esp32cam
+  board: esp32-s3-devkitc-1
   framework:
     type: arduino
 
-# Enable logging
 logger:
 
-# Enable Home Assistant API
 api:
   encryption:
     key: "9HLR1P/vVsbBBautrFIB6B2M/YzNR2av+Qn5NnkTI4g="
 
 ota:
-  - platform: esphome  # DO NOT REMOVE
+  - platform: esphome
     password: "4498c0576bfad57bb2221157292dcb55"
 
 wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
-
-  # Enable fallback hotspot (captive portal) in case Wi-Fi connection fails
   ap:
     ssid: "Esp32-Camera-4 Fallback Hotspot"
     password: "yOfkM4dy34Lj"
 
 captive_portal:
 
-# ESP32 Camera Configuration
+# Camera configuration
 esp32_camera:
   external_clock:
-    pin: GPIO0
+    pin: GPIO15
     frequency: 20MHz
   i2c_pins:
-    sda: GPIO26
-    scl: GPIO27
-  data_pins: [GPIO5, GPIO18, GPIO19, GPIO21, GPIO36, GPIO39, GPIO34, GPIO35]
-  vsync_pin: GPIO25
-  href_pin: GPIO23
-  pixel_clock_pin: GPIO22
-  power_down_pin: GPIO32
+    sda: GPIO4
+    scl: GPIO5
+  data_pins: [GPIO11, GPIO9, GPIO8, GPIO10, GPIO12, GPIO18, GPIO17, GPIO16]
+  vsync_pin: GPIO6
+  href_pin: GPIO7
+  pixel_clock_pin: GPIO13
+  name: My ESP32-S3-EYE-CAM
 
-  # Image settings
-  name: My ESP32-CAM 
-
-# Flashlight Control
+# Flashlight LED
 output:
   - platform: gpio
-    pin: GPIO4
-    id: gpio_4
+    pin: GPIO21
+    id: gpio_21
 
 light:
   - platform: binary
-    output: gpio_4
+    output: gpio_21
     name: Flashlight
 
-# ✅ IR Cut Control (ON GPIO2, OFF GPIO14 - DO NOT CHANGE)
+# IR Cut Control
 switch:
   - platform: gpio
-    pin: GPIO2
+    pin: GPIO19
     id: ir_on
     restore_mode: ALWAYS_OFF
-
   - platform: gpio
-    pin: GPIO14
+    pin: GPIO20
     id: ir_off
     restore_mode: ALWAYS_OFF
 
-# ✅ LDR Sensor for Ambient Light Detection (Using GPIO15)
+# LDR Sensor
 sensor:
   - platform: adc
-    pin: GPIO33  # ✅ LDR Sensor moved to GPIO15 (best working ADC pin)
+    pin: GPIO2
     name: "Ambient Light Level"
     update_interval: 5s
     filters:
       - calibrate_linear:
-          - 0.0 -> 100.0  # Adjust based on real-world light levels
+          - 0.0 -> 100.0
           - 3.3 -> 0.0
     unit_of_measurement: "%"
     device_class: illuminance
@@ -98,9 +97,9 @@ sensor:
               - switch.turn_on: ir_on
               - switch.turn_off: ir_off
 
-# ✅ LD2410 Presence Sensor (Using a Single GPIO)
+# Presence Sensor
 binary_sensor:
   - platform: gpio
-    pin: GPIO12  # ✅ Change if needed
+    pin: GPIO14
     name: "LD2410 Presence Trigger"
     device_class: motion
