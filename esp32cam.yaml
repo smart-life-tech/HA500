@@ -72,7 +72,7 @@ switch:
 # LDR Sensor
 sensor:
   - platform: adc
-    pin: GPIO14
+    pin: GPIO3
     name: "Ambient Light Level"
     update_interval: 5s
     filters:
@@ -100,6 +100,6 @@ sensor:
 # Presence Sensor
 binary_sensor:
   - platform: gpio
-    pin: GPIO22
+    pin: GPIO14
     name: "LD2410 Presence Trigger"
     device_class: motion
