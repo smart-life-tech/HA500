@@ -1,5 +1,5 @@
 esphome:
-  name: esp32Display
+  name: esp32display
   friendly_name: ESP32 Display
 
 esp32:
@@ -70,37 +70,44 @@ display:
     update_interval: 5s
     lambda: |-
       // Set background color
-      it.fill(COLOR_BLACK);
-    
+      it.fill(Color::BLACK);
+      
+      // Define custom colors
+      auto color_navy = Color(0, 0, 128);
+      auto color_gray = Color(128, 128, 128);
+      auto color_darkblue = Color(0, 0, 139);
+      auto color_darkgreen = Color(0, 100, 0);
+      auto color_darkorange = Color(255, 140, 0);
+      
       // Draw header
-      it.rectangle(0, 0, 480, 60, COLOR_NAVY);
-      it.printf(240, 30, id(roboto_medium_20), COLOR_WHITE, TextAlign::CENTER, "Home Status");
-    
+      it.rectangle(0, 0, 480, 60, color_navy);
+      it.printf(240, 30, id(roboto_medium_20), Color::WHITE, TextAlign::CENTER, "Home Status");
+      
       // Draw time and date
-      it.printf(240, 80, id(roboto_medium_36), COLOR_WHITE, TextAlign::CENTER, "%s", id(esptime).now().strftime("%H:%M").c_str());
-      it.printf(240, 120, id(roboto_regular_20), COLOR_GRAY, TextAlign::CENTER, "%s", id(esptime).now().strftime("%A, %b %d").c_str());
-    
+      it.printf(240, 80, id(roboto_medium_36), Color::WHITE, TextAlign::CENTER, "%s", id(esptime).now().strftime("%H:%M").c_str());
+      it.printf(240, 120, id(roboto_regular_20), color_gray, TextAlign::CENTER, "%s", id(esptime).now().strftime("%A, %b %d").c_str());
+      
       // Draw temperature and humidity
-      it.rectangle(40, 160, 200, 120, COLOR_DARKBLUE);
-      it.printf(140, 190, id(roboto_medium_24), COLOR_WHITE, TextAlign::CENTER, "Temperature");
+      it.rectangle(40, 160, 200, 120, color_darkblue);
+      it.printf(140, 190, id(roboto_medium_24), Color::WHITE, TextAlign::CENTER, "Temperature");
       if (id(temperature_sensor).has_state()) {
-        it.printf(140, 230, id(roboto_medium_36), COLOR_WHITE, TextAlign::CENTER, "%.1f°C", id(temperature_sensor).state);
+        it.printf(140, 230, id(roboto_medium_36), Color::WHITE, TextAlign::CENTER, "%.1f°C", id(temperature_sensor).state);
       } else {
-        it.printf(140, 230, id(roboto_medium_36), COLOR_WHITE, TextAlign::CENTER, "--.-°C");
+        it.printf(140, 230, id(roboto_medium_36), Color::WHITE, TextAlign::CENTER, "--.-°C");
       }
-    
-      it.rectangle(240, 160, 200, 120, COLOR_DARKGREEN);
-      it.printf(340, 190, id(roboto_medium_24), COLOR_WHITE, TextAlign::CENTER, "Humidity");
+      
+      it.rectangle(240, 160, 200, 120, color_darkgreen);
+      it.printf(340, 190, id(roboto_medium_24), Color::WHITE, TextAlign::CENTER, "Humidity");
       if (id(humidity_sensor).has_state()) {
-        it.printf(340, 230, id(roboto_medium_36), COLOR_WHITE, TextAlign::CENTER, "%.1f%%", id(humidity_sensor).state);
+        it.printf(340, 230, id(roboto_medium_36), Color::WHITE, TextAlign::CENTER, "%.1f%%", id(humidity_sensor).state);
       } else {
-        it.printf(340, 230, id(roboto_medium_36), COLOR_WHITE, TextAlign::CENTER, "--.-%%");
+        it.printf(340, 230, id(roboto_medium_36), Color::WHITE, TextAlign::CENTER, "--.-%%");
       }
-    
+      
       // Draw light status
-      it.rectangle(40, 300, 400, 80, COLOR_DARKORANGE);
-      it.printf(240, 330, id(roboto_medium_24), COLOR_WHITE, TextAlign::CENTER, "Living Room Light: %s", id(light_state).state ? "ON" : "OFF");
-    
+      it.rectangle(40, 300, 400, 80, color_darkorange);
+      it.printf(240, 330, id(roboto_medium_24), Color::WHITE, TextAlign::CENTER, "Living Room Light: %s", id(light_state).state ? "ON" : "OFF");
+      
       // Draw WiFi signal strength
       int rssi = WiFi.RSSI();
       int quality = 0;
@@ -111,12 +118,13 @@ display:
       } else {
         quality = 2 * (rssi + 100);
       }
-      it.printf(440, 30, id(roboto_regular_16), COLOR_WHITE, TextAlign::RIGHT, "WiFi: %d%%", quality);
-    
+      it.printf(440, 30, id(roboto_regular_16), Color::WHITE, TextAlign::RIGHT, "WiFi: %d%%", quality);
+      
       // Draw battery status if available
       if (id(battery_level).has_state()) {
-        it.printf(440, 50, id(roboto_regular_16), COLOR_WHITE, TextAlign::RIGHT, "Batt: %.0f%%", id(battery_level).state);
+        it.printf(440, 50, id(roboto_regular_16), Color::WHITE, TextAlign::RIGHT, "Batt: %.0f%%", id(battery_level).state);
       }
+
 
 
 # Touch screen configuration
