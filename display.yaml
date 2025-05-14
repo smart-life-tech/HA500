@@ -1,0 +1,256 @@
+# ESPHome configuration for Guition ESP32-S3-4848S040
+esphome:
+  name: guition-display
+  friendly_name: Guition Smart Display
+
+
+esp32:
+  board: esp32-s3-devkitc-1
+  variant: esp32s3
+  #flash_size: 16MB
+  framework:
+    type: esp-idf
+    version: latest
+    platform_version: 5.2.0
+
+# Enable logging
+logger:
+  level: DEBUG
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: !secret api_encryption_key
+
+# Enable OTA updates
+ota:
+  password: !secret ota_password
+
+# Wi-Fi configuration
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "Guition Fallback AP"
+    password: !secret wifi_ap_password
+
+# Time component for clock and sunrise/sunset
+time:
+  - platform: homeassistant
+    id: ha_time
+    timezone: Europe/Amsterdam # Adjust to your timezone
+    on_time_sync:
+      then:
+        - logger.log: "Time synchronized with Home Assistant"
+
+# Touchscreen and display configuration (ST7701 + GT911)
+i2c:
+  sda: 19
+  scl: 45
+  scan: true
+
+spi:
+  clk_pin: 48
+  mosi_pin: 47
+  miso_pin: 41
+
+display:
+  - platform: st7701
+    id: main_display
+    cs_pin: 39
+    dc_pin: 40
+    reset_pin: 0
+    backlight_pin: 38
+    lambda: |-
+      it.rectangle(0, 0, 480, 480, id(bg_color));
+      it.strftime(240, 50, id(font_large), TextAlign::CENTER, "%H:%M:%S", id(ha_time).now());
+      it.print(240, 100, id(font_small), TextAlign::CENTER, "Sunrise/Sunset Clock");
+    update_interval: 1s
+
+touchscreen:
+  platform: gt911
+  id: touch_gt911
+  address: 0x5D
+  on_touch:
+    - light.turn_on:
+        id: backlight
+        brightness: 100%
+    - delay: 30s
+    - display.page.show: home_page
+
+# Fonts for LVGL display
+font:
+  - file: "gfonts://Roboto"
+    id: font_large
+    size: 48
+  - file: "gfonts://Roboto"
+    id: font_small
+    size: 24
+
+# Backlight control
+light:
+  - platform: monochromatic
+    id: backlight
+    output: backlight_output
+    default_transition_length: 500ms
+
+output:
+  - platform: ledc
+    id: backlight_output
+    pin: 38
+
+# Colors for display
+color:
+  - id: bg_color
+    red: 0.8
+    green: 0.8
+    blue: 0.8
+
+# Virtual switches for SW1, SW2, SW3
+switch:
+  - platform: gpio
+    id: sw1
+    name: "Sunrise/Sunset Light"
+    pin: 40 # Relay 1
+  - platform: gpio
+    id: sw2
+    name: "Seasonal Daytime Light"
+    pin: 1 # Relay 2
+  - platform: gpio
+    id: sw3
+    name: "Weather-Based Light"
+    pin: 2 # Relay 3
+
+# Sensors for Home Assistant data
+sensor:
+  - platform: homeassistant
+    id: outdoor_temp
+    entity_id: sensor.weather_temperature
+    unit_of_measurement: "°C"
+  - platform: homeassistant
+    id: precipitation
+    entity_id: sensor.weather_precipitation
+    unit_of_measurement: "mm"
+
+# Sun component for sunrise/sunset
+sun:
+  - platform: homeassistant
+    id: ha_sun
+
+# Automations for switches
+script:
+  # SW1: Sunset ON for X hours or until X time, Sunrise ON X time before
+  - id: sw1_sunset
+    then:
+      - switch.turn_on: sw1
+      - delay: 4h # Configurable duration
+      - switch.turn_off: sw1
+  - id: sw1_sunrise
+    then:
+      - delay: 30min # X time before sunrise
+      - switch.turn_on: sw1
+      - wait_until:
+          condition: sun.is_above_horizon
+      - switch.turn_off: sw1
+
+  # SW2: Seasonal daytime hours (1h in winter, 6h in summer)
+  - id: sw2_daytime
+    then:
+      - lambda: |-
+          auto now = id(ha_time).now();
+          int month = now.month;
+          int hours = (month >= 3 && month <= 9) ? 6 : 1;  // Summer: Mar-Sep, Winter: Oct-Feb
+          id(sw2).turn_on();
+          delay(hours * 3600 * 1000);  // Convert hours to milliseconds
+          id(sw2).turn_off();
+
+  # SW2: Temperature-based adjustment (10% more time per 10°C above 22°C)
+  - id: sw2_temp_adjust
+    then:
+      - lambda: |-
+          float temp = id(outdoor_temp).state;
+          if (temp > 22.0) {
+            float extra_time = (temp - 22.0) * 0.1;  // 10% per 10°C
+            int base_hours = (id(ha_time).now().month >= 3 && id(ha_time).now().month <= 9) ? 6 : 1;
+            int total_time = base_hours * (1.0 + extra_time);
+            id(sw2).turn_on();
+            delay(total_time * 3600 * 1000);
+            id(sw2).turn_off();
+          }
+
+  # SW3: Weather-based (rain or high temp)
+  - id: sw3_weather
+    then:
+      - lambda: |-
+          float temp = id(outdoor_temp).state;
+          float rain = id(precipitation).state;
+          if (temp > 35.0 || rain > 10.0) {  // High temp or significant rain
+            id(sw3).turn_on();
+            delay(2 * 3600 * 1000);  // Run for 2 hours
+            id(sw3).turn_off();
+          }
+
+# Trigger automations
+automation:
+  # SW1: Sunset and sunrise triggers
+  - alias: sw1_sunset_trigger
+    trigger:
+      platform: sun
+      event: sunset
+    action:
+      - script.execute: sw1_sunset
+  - alias: sw1_sunrise_trigger
+    trigger:
+      platform: sun
+      event: sunrise
+    action:
+      - script.execute: sw1_sunrise
+
+  # SW2: Run daily at specific time (e.g., noon) with temp adjustment
+  - alias: sw2_daytime_trigger
+    trigger:
+      platform: time
+      at: "12:00:00"
+    action:
+      - script.execute: sw2_daytime
+      - script.execute: sw2_temp_adjust
+
+  # SW3: Check weather every 30 minutes
+  - alias: sw3_weather_trigger
+    trigger:
+      platform: time_pattern
+      minutes: "/30"
+    action:
+      - script.execute: sw3_weather
+
+# LVGL for touchscreen interface (basic button controls)
+lvgl:
+  displays:
+    - display: main_display
+  pages:
+    - id: home_page
+      widgets:
+        - button:
+            x: 50
+            y: 150
+            width: 100
+            height: 50
+            text: "SW1"
+            on_press:
+              - switch.toggle: sw1
+        - button:
+            x: 200
+            y: 150
+            width: 100
+            height: 50
+            text: "SW2"
+            on_press:
+              - switch.toggle: sw2
+        - button:
+            x: 350
+            y: 150
+            width: 100
+            height: 50
+            text: "SW3"
+            on_press:
+              - switch.toggle: sw3
