@@ -1,81 +1,184 @@
 # ESPHome configuration for Guition ESP32-S3-4848S040
 substitutions:
   name: "guition-esp32-s3-4848s040"
-  friendly_name: "Guition480"
-  device_description: "Guition ESP32-S3-4848S040 480*480 Smart Screen"
-  project_name: "Guition.ESP32_S3_4848S040"
-  project_version: "1.0.1"
+  friendly_name: "Guition Smart Display"
 
 esphome:
   name: "${name}"
-  project:
-    name: "${project_name}"
-    version: "${project_version}"
-  platformio_options:
-    board_build.flash_mode: dio
+  friendly_name: "${friendly_name}"
 
 esp32:
   board: esp32s3-devkitc-1
   variant: esp32s3
-  
   framework:
     type: arduino
-    # sdkconfig_options:
-    #   COMPILER_OPTIMIZATION_SIZE: y
-    #   CONFIG_ESP32S3_DEFAULT_CPU_FREQ_240: "y"
-    #   CONFIG_ESP32S3_DATA_CACHE_64KB: "y"
-    #   CONFIG_ESP32S3_DATA_CACHE_LINE_64B: "y"
-    #   CONFIG_SPIRAM_FETCH_INSTRUCTIONS: y
-    #   CONFIG_SPIRAM_RODATA: y
-
-# psram:
-#   mode: octal
-#   speed: 80MHz
 
 # Enable logging
 logger:
+  level: DEBUG
 
 # Enable Home Assistant API
 api:
   encryption:
     key: !secret encryption_key
 
-ota:
-  password: !secret ota_password
+# # Enable OTA updates
+# ota:
+#   password: !secret ota_password
 
+# Wi-Fi configuration
 wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
-  # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
-    ssid: "Guitionv1 Fallback Hotspot"
+    ssid: "Guition Fallback AP"
     password: !secret wifi_fallback_password
 
-time:
-  - platform: homeassistant
-    id: time_comp
-
+# Web server for control
 web_server:
   port: 80
 
-captive_portal:
+# Time component for clock with minute-by-minute checks
+time:
+  - platform: homeassistant
+    id: homeassistant_time
+    on_time:
+      # Check every minute
+      - seconds: 0
+        minutes: /1
+        then:
+          - lambda: |-
+              // Check if it's 30 minutes before sunrise
+              auto now = id(homeassistant_time).now();
+              auto sunrise = id(ha_sun).sunrise();
+              if (sunrise.timestamp - now.timestamp <= 1800 && sunrise.timestamp - now.timestamp > 1740) {
+                id(sw1).turn_on();
+              }
+              
+              // Check for seasonal time for SW2
+              int month = now.month;
+              if (now.hour == 12 && now.minute == 0) {
+                // Run the seasonal timer at noon
+                int hours = (month >= 3 && month <= 9) ? 6 : 1;  // Summer: Mar-Sep, Winter: Oct-Feb
+                
+                // Temperature adjustment
+                float temp = id(outdoor_temp).state;
+                if (temp > 22.0) {
+                  float extra_time = (temp - 22.0) * 0.1;  // 10% per 10°C
+                  hours = hours * (1.0 + extra_time);
+                }
+                
+                id(sw2).turn_on();
+                id(sw2_off_time) = id(homeassistant_time).now().timestamp + hours * 3600;
+              }
+              
+              // Check if it's time to turn off SW2
+              if (id(sw2).state && now.timestamp >= id(sw2_off_time)) {
+                id(sw2).turn_off();
+              }
+              
+              // Check weather conditions for SW3
+              float temp = id(outdoor_temp).state;
+              float rain = id(precipitation).state;
+              if ((temp > 35.0 || rain > 10.0) && !id(sw3).state) {
+                id(sw3).turn_on();
+                id(sw3_off_time) = id(homeassistant_time).now().timestamp + 2 * 3600;
+              }
+              
+              // Check if it's time to turn off SW3
+              if (id(sw3).state && now.timestamp >= id(sw3_off_time)) {
+                id(sw3).turn_off();
+              }
 
+# Sun component for sunrise/sunset
+sun:
+  latitude: 52.3676  # Amsterdam latitude
+  longitude: 4.9041  # Amsterdam longitude
+  id: ha_sun
+  on_sunrise:
+    then:
+      - switch.turn_off: sw1
+  on_sunset:
+    then:
+      - script.execute: sw1_sunset_timer
+
+# I2C for touchscreen
+i2c:
+  sda: GPIO19
+  scl: GPIO45
+  scan: true
+
+# SPI for display
+spi:
+  clk_pin: GPIO48
+  mosi_pin: GPIO47
+  miso_pin: GPIO41
+
+# Display configuration - using a simple SSD1306 display that should be supported
+display:
+  - platform: ssd1306_i2c
+    model: "SH1106 128x64"
+    address: 0x3C
+    lambda: |-
+      it.print(0, 0, id(font1), "Smart Light Control");
+      
+      // Time display
+      it.strftime(0, 16, id(font1), "%H:%M:%S", id(homeassistant_time).now());
+      
+      // SW1 status
+      it.print(0, 32, id(font1), "SW1: ");
+      it.print(40, 32, id(font1), id(sw1).state ? "ON" : "OFF");
+      
+      // SW2 status
+      it.print(0, 48, id(font1), "SW2: ");
+      it.print(40, 48, id(font1), id(sw2).state ? "ON" : "OFF");
+
+# Font
+font:
+  - file: "fonts/Roboto-Medium.ttf"
+    id: font1
+    size: 12
+
+# Outputs for relays
+output:
+  - platform: gpio
+    pin: GPIO40
+    id: relay1_output
+  - platform: gpio
+    pin: GPIO1
+    id: relay2_output
+  - platform: gpio
+    pin: GPIO2
+    id: relay3_output
+  - platform: gpio
+    pin: GPIO38
+    id: backlight_output
+
+# Backlight control
+light:
+  - platform: monochromatic
+    output: backlight_output
+    name: "Display Backlight"
+    id: backlight
+    restore_mode: ALWAYS_ON
+
+# Switches for the three functions
+switch:
+  - platform: output
+    id: sw1
+    name: "Sunrise/Sunset Light"
+    output: relay1_output
+  - platform: output
+    id: sw2
+    name: "Seasonal Daytime Light"
+    output: relay2_output
+  - platform: output
+    id: sw3
+    name: "Weather-Based Light"
+    output: relay3_output
+
+# Sensors for Home Assistant data
 sensor:
-  - platform: wifi_signal
-    name: "WiFi Signal"
-    id: wifi_signal_db
-    update_interval: 60s
-    entity_category: diagnostic
-    internal: true
-  # Reports the WiFi signal strength in %
-  - platform: copy
-    source_id: wifi_signal_db
-    name: "WiFi Strength"
-    filters:
-      - lambda: return min(max(2 * (x + 100.0), 0.0), 100.0);
-    unit_of_measurement: "%"
-    entity_category: diagnostic
-  # Sensors for Home Assistant data
   - platform: homeassistant
     id: outdoor_temp
     entity_id: sensor.weather_temperature
@@ -85,249 +188,21 @@ sensor:
     entity_id: sensor.weather_precipitation
     unit_of_measurement: "mm"
 
-text_sensor:
-  - platform: wifi_info
-    ip_address:
-      name: "IP Address"
-      id: ip_address
-      entity_category: diagnostic
-    ssid:
-      name: "Connected SSID"
-      entity_category: diagnostic
-    mac_address:
-      name: "Mac Address"
-      entity_category: diagnostic
+# Global variables for timer tracking
+globals:
+  - id: sw2_off_time
+    type: int
+    restore_value: no
+    initial_value: "0"
+  - id: sw3_off_time
+    type: int
+    restore_value: no
+    initial_value: "0"
 
-# Sun component for sunrise/sunset
-sun:
-  latitude: 52.3676  # Amsterdam latitude
-  longitude: 4.9041  # Amsterdam longitude
-  id: ha_sun
-
-color:
-  - id: ha_blue
-    red: 0.32
-    green: 0.75
-    blue: 0.95
-  - id: bg_color
-    red: 0.8
-    green: 0.8
-    blue: 0.8
-
-#-------------------------------------------
-# Internal outputs
-#-------------------------------------------
-output:
-  # Backlight LED
-  - platform: ledc
-    pin: GPIO38
-    id: GPIO38
-    frequency: 100Hz
-    # Built in 240v relay
-  - id: internal_relay_1
-    platform: gpio
-    pin: 40
-    # Additional relays (3 relay model)
-  - id: internal_relay_2
-    platform: gpio
-    pin: 2
-  - id: internal_relay_3
-    platform: gpio
-    pin: 1
-
-#-------------------------------------------
-# Internal lights
-#-------------------------------------------
-light:
-  - platform: monochromatic
-    output: GPIO38
-    name: Backlight
-    id: backlight
-    restore_mode: ALWAYS_ON
-  - platform: binary
-    output: internal_relay_1
-    name: Internal Light
-    id: internal_light
-
-# Virtual switches for SW1, SW2, SW3
-switch:
-  - platform: gpio
-    id: sw1
-    name: "Sunrise/Sunset Light"
-    pin: 40 # Relay 1
-  - platform: gpio
-    id: sw2
-    name: "Seasonal Daytime Light"
-    pin: 1 # Relay 2
-  - platform: gpio
-    id: sw3
-    name: "Weather-Based Light"
-    pin: 2 # Relay 3
-
-#-------------------------------------------
-# Graphics and Fonts
-#-------------------------------------------
-font:
-  - file: "gfonts://Roboto"
-    id: roboto24
-    size: 24
-
-#-------------------------------------------
-# Touchscreen gt911 i2c
-#-------------------------------------------
-i2c:
-  - id: bus_a
-    sda: GPIO19
-    scl: GPIO45
-    scan: true
-
-touchscreen:
-  platform: gt911
-  id: my_touchscreen
-  address: 0x5D
-  on_touch:
-    - light.turn_on:
-        id: backlight
-        brightness: 100%
-
-#-------------------------------------------
-# Display st7701s spi
-#-------------------------------------------
-spi:
-  - id: lcd_spi
-    clk_pin: GPIO48
-    mosi_pin: GPIO47
-    miso_pin: GPIO41
-
-display:
-  - platform: st7701s
-    id: my_display
-    update_interval: 1s
-    cs_pin: 39
-    de_pin: 18
-    hsync_pin: 16
-    vsync_pin: 17
-    pclk_pin: 21
-    pclk_frequency: 12MHz
-    dimensions:
-      width: 480
-      height: 480
-    data_pins:
-      red:
-        - 11 #r1
-        - 12 #r2
-        - 13 #r3
-        - 14 #r4
-        - 0 #r5
-      green:
-        - 8 #g0
-        - 20 #g1
-        - 3 #g2
-        - 46 #g3
-        - 9 #g4
-        - 10 #g5
-      blue:
-        - 4 #b1
-        - 5 #b2
-        - 6 #b3
-        - 7 #b4
-        - 15 #b5
-    lambda: |-
-      it.rectangle(0, 0, 480, 480, id(bg_color));
-      it.strftime(240, 50, id(roboto24), TextAlign::CENTER, "%H:%M:%S", id(time_comp).now());
-      it.print(240, 100, id(roboto24), TextAlign::CENTER, "Sunrise/Sunset Clock");
-      
-      // Draw buttons for switches
-      it.rectangle(50, 150, 100, 50, id(ha_blue));
-      it.print(100, 175, id(roboto24), TextAlign::CENTER, "SW1");
-      
-      it.rectangle(200, 150, 100, 50, id(ha_blue));
-      it.print(250, 175, id(roboto24), TextAlign::CENTER, "SW2");
-      
-      it.rectangle(350, 150, 100, 50, id(ha_blue));
-      it.print(400, 175, id(roboto24), TextAlign::CENTER, "SW3");
-
-# Script for switch automation
+# Scripts for automation logic
 script:
-  # SW1: Sunset ON for X hours or until X time, Sunrise ON X time before
-  - id: sw1_sunset
+  - id: sw1_sunset_timer
     then:
       - switch.turn_on: sw1
-      - delay: 4h # Configurable duration
+      - delay: 2h
       - switch.turn_off: sw1
-  - id: sw1_sunrise
-    then:
-      - delay: 30min # X time before sunrise
-      - switch.turn_on: sw1
-      - wait_until:
-          condition:
-            sun.is_above_horizon: ha_sun
-      - switch.turn_off: sw1
-
-  # SW2: Seasonal daytime hours (1h in winter, 6h in summer)
-  - id: sw2_daytime
-    then:
-      - lambda: |-
-          auto now = id(time_comp).now();
-          int month = now.month;
-          int hours = (month >= 3 && month <= 9) ? 6 : 1;  // Summer: Mar-Sep, Winter: Oct-Feb
-          id(sw2).turn_on();
-          delay(hours * 3600 * 1000);  // Convert hours to milliseconds
-          id(sw2).turn_off();
-
-  # SW2: Temperature-based adjustment (10% more time per 10°C above 22°C)
-  - id: sw2_temp_adjust
-    then:
-      - lambda: |-
-          float temp = id(outdoor_temp).state;
-          if (temp > 22.0) {
-            float extra_time = (temp - 22.0) * 0.1;  // 10% per 10°C
-            int base_hours = (id(time_comp).now().month >= 3 && id(time_comp).now().month <= 9) ? 6 : 1;
-            int total_time = base_hours * (1.0 + extra_time);
-            id(sw2).turn_on();
-            delay(total_time * 3600 * 1000);
-            id(sw2).turn_off();
-          }
-
-  # SW3: Weather-based (rain or high temp)
-  - id: sw3_weather
-    then:
-      - lambda: |-
-          float temp = id(outdoor_temp).state;
-          float rain = id(precipitation).state;
-          if (temp > 35.0 || rain > 10.0) {  // High temp or significant rain
-            id(sw3).turn_on();
-            delay(2 * 3600 * 1000);  // Run for 2 hours
-            id(sw3).turn_off();
-          }
-
-# Trigger automations
-automation:
-  # SW1: Sunset and sunrise triggers
-  - trigger:
-      platform: sun
-      sun_id: ha_sun
-      event: sunset
-    then:
-      - script.execute: sw1_sunset
-  - trigger:
-      platform: sun
-      sun_id: ha_sun
-      event: sunrise
-    then:
-      - script.execute: sw1_sunrise
-
-  # SW2: Run daily at specific time (e.g., noon) with temp adjustment
-  - trigger:
-      platform: time
-      at: "12:00:00"
-    then:
-      - script.execute: sw2_daytime
-      - script.execute: sw2_temp_adjust
-
-  # SW3: Check weather every 30 minutes
-  - trigger:
-      platform: time_pattern
-      minutes: "/30"
-    then:
-      - script.execute: sw3_weather
