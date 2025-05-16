@@ -8,7 +8,7 @@ esphome:
   friendly_name: "${friendly_name}"
 
 esp32:
-  board: esp32s3-devkitc-1
+  board: esp32-s3-devkitc-1
   variant: esp32s3
   framework:
     type: arduino
@@ -50,9 +50,14 @@ time:
           - lambda: |-
               // Check if it's 30 minutes before sunrise
               auto now = id(homeassistant_time).now();
-              auto sunrise = id(ha_sun).sunrise();
-              if (sunrise.timestamp - now.timestamp <= 1800 && sunrise.timestamp - now.timestamp > 1740) {
-                id(sw1).turn_on();
+              auto sunrise_opt = id(ha_sun).sunrise(0); // Pass 0 degrees as the elevation angle
+              
+              // Only proceed if we have a valid sunrise time
+              if (sunrise_opt.has_value()) {
+                auto sunrise = sunrise_opt.value();
+                if (sunrise.timestamp - now.timestamp <= 1800 && sunrise.timestamp - now.timestamp > 1740) {
+                  id(sw1).turn_on();
+                }
               }
               
               // Check for seasonal time for SW2
@@ -141,6 +146,10 @@ font:
 
 # Outputs for relays
 output:
+  - platform: ledc  # Use ledc instead of gpio for ESP32
+    pin: GPIO38
+    id: backlight_output
+    frequency: 1000 Hz
   - platform: gpio
     pin: GPIO40
     id: relay1_output
@@ -150,9 +159,6 @@ output:
   - platform: gpio
     pin: GPIO2
     id: relay3_output
-  - platform: gpio
-    pin: GPIO38
-    id: backlight_output
 
 # Backlight control
 light:
