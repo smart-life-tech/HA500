@@ -1,0 +1,188 @@
+# GPIO Configuration
+gpio:
+  # Relay outputs
+  - pin: 40
+    id: relay1
+    mode: output
+    inverted: false
+  - pin: 1
+    id: relay2
+    mode: output
+    inverted: false
+  - pin: 2
+    id: relay3
+    mode: output
+    inverted: false
+
+# Custom commands to handle button states
+commands:
+  - name: relay1.toggle
+    callback: |
+      bool current = gpio.digitalRead(40);
+      gpio.digitalWrite(40, !current);
+      if (!current) {
+        hasp.sendCommandf("p0b10.text", "Sunrise/Sunset Light: ON");
+        hasp.sendCommandf("p0b10.bg_color", "#009900");
+        hasp.sendCommandf("p0b10.val", "1");
+      } else {
+        hasp.sendCommandf("p0b10.text", "Sunrise/Sunset Light: OFF");
+        hasp.sendCommandf("p0b10.bg_color", "#555555");
+        hasp.sendCommandf("p0b10.val", "0");
+      }
+  
+  - name: relay2.toggle
+    callback: |
+      bool current = gpio.digitalRead(1);
+      gpio.digitalWrite(1, !current);
+      if (!current) {
+        hasp.sendCommandf("p0b11.text", "Seasonal Daytime Light: ON");
+        hasp.sendCommandf("p0b11.bg_color", "#009900");
+        hasp.sendCommandf("p0b11.val", "1");
+      } else {
+        hasp.sendCommandf("p0b11.text", "Seasonal Daytime Light: OFF");
+        hasp.sendCommandf("p0b11.bg_color", "#555555");
+        hasp.sendCommandf("p0b11.val", "0");
+      }
+  
+  - name: relay3.toggle
+    callback: |
+      bool current = gpio.digitalRead(2);
+      gpio.digitalWrite(2, !current);
+      if (!current) {
+        hasp.sendCommandf("p0b12.text", "Weather-Based Light: ON");
+        hasp.sendCommandf("p0b12.bg_color", "#009900");
+        hasp.sendCommandf("p0b12.val", "1");
+      } else {
+        hasp.sendCommandf("p0b12.text", "Weather-Based Light: OFF");
+        hasp.sendCommandf("p0b12.bg_color", "#555555");
+        hasp.sendCommandf("p0b12.val", "0");
+      }
+
+# Timers for automation logic
+timers:
+  # Check every minute for automation conditions
+  - name: automation_check
+    interval: 60000  # 60 seconds
+    callback: |
+      // Get current time
+      time_t now;
+      time(&now);
+      struct tm timeinfo;
+      localtime_r(&now, &timeinfo);
+      
+      // Check if it's 30 minutes before sunrise (simplified)
+      // In a real implementation, you would need to calculate sunrise time
+      // based on latitude/longitude and date
+      if (timeinfo.tm_hour == 6 && timeinfo.tm_min == 0) {
+        // Turn on sunrise light
+        gpio.digitalWrite(40, HIGH);
+        hasp.sendCommandf("p0b10.text", "Sunrise/Sunset Light: ON");
+        hasp.sendCommandf("p0b10.bg_color", "#009900");
+        hasp.sendCommandf("p0b10.val", "1");
+      }
+      
+      // Check if it's sunrise (simplified)
+      if (timeinfo.tm_hour == 6 && timeinfo.tm_min == 30) {
+        // Turn off sunrise light
+        gpio.digitalWrite(40, LOW);
+        hasp.sendCommandf("p0b10.text", "Sunrise/Sunset Light: OFF");
+        hasp.sendCommandf("p0b10.bg_color", "#555555");
+        hasp.sendCommandf("p0b10.val", "0");
+      }
+      
+      // Check if it's sunset (simplified)
+      if (timeinfo.tm_hour == 19 && timeinfo.tm_min == 0) {
+        // Turn on sunset light
+        gpio.digitalWrite(40, HIGH);
+        hasp.sendCommandf("p0b10.text", "Sunrise/Sunset Light: ON");
+        hasp.sendCommandf("p0b10.bg_color", "#009900");
+        hasp.sendCommandf("p0b10.val", "1");
+        
+        // Schedule turn off after 2 hours
+        hasp.setTimer("sunset_off", 7200000, 1);  // 2 hours in milliseconds, run once
+      }
+      
+      // Check for seasonal timer at noon
+      if (timeinfo.tm_hour == 12 && timeinfo.tm_min == 0) {
+        // Turn on seasonal light
+        gpio.digitalWrite(1, HIGH);
+        hasp.sendCommandf("p0b11.text", "Seasonal Daytime Light: ON");
+        hasp.sendCommandf("p0b11.bg_color", "#009900");
+        hasp.sendCommandf("p0b11.val", "1");
+        
+        // Determine duration based on month (3-9 = summer, 10-2 = winter)
+        int month = timeinfo.tm_mon + 1;  // tm_mon is 0-11
+        int hours = (month >= 3 && month <= 9) ? 6 : 1;
+        
+        // Schedule turn off after calculated hours
+        hasp.setTimer("seasonal_off", hours * 3600000, 1);  // hours to milliseconds, run once
+      }
+      
+      // Weather-based logic would require external sensors
+      // This is a simplified example that turns on at a specific time
+      if (timeinfo.tm_hour == 14 && timeinfo.tm_min == 0) {
+        // Turn on weather-based light
+        gpio.digitalWrite(2, HIGH);
+        hasp.sendCommandf("p0b12.text", "Weather-Based Light: ON");
+        hasp.sendCommandf("p0b12.bg_color", "#009900");
+        hasp.sendCommandf("p0b12.val", "1");
+        
+        // Schedule turn off after 2 hours
+        hasp.setTimer("weather_off", 7200000, 1);  // 2 hours in milliseconds, run once
+      }
+
+  # Timer for turning off sunset light
+  - name: sunset_off
+    interval: 0  # One-shot timer, will be set by automation_check
+    callback: |
+      // Turn off sunset light
+      gpio.digitalWrite(40, LOW);
+      hasp.sendCommandf("p0b10.text", "Sunrise/Sunset Light: OFF");
+      hasp.sendCommandf("p0b10.bg_color", "#555555");
+      hasp.sendCommandf("p0b10.val", "0");
+
+  # Timer for turning off seasonal light
+  - name: seasonal_off
+    interval: 0  # One-shot timer, will be set by automation_check
+    callback: |
+      // Turn off seasonal light
+      gpio.digitalWrite(1, LOW);
+      hasp.sendCommandf("p0b11.text", "Seasonal Daytime Light: OFF");
+      hasp.sendCommandf("p0b11.bg_color", "#555555");
+      hasp.sendCommandf("p0b11.val", "0");
+
+  # Timer for turning off weather-based light
+  - name: weather_off
+    interval: 0  # One-shot timer, will be set by automation_check
+    callback: |
+      // Turn off weather-based light
+      gpio.digitalWrite(2, LOW);
+      hasp.sendCommandf("p0b12.text", "Weather-Based Light: OFF");
+      hasp.sendCommandf("p0b12.bg_color", "#555555");
+      hasp.sendCommandf("p0b12.val", "0");
+
+# Event handlers
+events:
+  # Initialize the system on boot
+  - event: system.boot
+    callback: |
+      // Initialize all relays to OFF
+      gpio.digitalWrite(40, LOW);
+      gpio.digitalWrite(1, LOW);
+      gpio.digitalWrite(2, LOW);
+      
+      // Start the automation check timer
+      hasp.startTimer("automation_check");
+      
+      // Set initial button states
+      hasp.sendCommandf("p0b10.text", "Sunrise/Sunset Light: OFF");
+      hasp.sendCommandf("p0b10.bg_color", "#555555");
+      hasp.sendCommandf("p0b10.val", "0");
+      
+      hasp.sendCommandf("p0b11.text", "Seasonal Daytime Light: OFF");
+      hasp.sendCommandf("p0b11.bg_color", "#555555");
+      hasp.sendCommandf("p0b11.val", "0");
+      
+      hasp.sendCommandf("p0b12.text", "Weather-Based Light: OFF");
+      hasp.sendCommandf("p0b12.bg_color", "#555555");
+      hasp.sendCommandf("p0b12.val", "0");
