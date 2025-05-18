@@ -11,7 +11,7 @@ esp32:
   board: esp32-s3-devkitc-1
   variant: esp32s3
   framework:
-    type: arduino
+    type: esp-idf
 
 # Enable logging
 logger:
@@ -111,18 +111,50 @@ spi:
 
 # Display configuration for 480x480 TFT display
 display:
-  - platform: ili9xxx
-    invert_colors: true
-    model: ST7796
-    id: main_display
+  - platform: st7701s
+    update_interval: never
+    spi_mode: MODE3
+    color_order: RGB
     dimensions:
       width: 480
       height: 480
-    dc_pin: GPIO7
-    reset_pin: GPIO6
-    cs_pin: GPIO5
+    invert_colors: true
+    transform:
+      mirror_x: true
+      mirror_y: true
+    cs_pin: GPIO39
+    reset_pin: 38
+    de_pin: 18
+    hsync_pin: 16
+    vsync_pin: 17
+    pclk_pin: 21
+    init_sequence:
+      - 1 # select canned init sequence number 1
+      - delay 5ms
+      - [ 0xE0, 0x1F ]  # Set sunlight readable enhancement
+    data_pins:
+      red:
+        - 4         #r1
+        - 3         #r2
+        - 2         #r3
+        - 1         #r4
+        - 0         #r5
+      green:
+        - 10        #g0
+        - 9         #g1
+        - 8         #g2
+        - 7         #g3
+        - 6         #g4
+        - 5         #g5
+      blue:
+        - 15        #b1
+        - 14        #b2
+        - 13        #b3
+        - 12        #b4
+        - 11        #b5
+
+    id: main_display
     rotation: 0
-    update_interval: 1s
     lambda: |-
       // Title
       it.rectangle(0, 0, 480, 60, id(blue_color));
@@ -199,17 +231,17 @@ color:
 # Outputs for relays
 output:
   - platform: ledc
-    pin: GPIO38
+    pin: GPIO44
     id: backlight_output
     frequency: 1000 Hz
   - platform: gpio
     pin: GPIO40
     id: relay1_output
   - platform: gpio
-    pin: GPIO1
+    pin: GPIO45
     id: relay2_output
   - platform: gpio
-    pin: GPIO2
+    pin: GPIO46
     id: relay3_output
 
 # Backlight control

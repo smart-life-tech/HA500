@@ -1,0 +1,556 @@
+# ESPHome configuration for Guition ESP32-S3-4848S040 Smart Display
+# Implements sunrise/sunset control, seasonal timing, and weather-based automation
+
+substitutions:
+  name: "guition-smart-display"
+  friendly_name: "Guition Smart Display"
+  latitude: "52.3676"  # Amsterdam latitude - change to your location
+  longitude: "4.9041"  # Amsterdam longitude - change to your location
+
+esphome:
+  name: "${name}"
+  friendly_name: "${friendly_name}"
+  includes:
+    - hasp_custom.h
+
+esp32:
+  board: esp32-s3-devkitc-1
+  variant: esp32s3
+  framework:
+    type: arduino
+
+# Enable logging
+logger:
+  level: DEBUG
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: !secret api_encryption_key
+
+# Enable OTA updates
+ota:
+  password: !secret ota_password
+
+# Wi-Fi configuration
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "Guition Fallback AP"
+    password: !secret wifi_fallback_password
+
+# Web server for control
+web_server:
+  port: 80
+
+# Time component for clock with minute-by-minute checks
+time:
+  - platform: homeassistant
+    id: homeassistant_time
+    on_time:
+      # Check every minute
+      - seconds: 0
+        minutes: /1
+        then:
+          - lambda: |-
+              // Check if it's 30 minutes before sunrise
+              auto now = id(homeassistant_time).now();
+              auto sunrise_opt = id(sun_component).sunrise(0);
+              
+              // Only proceed if we have a valid sunrise time
+              if (sunrise_opt.has_value()) {
+                auto sunrise = sunrise_opt.value();
+                if (sunrise.timestamp - now.timestamp <= 1800 && sunrise.timestamp - now.timestamp > 1740) {
+                  // Turn on SW1 30 minutes before sunrise
+                  id(sw1).turn_on();
+                  id(sw1_status) = 1;
+                  id(sw1_next_event) = "Sunrise (Turn OFF)";
+                }
+              }
+              
+              // Check if it's sunrise
+              if (sunrise_opt.has_value()) {
+                auto sunrise = sunrise_opt.value();
+                if (now.timestamp >= sunrise.timestamp && now.timestamp < sunrise.timestamp + 60) {
+                  // Turn off SW1 at sunrise
+                  id(sw1).turn_off();
+                  id(sw1_status) = 0;
+                  id(sw1_next_event) = "Sunset (Turn ON)";
+                }
+              }
+              
+              // Check if it's sunset
+              auto sunset_opt = id(sun_component).sunset(0);
+              if (sunset_opt.has_value()) {
+                auto sunset = sunset_opt.value();
+                if (now.timestamp >= sunset.timestamp && now.timestamp < sunset.timestamp + 60) {
+                  // Turn on SW1 at sunset
+                  id(sw1).turn_on();
+                  id(sw1_status) = 1;
+                  id(sw1_next_event) = "2 hours later (Turn OFF)";
+                  
+                  // Schedule turn off after 2 hours
+                  id(sw1_off_time) = now.timestamp + 7200;
+                }
+              }
+              
+              // Check if it's time to turn off SW1 after sunset
+              if (id(sw1).state && id(sw1_off_time) > 0 && now.timestamp >= id(sw1_off_time)) {
+                id(sw1).turn_off();
+                id(sw1_status) = 0;
+                id(sw1_off_time) = 0;
+                id(sw1_next_event) = "30 min before sunrise";
+              }
+              
+              // Check for seasonal time for SW2 at noon
+              if (now.hour == 12 && now.minute == 0) {
+                // Run the seasonal timer at noon
+                int month = now.month;
+                int hours = (month >= 3 && month <= 9) ? 6 : 1;  // Summer: Mar-Sep, Winter: Oct-Feb
+                
+                // Temperature adjustment
+                float temp = id(outdoor_temp).state;
+                if (!isnan(temp) && temp > 22.0) {
+                  float extra_time = (temp - 22.0) * 0.1;  // 10% per 10°C
+                  hours = hours * (1.0 + extra_time);
+                }
+                
+                id(sw2).turn_on();
+                id(sw2_status) = 1;
+                id(sw2_off_time) = now.timestamp + hours * 3600;
+                
+                char next_event[32];
+                sprintf(next_event, "%d hours later (Turn OFF)", hours);
+                id(sw2_next_event) = next_event;
+              }
+              
+              // Check if it's time to turn off SW2
+              if (id(sw2).state && id(sw2_off_time) > 0 && now.timestamp >= id(sw2_off_time)) {
+                id(sw2).turn_off();
+                id(sw2_status) = 0;
+                id(sw2_off_time) = 0;
+                id(sw2_next_event) = "Tomorrow at noon";
+              }
+              
+              // Check weather conditions for SW3
+              float temp = id(outdoor_temp).state;
+              float rain = id(precipitation).state;
+              if (!isnan(temp) && !isnan(rain) && (temp > 35.0 || rain > 10.0) && !id(sw3).state) {
+                id(sw3).turn_on();
+                id(sw3_status) = 1;
+                id(sw3_off_time) = now.timestamp + 7200;
+                id(sw3_next_event) = "2 hours later (Turn OFF)";
+              }
+              
+              // Check if it's time to turn off SW3
+              if (id(sw3).state && id(sw3_off_time) > 0 && now.timestamp >= id(sw3_off_time)) {
+                id(sw3).turn_off();
+                id(sw3_status) = 0;
+                id(sw3_off_time) = 0;
+                id(sw3_next_event) = "Next weather event";
+              }
+              
+              // Update the display
+              id(main_display).update();
+
+# Sun component for sunrise/sunset
+sun:
+  latitude: ${latitude}
+  longitude: ${longitude}
+  id: sun_component
+
+# SPI for display
+spi:
+  clk_pin: GPIO48
+  mosi_pin: GPIO47
+  miso_pin: GPIO41
+
+# Display configuration for 480x480 TFT display
+display:
+  - platform: ili9xxx
+    invert_colors: true
+    model: ST7796
+    id: main_display
+    dimensions:
+      width: 480
+      height: 480
+    dc_pin: GPIO7
+    reset_pin: GPIO6
+    cs_pin: GPIO5
+    rotation: 0
+    update_interval: 1s
+    lambda: |-
+      // Title
+      it.rectangle(0, 0, 480, 40, id(blue_color));
+      it.print(240, 20, id(title_font), id(white_color), TextAlign::CENTER, "Smart Light Control");
+      
+      // Switch status boxes
+      // SW1
+      it.rectangle(40, 60, 400, 50, id(sw1).state ? id(green_color) : id(light_gray_color), id(sw1).state ? id(green_color) : id(light_gray_color), 10);
+      it.print(240, 85, id(medium_font), id(white_color), TextAlign::CENTER, "Sunrise/Sunset Light: %s", id(sw1).state ? "ON" : "OFF");
+      it.print(240, 110, id(small_font), id(light_blue_color), TextAlign::CENTER, "Next: %s", id(sw1_next_event).c_str());
+      
+      // SW2
+      it.rectangle(40, 135, 400, 50, id(sw2).state ? id(green_color) : id(light_gray_color), id(sw2).state ? id(green_color) : id(light_gray_color), 10);
+      it.print(240, 160, id(medium_font), id(white_color), TextAlign::CENTER, "Seasonal Daytime Light: %s", id(sw2).state ? "ON" : "OFF");
+      it.print(240, 185, id(small_font), id(light_blue_color), TextAlign::CENTER, "Next: %s", id(sw2_next_event).c_str());
+      
+      // SW3
+      it.rectangle(40, 210, 400, 50, id(sw3).state ? id(green_color) : id(light_gray_color), id(sw3).state ? id(green_color) : id(light_gray_color), 10);
+      it.print(240, 235, id(medium_font), id(white_color), TextAlign::CENTER, "Weather-Based Light: %s", id(sw3).state ? "ON" : "OFF");
+      it.print(240, 260, id(small_font), id(light_blue_color), TextAlign::CENTER, "Next: %s", id(sw3_next_event).c_str());
+      
+      // System info
+      it.print(10, 290, id(small_font), id(white_color), TextAlign::LEFT, "Temp: %.1f°C", id(outdoor_temp).state);
+      it.print(10, 310, id(small_font), id(white_color), TextAlign::LEFT, "Rain: %.1f mm", id(precipitation).state);
+      
+      // Current time
+      it.strftime(470, 290, id(small_font), id(white_color), TextAlign::RIGHT, "%H:%M:%S", id(homeassistant_time).now());
+      it.strftime(470, 310, id(small_font), id(white_color), TextAlign::RIGHT, "%Y-%m-%d", id(homeassistant_time).now());
+      
+      // Navigation buttons
+      it.rectangle(0, 350, 160, 40, id(dark_blue_color), id(dark_blue_color), 10);
+      it.print(80, 370, id(medium_font), id(white_color), TextAlign::CENTER, "System");
+      
+      it.rectangle(160, 350, 160, 40, id(dark_blue_color), id(dark_blue_color), 10);
+      it.print(240, 370, id(medium_font), id(white_color), TextAlign::CENTER, "Home");
+      
+      it.rectangle(320, 350, 160, 40, id(dark_blue_color), id(dark_blue_color), 10);
+      it.print(400, 370, id(medium_font), id(white_color), TextAlign::CENTER, "Timers");
+
+# Fonts
+font:
+  - file: "fonts/Roboto-Medium.ttf"
+    id: title_font
+    size: 20
+  - file: "fonts/Roboto-Medium.ttf"
+    id: medium_font
+    size: 18
+  - file: "fonts/Roboto-Regular.ttf"
+    id: small_font
+    size: 14
+
+# Colors
+color:
+  - id: blue_color
+    red: 0%
+    green: 40%
+    blue: 100%
+  - id: dark_blue_color
+    red: 17%
+    green: 24%
+    blue: 31%
+  - id: light_blue_color
+    red: 70%
+    green: 85%
+    blue: 100%
+  - id: green_color
+    red: 0%
+    green: 60%
+    blue: 0%
+  - id: white_color
+    red: 100%
+    green: 100%
+    blue: 100%
+  - id: black_color
+    red: 0%
+    green: 0%
+    blue: 0%
+  - id: light_gray_color
+    red: 33%
+    green: 33%
+    blue: 33%
+  - id: dark_gray_color
+    red: 20%
+    green: 20%
+    blue: 20%
+
+# Outputs for relays
+output:
+  - platform: ledc
+    pin: GPIO38
+    id: backlight_output
+    frequency: 1000 Hz
+  - platform: gpio
+    pin: GPIO40
+    id: relay1_output
+  - platform: gpio
+    pin: GPIO1
+    id: relay2_output
+  - platform: gpio
+    pin: GPIO2
+    id: relay3_output
+
+# Backlight control
+light:
+  - platform: monochromatic
+    output: backlight_output
+    name: "Display Backlight"
+    id: backlight
+    restore_mode: ALWAYS_ON
+
+# Switches for the three functions
+switch:
+  - platform: output
+    id: sw1
+    name: "Sunrise/Sunset Light"
+    output: relay1_output
+    on_turn_on:
+      then:
+        - lambda: id(sw1_status) = 1;
+    on_turn_off:
+      then:
+        - lambda: id(sw1_status) = 0;
+  - platform: output
+    id: sw2
+    name: "Seasonal Daytime Light"
+    output: relay2_output
+    on_turn_on:
+      then:
+        - lambda: id(sw2_status) = 1;
+    on_turn_off:
+      then:
+        - lambda: id(sw2_status) = 0;
+  - platform: output
+    id: sw3
+    name: "Weather-Based Light"
+    output: relay3_output
+    on_turn_on:
+      then:
+        - lambda: id(sw3_status) = 1;
+    on_turn_off:
+      then:
+        - lambda: id(sw3_status) = 0;
+
+# Sensors for Home Assistant data
+sensor:
+  - platform: homeassistant
+    id: outdoor_temp
+    entity_id: sensor.weather_temperature
+    unit_of_measurement: "°C"
+  - platform: homeassistant
+    id: precipitation
+    entity_id: sensor.weather_precipitation
+    unit_of_measurement: "mm"
+  - platform: template
+    name: "SW1 Status"
+    id: sw1_status
+    lambda: return id(sw1).state ? 1.0 : 0.0;
+  - platform: template
+    name: "SW2 Status"
+    id: sw2_status
+    lambda: return id(sw2).state ? 1.0 : 0.0;
+  - platform: template
+    name: "SW3 Status"
+    id: sw3_status
+    lambda: return id(sw3).state ? 1.0 : 0.0;
+
+# Binary sensors for touch screen
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO39
+      mode: INPUT_PULLUP
+    name: "Touch Interrupt"
+    id: touch_interrupt
+    internal: true
+    on_press:
+      then:
+        - lambda: |-
+              // Handle touch events
+              int x, y;
+              if (readTouch(x, y)) {
+                // Check if touch is in SW1 button area
+                if (x >= 40 && x <= 440 && y >= 60 && y <= 110) {
+                  if (id(sw1).state) {
+                    id(sw1).turn_off();
+                    id(sw1_status) = 0;
+                  } else {
+                    id(sw1).turn_on();
+                    id(sw1_status) = 1;
+                  }
+                }
+                // Check if touch is in SW2 button area
+                else if (x >= 40 && x <= 440 && y >= 135 && y <= 185) {
+                  if (id(sw2).state) {
+                    id(sw2).turn_off();
+                    id(sw2_status) = 0;
+                  } else {
+                    id(sw2).turn_on();
+                    id(sw2_status) = 1;
+                  }
+                }
+                // Check if touch is in SW3 button area
+                else if (x >= 40 && x <= 440 && y >= 210 && y <= 260) {
+                  if (id(sw3).state) {
+                    id(sw3).turn_off();
+                    id(sw3_status) = 0;
+                  } else {
+                    id(sw3).turn_on();
+                    id(sw3_status) = 1;
+                  }
+                }
+                // Check if touch is in System button area
+                else if (x >= 0 && x <= 160 && y >= 350 && y <= 390) {
+                  id(current_page) = 1;  // System page
+                }
+                // Check if touch is in Home button area
+                else if (x >= 160 && x <= 320 && y >= 350 && y <= 390) {
+                  id(current_page) = 0;  // Home page
+                }
+                // Check if touch is in Timers button area
+                else if (x >= 320 && x <= 480 && y >= 350 && y <= 390) {
+                  id(current_page) = 2;  // Timers page
+                }
+              }
+
+# Global variables for timer tracking and display
+globals:
+  - id: sw1_off_time
+    type: int
+    restore_value: yes
+    initial_value: "0"
+  - id: sw2_off_time
+    type: int
+    restore_value: yes
+    initial_value: "0"
+  - id: sw3_off_time
+    type: int
+    restore_value: yes
+    initial_value: "0"
+  - id: current_page
+    type: int
+    restore_value: yes
+    initial_value: "0"
+  - id: sw1_next_event
+    type: std::string
+    restore_value: no
+    initial_value: '"30 min before sunrise"'
+  - id: sw2_next_event
+    type: std::string
+    restore_value: no
+    initial_value: '"Tomorrow at noon"'
+  - id: sw3_next_event
+    type: std::string
+    restore_value: no
+    initial_value: '"Next weather event"'
+
+# Custom touch screen handling
+# Create a file called hasp_custom.h with the following content:
+# ```
+# #pragma once
+# #include "esphome.h"
+# 
+# bool readTouch(int &x, int &y) {
+#   // Implement touch reading logic here
+#   // This is a placeholder - you'll need to implement the actual touch reading
+#   // based on your specific touch controller
+#   return false;
+# }
+# ```
+
+# Additional pages for the display
+display_page:
+  - id: 0
+    lambda: |-
+      // Main page - already implemented in the main display lambda
+      return;
+  
+  - id: 1
+    lambda: |-
+      // System Information Page
+      it.rectangle(0, 0, 480, 40, id(blue_color));
+      it.print(240, 20, id(title_font), id(white_color), TextAlign::CENTER, "System Information");
+      
+      it.print(10, 50, id(medium_font), id(white_color), TextAlign::LEFT, "Hostname: %s", WiFi.getHostname());
+      it.print(10, 75, id(medium_font), id(white_color), TextAlign::LEFT, "IP: %s", WiFi.localIP().toString().c_str());
+      it.print(10, 100, id(medium_font), id(white_color), TextAlign::LEFT, "MAC: %s", WiFi.macAddress().c_str());
+      it.print(10, 125, id(medium_font), id(white_color), TextAlign::LEFT, "RSSI: %d dBm", WiFi.RSSI());
+      
+      char uptime_str[64];
+      int uptime_s = millis() / 1000;
+      int uptime_d = uptime_s / 86400;
+      uptime_s %= 86400;
+      int uptime_h = uptime_s / 3600;
+      uptime_s %= 3600;
+      int uptime_m = uptime_s / 60;
+      uptime_s %= 60;
+      sprintf(uptime_str, "%dd %02d:%02d:%02d", uptime_d, uptime_h, uptime_m, uptime_s);
+      it.print(10, 150, id(medium_font), id(white_color), TextAlign::LEFT, "Uptime: %s", uptime_str);
+      
+      it.print(10, 175, id(medium_font), id(white_color), TextAlign::LEFT, "Free Heap: %d bytes", ESP.getFreeHeap());
+      it.print(10, 200, id(medium_font), id(white_color), TextAlign::LEFT, "Version: %s", ESPHOME_VERSION);
+      
+      // Current time
+      it.strftime(10, 225, id(medium_font), id(white_color), TextAlign::LEFT, "Time: %H:%M:%S", id(homeassistant_time).now());
+      it.strftime(10, 250, id(medium_font), id(white_color), TextAlign::LEFT, "Date: %Y-%m-%d", id(homeassistant_time).now());
+      
+      // Weather data
+      it.print(10, 275, id(medium_font), id(white_color), TextAlign::LEFT, "Temperature: %.1f°C", id(outdoor_temp).state);
+      it.print(10, 300, id(medium_font), id(white_color), TextAlign::LEFT, "Precipitation: %.1f mm", id(precipitation).state);
+      
+      // Navigation buttons
+      it.rectangle(0, 350, 160, 40, id(dark_blue_color), id(dark_blue_color), 10);
+      it.print(80, 370, id(medium_font), id(white_color), TextAlign::CENTER, "System");
+      
+      it.rectangle(160, 350, 160, 40, id(dark_blue_color), id(dark_blue_color), 10);
+      it.print(240, 370, id(medium_font), id(white_color), TextAlign::CENTER, "Home");
+      
+      it.rectangle(320, 350, 160, 40, id(dark_blue_color), id(dark_blue_color), 10);
+      it.print(400, 370, id(medium_font), id(white_color), TextAlign::CENTER, "Timers");
+  
+  - id: 2
+    lambda: |-
+      // Timer Status Page
+      it.rectangle(0, 0, 480, 40, id(blue_color));
+      it.print(240, 20, id(title_font), id(white_color), TextAlign::CENTER, "Timer Status");
+      
+      // SW1 Timer
+      it.print(10, 50, id(medium_font), id(white_color), TextAlign::LEFT, "Sunrise/Sunset Timer:");
+      it.print(10, 75, id(medium_font), id(sw1).state ? id(green_color) : id(light_gray_color), TextAlign::LEFT, 
+               id(sw1).state ? "Active" : "Not Active");
+      it.print(10, 100, id(small_font), id(light_blue_color), TextAlign::LEFT, "Next: %s", id(sw1_next_event).c_str());
+      
+      // SW2 Timer
+      it.print(10, 130, id(medium_font), id(white_color), TextAlign::LEFT, "Seasonal Daytime Timer:");
+      it.print(10, 155, id(medium_font), id(sw2).state ? id(green_color) : id(light_gray_color), TextAlign::LEFT, 
+               id(sw2).state ? "Active" : "Not Active");
+      it.print(10, 180, id(small_font), id(light_blue_color), TextAlign::LEFT, "Next: %s", id(sw2_next_event).c_str());
+      
+      // SW3 Timer
+      it.print(10, 210, id(medium_font), id(white_color), TextAlign::LEFT, "Weather-Based Timer:");
+      it.print(10, 235, id(medium_font), id(sw3).state ? id(green_color) : id(light_gray_color), TextAlign::LEFT, 
+               id(sw3).state ? "Active" : "Not Active");
+      it.print(10, 260, id(small_font), id(light_blue_color), TextAlign::LEFT, "Next: %s", id(sw3_next_event).c_str());
+      
+      // Current time
+      it.strftime(10, 290, id(medium_font), id(white_color), TextAlign::LEFT, "Current Time: %H:%M:%S", id(homeassistant_time).now());
+      
+      // Manual check button
+      it.rectangle(10, 310, 460, 40, id(blue_color), id(blue_color), 10);
+      it.print(240, 330, id(medium_font), id(white_color), TextAlign::CENTER, "Run Check Now");
+      
+      // Navigation buttons
+      it.rectangle(0, 350, 160, 40, id(dark_blue_color), id(dark_blue_color), 10);
+      it.print(80, 370, id(medium_font), id(white_color), TextAlign::CENTER, "System");
+      
+      it.rectangle(160, 350, 160, 40, id(dark_blue_color), id(dark_blue_color), 10);
+      it.print(240, 370, id(medium_font), id(white_color), TextAlign::CENTER, "Home");
+      
+      it.rectangle(320, 350, 160, 40, id(dark_blue_color), id(dark_blue_color), 10);
+      it.print(400, 370, id(medium_font), id(white_color), TextAlign::CENTER, "Timers");
+
+# On boot actions
+on_boot:
+  priority: 100
+  then:
+    - lambda: |-
+        // Initialize next event strings
+        id(sw1_next_event) = "30 min before sunrise";
+        id(sw2_next_event) = "Tomorrow at noon";
+        id(sw3_next_event) = "Next weather event";
+        
+        // Set up touch screen
+        // You'll need to implement the touch screen initialization
+        // based on your specific touch controller
