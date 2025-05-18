@@ -29,7 +29,7 @@ commands:
         hasp.sendCommandf("p0b10.bg_color", "#555555");
         hasp.sendCommandf("p0b10.val", "0");
       }
-  
+
   - name: relay2.toggle
     callback: |
       bool current = gpio.digitalRead(1);
@@ -43,7 +43,7 @@ commands:
         hasp.sendCommandf("p0b11.bg_color", "#555555");
         hasp.sendCommandf("p0b11.val", "0");
       }
-  
+
   - name: relay3.toggle
     callback: |
       bool current = gpio.digitalRead(2);
@@ -58,18 +58,36 @@ commands:
         hasp.sendCommandf("p0b12.val", "0");
       }
 
+  - name: run_check
+    callback: |
+      // Run the automation check immediately
+      hasp.callCommand("automation_check");
+
 # Timers for automation logic
 timers:
   # Check every minute for automation conditions
   - name: automation_check
-    interval: 60000  # 60 seconds
+    interval: 60000 # 60 seconds
     callback: |
       // Get current time
       time_t now;
       time(&now);
       struct tm timeinfo;
       localtime_r(&now, &timeinfo);
-      
+
+      // Update last check time
+      char time_str[10];
+      snprintf(time_str, sizeof(time_str), "%02d:%02d:%02d", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+      hasp.sendCommandf("p1b10.text", "Last Check: %s", time_str);
+      hasp.sendCommandf("p2b11.text", "%s", time_str);
+
+      // Calculate next check time
+      time_t next = now + 60;
+      struct tm next_tm;
+      localtime_r(&next, &next_tm);
+      snprintf(time_str, sizeof(time_str), "%02d:%02d:%02d", next_tm.tm_hour, next_tm.tm_min, next_tm.tm_sec);
+      hasp.sendCommandf("p2b11.text", "%s", time_str);
+
       // Check if it's 30 minutes before sunrise (simplified)
       // In a real implementation, you would need to calculate sunrise time
       // based on latitude/longitude and date
@@ -79,8 +97,9 @@ timers:
         hasp.sendCommandf("p0b10.text", "Sunrise/Sunset Light: ON");
         hasp.sendCommandf("p0b10.bg_color", "#009900");
         hasp.sendCommandf("p0b10.val", "1");
+        hasp.sendCommandf("p0b20.text", "Next event: 06:30 (Turn OFF)");
       }
-      
+
       // Check if it's sunrise (simplified)
       if (timeinfo.tm_hour == 6 && timeinfo.tm_min == 30) {
         // Turn off sunrise light
@@ -88,8 +107,9 @@ timers:
         hasp.sendCommandf("p0b10.text", "Sunrise/Sunset Light: OFF");
         hasp.sendCommandf("p0b10.bg_color", "#555555");
         hasp.sendCommandf("p0b10.val", "0");
+        hasp.sendCommandf("p0b20.text", "Next event: 19:00 (Sunset)");
       }
-      
+
       // Check if it's sunset (simplified)
       if (timeinfo.tm_hour == 19 && timeinfo.tm_min == 0) {
         // Turn on sunset light
@@ -97,11 +117,16 @@ timers:
         hasp.sendCommandf("p0b10.text", "Sunrise/Sunset Light: ON");
         hasp.sendCommandf("p0b10.bg_color", "#009900");
         hasp.sendCommandf("p0b10.val", "1");
+        hasp.sendCommandf("p0b20.text", "Next event: 21:00 (Turn OFF)");
+        
+        // Update timer status
+        hasp.sendCommandf("p2b5.text", "Active - Off at 21:00");
+        hasp.sendCommandf("p2b5.text_color", "#00FF00");
         
         // Schedule turn off after 2 hours
         hasp.setTimer("sunset_off", 7200000, 1);  // 2 hours in milliseconds, run once
       }
-      
+
       // Check for seasonal timer at noon
       if (timeinfo.tm_hour == 12 && timeinfo.tm_min == 0) {
         // Turn on seasonal light
@@ -114,10 +139,21 @@ timers:
         int month = timeinfo.tm_mon + 1;  // tm_mon is 0-11
         int hours = (month >= 3 && month <= 9) ? 6 : 1;
         
+        // Update next event text
+        char event_text[30];
+        snprintf(event_text, sizeof(event_text), "Next event: %02d:00 (Turn OFF)", 12 + hours);
+        hasp.sendCommandf("p0b21.text", "%s", event_text);
+        
+        // Update timer status
+        char status_text[30];
+        snprintf(status_text, sizeof(status_text), "Active - Off at %02d:00", 12 + hours);
+        hasp.sendCommandf("p2b7.text", "%s", status_text);
+        hasp.sendCommandf("p2b7.text_color", "#00FF00");
+        
         // Schedule turn off after calculated hours
         hasp.setTimer("seasonal_off", hours * 3600000, 1);  // hours to milliseconds, run once
       }
-      
+
       // Weather-based logic would require external sensors
       // This is a simplified example that turns on at a specific time
       if (timeinfo.tm_hour == 14 && timeinfo.tm_min == 0) {
@@ -127,39 +163,61 @@ timers:
         hasp.sendCommandf("p0b12.bg_color", "#009900");
         hasp.sendCommandf("p0b12.val", "1");
         
+        // Update next event text
+        hasp.sendCommandf("p0b22.text", "Next event: 16:00 (Turn OFF)");
+        
+        // Update timer status
+        hasp.sendCommandf("p2b9.text", "Active - Off at 16:00");
+        hasp.sendCommandf("p2b9.text_color", "#00FF00");
+        
         // Schedule turn off after 2 hours
         hasp.setTimer("weather_off", 7200000, 1);  // 2 hours in milliseconds, run once
       }
 
   # Timer for turning off sunset light
   - name: sunset_off
-    interval: 0  # One-shot timer, will be set by automation_check
+    interval: 0 # One-shot timer, will be set by automation_check
     callback: |
       // Turn off sunset light
       gpio.digitalWrite(40, LOW);
       hasp.sendCommandf("p0b10.text", "Sunrise/Sunset Light: OFF");
       hasp.sendCommandf("p0b10.bg_color", "#555555");
       hasp.sendCommandf("p0b10.val", "0");
+      hasp.sendCommandf("p0b20.text", "Next event: 06:00 (Sunrise)");
+
+      // Update timer status
+      hasp.sendCommandf("p2b5.text", "Not Active");
+      hasp.sendCommandf("p2b5.text_color", "#FF0000");
 
   # Timer for turning off seasonal light
   - name: seasonal_off
-    interval: 0  # One-shot timer, will be set by automation_check
+    interval: 0 # One-shot timer, will be set by automation_check
     callback: |
       // Turn off seasonal light
       gpio.digitalWrite(1, LOW);
       hasp.sendCommandf("p0b11.text", "Seasonal Daytime Light: OFF");
       hasp.sendCommandf("p0b11.bg_color", "#555555");
       hasp.sendCommandf("p0b11.val", "0");
+      hasp.sendCommandf("p0b21.text", "Next event: 12:00 (Tomorrow)");
+
+      // Update timer status
+      hasp.sendCommandf("p2b7.text", "Not Active");
+      hasp.sendCommandf("p2b7.text_color", "#FF0000");
 
   # Timer for turning off weather-based light
   - name: weather_off
-    interval: 0  # One-shot timer, will be set by automation_check
+    interval: 0 # One-shot timer, will be set by automation_check
     callback: |
       // Turn off weather-based light
       gpio.digitalWrite(2, LOW);
       hasp.sendCommandf("p0b12.text", "Weather-Based Light: OFF");
       hasp.sendCommandf("p0b12.bg_color", "#555555");
       hasp.sendCommandf("p0b12.val", "0");
+      hasp.sendCommandf("p0b22.text", "Next event: 14:00 (Tomorrow)");
+
+      // Update timer status
+      hasp.sendCommandf("p2b9.text", "Not Active");
+      hasp.sendCommandf("p2b9.text_color", "#FF0000");
 
 # Event handlers
 events:
@@ -170,19 +228,126 @@ events:
       gpio.digitalWrite(40, LOW);
       gpio.digitalWrite(1, LOW);
       gpio.digitalWrite(2, LOW);
-      
+
       // Start the automation check timer
       hasp.startTimer("automation_check");
-      
+
       // Set initial button states
       hasp.sendCommandf("p0b10.text", "Sunrise/Sunset Light: OFF");
       hasp.sendCommandf("p0b10.bg_color", "#555555");
       hasp.sendCommandf("p0b10.val", "0");
-      
+
       hasp.sendCommandf("p0b11.text", "Seasonal Daytime Light: OFF");
       hasp.sendCommandf("p0b11.bg_color", "#555555");
       hasp.sendCommandf("p0b11.val", "0");
-      
+
       hasp.sendCommandf("p0b12.text", "Weather-Based Light: OFF");
       hasp.sendCommandf("p0b12.bg_color", "#555555");
       hasp.sendCommandf("p0b12.val", "0");
+
+      // Set initial timer status
+      hasp.sendCommandf("p2b3.text", "Running");
+      hasp.sendCommandf("p2b3.text_color", "#00FF00");
+
+      // Get current time
+      time_t now;
+      time(&now);
+      struct tm timeinfo;
+      localtime_r(&now, &timeinfo);
+
+      // Set initial next event times based on current time
+      if (timeinfo.tm_hour < 6) {
+        hasp.sendCommandf("p0b20.text", "Next event: 06:00 (Sunrise)");
+      } else if (timeinfo.tm_hour < 12) {
+        hasp.sendCommandf("p0b20.text", "Next event: 19:00 (Sunset)");
+        hasp.sendCommandf("p0b21.text", "Next event: 12:00 (Noon)");
+      } else if (timeinfo.tm_hour < 14) {
+        hasp.sendCommandf("p0b20.text", "Next event: 19:00 (Sunset)");
+        hasp.sendCommandf("p0b22.text", "Next event: 14:00 (Weather Check)");
+      } else if (timeinfo.tm_hour < 19) {
+        hasp.sendCommandf("p0b20.text", "Next event: 19:00 (Sunset)");
+      } else {
+        hasp.sendCommandf("p0b20.text", "Next event: 06:00 (Sunrise Tomorrow)");
+      }
+
+      // Run the automation check immediately to set up everything
+      hasp.callCommand("automation_check");
+
+  # Handle page changes to ensure clean transitions
+  - event: page.loaded
+    callback: |
+      // This event fires when a page is fully loaded
+      // We can use it to ensure the page is properly initialized
+      int page = hasp.getPage();
+
+      if (page == 0) {
+        // Main page - update button states based on GPIO
+        bool relay1_state = gpio.digitalRead(40);
+        bool relay2_state = gpio.digitalRead(1);
+        bool relay3_state = gpio.digitalRead(2);
+        
+        if (relay1_state) {
+          hasp.sendCommandf("p0b10.text", "Sunrise/Sunset Light: ON");
+          hasp.sendCommandf("p0b10.bg_color", "#009900");
+          hasp.sendCommandf("p0b10.val", "1");
+        } else {
+          hasp.sendCommandf("p0b10.text", "Sunrise/Sunset Light: OFF");
+          hasp.sendCommandf("p0b10.bg_color", "#555555");
+          hasp.sendCommandf("p0b10.val", "0");
+        }
+        
+                if (relay2_state) {
+          hasp.sendCommandf("p0b11.text", "Seasonal Daytime Light: ON");
+          hasp.sendCommandf("p0b11.bg_color", "#009900");
+          hasp.sendCommandf("p0b11.val", "1");
+        } else {
+          hasp.sendCommandf("p0b11.text", "Seasonal Daytime Light: OFF");
+          hasp.sendCommandf("p0b11.bg_color", "#555555");
+          hasp.sendCommandf("p0b11.val", "0");
+        }
+        
+        if (relay3_state) {
+          hasp.sendCommandf("p0b12.text", "Weather-Based Light: ON");
+          hasp.sendCommandf("p0b12.bg_color", "#009900");
+          hasp.sendCommandf("p0b12.val", "1");
+        } else {
+          hasp.sendCommandf("p0b12.text", "Weather-Based Light: OFF");
+          hasp.sendCommandf("p0b12.bg_color", "#555555");
+          hasp.sendCommandf("p0b12.val", "0");
+        }
+      } else if (page == 1) {
+        // System information page
+        // Update the last check time
+        time_t now;
+        time(&now);
+        struct tm timeinfo;
+        localtime_r(&now, &timeinfo);
+        
+        char time_str[10];
+        snprintf(time_str, sizeof(time_str), "%02d:%02d:%02d", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+        hasp.sendCommandf("p1b10.text", "Last Check: %s", time_str);
+      } else if (page == 2) {
+        // Timer status page
+        // Update the timer statuses
+        bool relay1_state = gpio.digitalRead(40);
+        bool relay2_state = gpio.digitalRead(1);
+        bool relay3_state = gpio.digitalRead(2);
+        
+        // Update automation check timer status
+        hasp.sendCommandf("p2b3.text", "Running");
+        hasp.sendCommandf("p2b3.text_color", "#00FF00");
+        
+        // Update next check time
+        time_t now;
+        time(&now);
+        struct tm timeinfo;
+        localtime_r(&now, &timeinfo);
+        
+        time_t next = now + 60;
+        struct tm next_tm;
+        localtime_r(&next, &next_tm);
+        
+        char time_str[10];
+        snprintf(time_str, sizeof(time_str), "%02d:%02d:%02d", next_tm.tm_hour, next_tm.tm_min, next_tm.tm_sec);
+        hasp.sendCommandf("p2b11.text", "%s", time_str);
+      }

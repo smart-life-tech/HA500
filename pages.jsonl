@@ -4,8 +4,17 @@
 {"page":0,"id":3,"obj":"label","x":0,"y":120,"w":480,"h":30,"text":"%date%","text_color":"#888888","text_font":20,"align":1}
 
 {"page":0,"id":10,"obj":"btn","x":40,"y":170,"w":400,"h":70,"text":"Sunrise/Sunset Light: OFF","text_color":"#FFFFFF","bg_color":"#555555","text_font":20,"toggle":true,"val":0,"mode":0,"action":{"on_release":"relay1.toggle"}}
-{"page":0,"id":11,"obj":"btn","x":40,"y":260,"w":400,"h":70,"text":"Seasonal Daytime Light: OFF","text_color":"#FFFFFF","bg_color":"#555555","text_font":20,"toggle":true,"val":0,"mode":0,"action":{"on_release":"relay2.toggle"}}
-{"page":0,"id":12,"obj":"btn","x":40,"y":350,"w":400,"h":70,"text":"Weather-Based Light: OFF","text_color":"#FFFFFF","bg_color":"#555555","text_font":20,"toggle":true,"val":0,"mode":0,"action":{"on_release":"relay3.toggle"}}
+{"page":0,"id":20,"obj":"label","x":40,"y":240,"w":400,"h":20,"text":"Next event: --:--","text_color":"#AAAAAA","text_font":16,"align":1}
+
+{"page":0,"id":11,"obj":"btn","x":40,"y":270,"w":400,"h":70,"text":"Seasonal Daytime Light: OFF","text_color":"#FFFFFF","bg_color":"#555555","text_font":20,"toggle":true,"val":0,"mode":0,"action":{"on_release":"relay2.toggle"}}
+{"page":0,"id":21,"obj":"label","x":40,"y":340,"w":400,"h":20,"text":"Next event: --:--","text_color":"#AAAAAA","text_font":16,"align":1}
+
+{"page":0,"id":12,"obj":"btn","x":40,"y":370,"w":400,"h":70,"text":"Weather-Based Light: OFF","text_color":"#FFFFFF","bg_color":"#555555","text_font":20,"toggle":true,"val":0,"mode":0,"action":{"on_release":"relay3.toggle"}}
+{"page":0,"id":22,"obj":"label","x":40,"y":440,"w":400,"h":20,"text":"Next event: --:--","text_color":"#AAAAAA","text_font":16,"align":1}
+
+{"page":0,"id":90,"obj":"btn","action":{"down": "page prev"},"x":0,"y":470,"w":160,"h":50,"bg_color":"#2C3E50","text":"Prev","text_color":"#FFFFFF","radius":8,"border_side":0,"text_font":20}
+{"page":0,"id":91,"obj":"btn","action":{"down": "page back"},"x":160,"y":470,"w":160,"h":50,"bg_color":"#2C3E50","text":"Home","text_color":"#FFFFFF","radius":8,"border_side":0,"text_font":20}
+{"page":0,"id":92,"obj":"btn","action":{"down": "page next"},"x":320,"y":470,"w":160,"h":50,"bg_color":"#2C3E50","text":"Next","text_color":"#FFFFFF","radius":8,"border_side":0,"text_font":20}
 
 {"page":1,"id":0,"obj":"obj","x":0,"y":0,"w":480,"h":480,"bg_color":"#000000"}
 {"page":1,"id":1,"obj":"label","x":0,"y":0,"w":480,"h":60,"text":"System Information","text_color":"#FFFFFF","bg_color":"#0066CC","text_font":24,"align":1}
@@ -16,11 +25,27 @@
 {"page":1,"id":6,"obj":"label","x":10,"y":230,"w":460,"h":30,"text":"Uptime: %uptime%","text_color":"#FFFFFF","text_font":20}
 {"page":1,"id":7,"obj":"label","x":10,"y":270,"w":460,"h":30,"text":"Free Heap: %heap%","text_color":"#FFFFFF","text_font":20}
 {"page":1,"id":8,"obj":"label","x":10,"y":310,"w":460,"h":30,"text":"Version: %version%","text_color":"#FFFFFF","text_font":20}
+{"page":1,"id":9,"obj":"label","x":10,"y":350,"w":460,"h":30,"text":"Automation Status: Running","text_color":"#00FF00","text_font":20}
+{"page":1,"id":10,"obj":"label","x":10,"y":390,"w":460,"h":30,"text":"Last Check: --:--","text_color":"#FFFFFF","text_font":20,"id":"last_check"}
 
-{"page":0,"id":90,"obj":"btn","action":{"down": "page prev"},"x":0,"y":430,"w":160,"h":50,"bg_color":"#2C3E50","text":"Prev","text_color":"#FFFFFF","radius":0,"border_side":0,"text_font":20}
-{"page":0,"id":91,"obj":"btn","action":{"down": "page back"},"x":160,"y":430,"w":160,"h":50,"bg_color":"#2C3E50","text":"Home","text_color":"#FFFFFF","radius":0,"border_side":0,"text_font":20}
-{"page":0,"id":92,"obj":"btn","action":{"down": "page next"},"x":320,"y":430,"w":160,"h":50,"bg_color":"#2C3E50","text":"Next","text_color":"#FFFFFF","radius":0,"border_side":0,"text_font":20}
+{"page":1,"id":90,"obj":"btn","action":{"down": "page prev"},"x":0,"y":430,"w":160,"h":50,"bg_color":"#2C3E50","text":"Prev","text_color":"#FFFFFF","radius":8,"border_side":0,"text_font":20}
+{"page":1,"id":91,"obj":"btn","action":{"down": "page back"},"x":160,"y":430,"w":160,"h":50,"bg_color":"#2C3E50","text":"Home","text_color":"#FFFFFF","radius":8,"border_side":0,"text_font":20}
+{"page":1,"id":92,"obj":"btn","action":{"down": "page next"},"x":320,"y":430,"w":160,"h":50,"bg_color":"#2C3E50","text":"Next","text_color":"#FFFFFF","radius":8,"border_side":0,"text_font":20}
 
-{"page":1,"id":90,"obj":"btn","action":{"down": "page prev"},"x":0,"y":430,"w":160,"h":50,"bg_color":"#2C3E50","text":"Prev","text_color":"#FFFFFF","radius":0,"border_side":0,"text_font":20}
-{"page":1,"id":91,"obj":"btn","action":{"down": "page back"},"x":160,"y":430,"w":160,"h":50,"bg_color":"#2C3E50","text":"Home","text_color":"#FFFFFF","radius":0,"border_side":0,"text_font":20}
-{"page":1,"id":92,"obj":"btn","action":{"down": "page next"},"x":320,"y":430,"w":160,"h":50,"bg_color":"#2C3E50","text":"Next","text_color":"#FFFFFF","radius":0,"border_side":0,"text_font":20}
+{"page":2,"id":0,"obj":"obj","x":0,"y":0,"w":480,"h":480,"bg_color":"#000000"}
+{"page":2,"id":1,"obj":"label","x":0,"y":0,"w":480,"h":60,"text":"Timer Status","text_color":"#FFFFFF","bg_color":"#0066CC","text_font":24,"align":1}
+{"page":2,"id":2,"obj":"label","x":10,"y":70,"w":460,"h":30,"text":"Automation Check Timer:","text_color":"#FFFFFF","text_font":20}
+{"page":2,"id":3,"obj":"label","x":10,"y":100,"w":460,"h":30,"text":"Running","text_color":"#00FF00","text_font":20,"id":"automation_status"}
+{"page":2,"id":4,"obj":"label","x":10,"y":140,"w":460,"h":30,"text":"Sunrise/Sunset Timer:","text_color":"#FFFFFF","text_font":20}
+{"page":2,"id":5,"obj":"label","x":10,"y":170,"w":460,"h":30,"text":"Not Active","text_color":"#FF0000","text_font":20,"id":"sunset_status"}
+{"page":2,"id":6,"obj":"label","x":10,"y":210,"w":460,"h":30,"text":"Seasonal Timer:","text_color":"#FFFFFF","text_font":20}
+{"page":2,"id":7,"obj":"label","x":10,"y":240,"w":460,"h":30,"text":"Not Active","text_color":"#FF0000","text_font":20,"id":"seasonal_status"}
+{"page":2,"id":8,"obj":"label","x":10,"y":280,"w":460,"h":30,"text":"Weather Timer:","text_color":"#FFFFFF","text_font":20}
+{"page":2,"id":9,"obj":"label","x":10,"y":310,"w":460,"h":30,"text":"Not Active","text_color":"#FF0000","text_font":20,"id":"weather_status"}
+{"page":2,"id":10,"obj":"label","x":10,"y":350,"w":460,"h":30,"text":"Next Check:","text_color":"#FFFFFF","text_font":20}
+{"page":2,"id":11,"obj":"label","x":10,"y":380,"w":460,"h":30,"text":"--:--","text_color":"#FFFFFF","text_font":20,"id":"next_check"}
+{"page":2,"id":12,"obj":"btn","x":10,"y":420,"w":460,"h":40,"text":"Run Check Now","text_color":"#FFFFFF","bg_color":"#0066CC","text_font":20,"action":{"on_release":"run_check"}}
+
+{"page":2,"id":90,"obj":"btn","action":{"down": "page prev"},"x":0,"y":430,"w":160,"h":50,"bg_color":"#2C3E50","text":"Prev","text_color":"#FFFFFF","radius":8,"border_side":0,"text_font":20}
+{"page":2,"id":91,"obj":"btn","action":{"down": "page back"},"x":160,"y":430,"w":160,"h":50,"bg_color":"#2C3E50","text":"Home","text_color":"#FFFFFF","radius":8,"border_side":0,"text_font":20}
+{"page":2,"id":92,"obj":"btn","action":{"down": "page next"},"x":320,"y":430,"w":160,"h":50,"bg_color":"#2C3E50","text":"Next","text_color":"#FFFFFF","radius":8,"border_side":0,"text_font":20}
