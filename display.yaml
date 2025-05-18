@@ -135,15 +135,27 @@ display:
       // Switch status boxes
       // SW1
       it.rectangle(40, 200, 400, 70, id(sw1).state ? id(green_color) : id(light_gray_color));
-      it.print(240, 235, id(medium_font), id(white_color), TextAlign::CENTER, "Sunrise/Sunset Light: %s", id(sw1).state ? "ON" : "OFF");
+      
+      // Create formatted text for SW1
+      std::string sw1_text = "Sunrise/Sunset Light: ";
+      sw1_text += id(sw1).state ? "ON" : "OFF";
+      it.print(240, 235, id(medium_font), id(white_color), TextAlign::CENTER, sw1_text.c_str());
       
       // SW2
       it.rectangle(40, 290, 400, 70, id(sw2).state ? id(green_color) : id(light_gray_color));
-      it.print(240, 325, id(medium_font), id(white_color), TextAlign::CENTER, "Seasonal Daytime Light: %s", id(sw2).state ? "ON" : "OFF");
+      
+      // Create formatted text for SW2
+      std::string sw2_text = "Seasonal Daytime Light: ";
+      sw2_text += id(sw2).state ? "ON" : "OFF";
+      it.print(240, 325, id(medium_font), id(white_color), TextAlign::CENTER, sw2_text.c_str());
       
       // SW3
       it.rectangle(40, 380, 400, 70, id(sw3).state ? id(green_color) : id(light_gray_color));
-      it.print(240, 415, id(medium_font), id(white_color), TextAlign::CENTER, "Weather-Based Light: %s", id(sw3).state ? "ON" : "OFF");
+      
+      // Create formatted text for SW3
+      std::string sw3_text = "Weather-Based Light: ";
+      sw3_text += id(sw3).state ? "ON" : "OFF";
+      it.print(240, 415, id(medium_font), id(white_color), TextAlign::CENTER, sw3_text.c_str());
 
 # Fonts
 font:
@@ -161,11 +173,11 @@ font:
 color:
   - id: blue_color
     red: 0%
-    green: 0%
-    blue: 100%
+    green: 40%
+    blue: 80%
   - id: green_color
     red: 0%
-    green: 100%
+    green: 60%
     blue: 0%
   - id: white_color
     red: 100%
@@ -180,9 +192,9 @@ color:
     green: 80%
     blue: 80%
   - id: dark_gray_color
-    red: 20%
-    green: 20%
-    blue: 20%
+    red: 40%
+    green: 40%
+    blue: 40%
 
 # Outputs for relays
 output:

@@ -1,0 +1,16 @@
+{"page":0,"id":1,"obj":"btn","action":{"down": "page prev"},"x":0,"y":416,"w":158,"h":64,"bg_color":"#2C3E50","text":"\uE141","text_color":"#FFFFFF","radius":0,"border_side":0,"text_font":48}
+{"page":0,"id":2,"obj":"btn","action":{"down": "page back"},"x":160,"y":416,"w":160,"h":64,"bg_color":"#2C3E50","text":"\uE2DC","text_color":"#FFFFFF","radius":0,"border_side":0,"text_font":48}
+{"page":0,"id":3,"obj":"btn","action":{"down": "page next"},"x":322,"y":416,"w":158,"h":64,"bg_color":"#2C3E50","text":"\uE142","text_color":"#FFFFFF","radius":0,"border_side":0,"text_font":48}
+
+{"page":0,"id":4,"obj":"label","x":175,"y":5,"h":30,"w":45,"text":"00.0","align":2,"bg_color":"#2C3E50","text_font":24}
+{"page":0,"id":5,"obj":"label","x":220,"y":5,"h":30,"w":45,"text":"°C","align":0,"bg_color":"#2C3E50","text_font":24}
+{"page":0,"id":6,"obj":"label","x":3,"y":5,"h":30,"w":62,"text":"00:00","align":0,"bg_color":"#2C3E50","text_font":24}
+
+
+{"page":1,"id":13,"obj":"gauge","x":96,"y":92,"min":10,"max":26,"w":296,"h":296, "label_count":9, "line_count":17, "val":21, "critical_value":30}
+{"page":1,"id":0,"prev":6}
+{"page":6,"id":0,"next":1}
+{"page": 6,"id": 60,"x": 10,"y": 0,"w": 480,"obj": "label","text": "Hostname: %hostname%"}
+{"page": 6,"id": 61,"x": 10,"y": 40,"w": 480,"obj": "label","text": "IP: %ip%"}
+{"page": 6,"id": 62,"x": 10,"y": 80,"w": 480,"obj": "label","text": "MAC: %mac%"}
+{"page": 6,"id": 63,"x": 10,"y": 120,"w": 480,"obj": "label","text": "Version: %"}
