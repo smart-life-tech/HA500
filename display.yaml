@@ -22,10 +22,6 @@ api:
   encryption:
     key: !secret encryption_key
 
-# # Enable OTA updates
-# ota:
-#   password: !secret ota_password
-
 # Wi-Fi configuration
 wifi:
   ssid: !secret wifi_ssid
@@ -107,46 +103,90 @@ sun:
     then:
       - script.execute: sw1_sunset_timer
 
-# I2C for touchscreen
-i2c:
-  sda: GPIO19
-  scl: GPIO45
-  scan: true
-
 # SPI for display
 spi:
   clk_pin: GPIO48
   mosi_pin: GPIO47
   miso_pin: GPIO41
 
-# Display configuration - using a simple SSD1306 display that should be supported
+# Display configuration for 480x480 TFT display
 display:
-  - platform: ssd1306_i2c
-    model: "SH1106 128x64"
-    address: 0x3C
+  - platform: ili9xxx
+    invert_colors: true
+    model: ST7796
+    id: main_display
+    dimensions:
+      width: 480
+      height: 480
+    dc_pin: GPIO7
+    reset_pin: GPIO6
+    cs_pin: GPIO5
+    rotation: 0
+    update_interval: 1s
     lambda: |-
-      it.print(0, 0, id(font1), "Smart Light Control");
+      // Title
+      it.rectangle(0, 0, 480, 60, id(blue_color));
+      it.print(240, 30, id(title_font), id(white_color), TextAlign::CENTER, "Smart Light Control");
       
       // Time display
-      it.strftime(0, 16, id(font1), "%H:%M:%S", id(homeassistant_time).now());
+      it.strftime(240, 100, id(large_font), id(black_color), TextAlign::CENTER, "%H:%M:%S", id(homeassistant_time).now());
+      it.strftime(240, 140, id(medium_font), id(dark_gray_color), TextAlign::CENTER, "%A, %B %d", id(homeassistant_time).now());
       
-      // SW1 status
-      it.print(0, 32, id(font1), "SW1: ");
-      it.print(40, 32, id(font1), id(sw1).state ? "ON" : "OFF");
+      // Switch status boxes
+      // SW1
+      it.rectangle(40, 200, 400, 70, id(sw1).state ? id(green_color) : id(light_gray_color));
+      it.print(240, 235, id(medium_font), id(white_color), TextAlign::CENTER, "Sunrise/Sunset Light: %s", id(sw1).state ? "ON" : "OFF");
       
-      // SW2 status
-      it.print(0, 48, id(font1), "SW2: ");
-      it.print(40, 48, id(font1), id(sw2).state ? "ON" : "OFF");
+      // SW2
+      it.rectangle(40, 290, 400, 70, id(sw2).state ? id(green_color) : id(light_gray_color));
+      it.print(240, 325, id(medium_font), id(white_color), TextAlign::CENTER, "Seasonal Daytime Light: %s", id(sw2).state ? "ON" : "OFF");
+      
+      // SW3
+      it.rectangle(40, 380, 400, 70, id(sw3).state ? id(green_color) : id(light_gray_color));
+      it.print(240, 415, id(medium_font), id(white_color), TextAlign::CENTER, "Weather-Based Light: %s", id(sw3).state ? "ON" : "OFF");
 
-# Font
+# Fonts
 font:
   - file: "fonts/Roboto-Medium.ttf"
-    id: font1
-    size: 12
+    id: title_font
+    size: 24
+  - file: "fonts/Roboto-Medium.ttf"
+    id: large_font
+    size: 36
+  - file: "fonts/Roboto-Medium.ttf"
+    id: medium_font
+    size: 20
+
+# Colors
+color:
+  - id: blue_color
+    red: 0%
+    green: 0%
+    blue: 100%
+  - id: green_color
+    red: 0%
+    green: 100%
+    blue: 0%
+  - id: white_color
+    red: 100%
+    green: 100%
+    blue: 100%
+  - id: black_color
+    red: 0%
+    green: 0%
+    blue: 0%
+  - id: light_gray_color
+    red: 80%
+    green: 80%
+    blue: 80%
+  - id: dark_gray_color
+    red: 20%
+    green: 20%
+    blue: 20%
 
 # Outputs for relays
 output:
-  - platform: ledc  # Use ledc instead of gpio for ESP32
+  - platform: ledc
     pin: GPIO38
     id: backlight_output
     frequency: 1000 Hz
