@@ -74,20 +74,27 @@ wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
   ap:
-    ssid: "Guition Smart Light Fallback"
+    ssid: "PhiJo Smart Products Fallback"
     password: !secret wifi_fallback_password
+  on_connect:
+    then:
+      - logger.log: "WiFi connected, starting web server"
+      - delay: 1s
+      - script.execute: notify_web_portal
+
+
 
 time:
   - platform: homeassistant
     id: time_comp
     on_time_sync:
-      - script.execute: time_update
+      - script.execute: check_light_schedules
     on_time:
       # Update clock display every minute
       - minutes: '*'
         seconds: 0
         then:
-          - script.execute: time_update
+          - script.execute: check_light_schedules
       
       # Check for sunrise/sunset events
       - seconds: 0
@@ -270,83 +277,6 @@ lvgl:
                   text_font: roboto24
                   align: center
                   text_color: 0xFFFFFF
-        
-        # Clock display
-        - meter:
-            height: 200
-            width: 200
-            align: center
-            widgets:
-            bg_opa: TRANSP
-            text_color: 0xFFFFFF
-            scales:
-              - ticks:
-                  width: 1
-                  count: 61
-                  length: 10
-                  color: 0xFFFFFF
-                range_from: 0
-                range_to: 60
-                angle_range: 360
-                rotation: 270
-                indicators:
-                  - line:
-                      id: minute_hand
-                      value: !lambda |-
-                        return id(time_comp).now().minute;
-                      width: 3
-                      color: 0xE0E0E0
-                      r_mod: -1
-              -
-                angle_range: 330
-                rotation: 300
-                range_from: 1
-                range_to: 12
-                ticks:
-                  width: 1
-                  count: 12
-                  length: 1
-                  major:
-                    stride: 1
-                    width: 4
-                    length: 8
-                    color: 0xC0C0C0
-                    label_gap: 6
-
-              - angle_range: 360
-                rotation: 270
-                range_from: 0
-                range_to: 720
-                indicators:
-                  - line:
-                      id: hour_hand
-                      value: !lambda |-
-                        auto now = id(time_comp).now();
-                        return std::fmod(now.hour, 12) * 60 + now.minute;
-                      width: 4
-                      color: 0xA0A0A0
-                      r_mod: -20
-        
-        # Date display
-        - obj:
-            widgets:
-            - label:
-                styles: date_style
-                id: day_label
-                y: -20
-                text: !lambda |-
-                  static const char * const day_names[] = {"SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"};
-                  return day_names[id(time_comp).now().day_of_week - 1];
-            - label:
-                styles: date_style
-                id: date_label
-                y: +20
-                text: !lambda |-
-                  static const char * const mon_names[] = {"JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"};
-                  static char date_buf[8];
-                  auto now = id(time_comp).now();
-                  snprintf(date_buf, sizeof(date_buf), "%s %2d", mon_names[now.month-1], now.day_of_month);
-                  return date_buf;
         
         # Switch 1 - Sunrise/Sunset Light
         - button:
@@ -560,32 +490,16 @@ switch:
 # Scripts for automation logic
 #-------------------------------------------
 script:
-  - id: time_update
-    # update the clock display
+  - id: notify_web_portal
     then:
-      - lvgl.indicator.update:
-          id: minute_hand
-          value: !lambda |-
-            return id(time_comp).now().minute;
-      - lvgl.indicator.update:
-          id: hour_hand
-          value: !lambda |-
-            auto now = id(time_comp).now();
-            return std::fmod(now.hour, 12) * 60 + now.minute;
       - lvgl.label.update:
-          id: date_label
-          text: !lambda |-
-            static const char * const mon_names[] = {"JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"};
-            static char date_buf[8];
-            auto now = id(time_comp).now();
-            snprintf(date_buf, sizeof(date_buf), "%s %2d", mon_names[now.month-1], now.day_of_month);
-            return date_buf;
-      - lvgl.label.update:
-          id: day_label
-          text: !lambda |-
-            static const char * const day_names[] = {"SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"};
-            return day_names[id(time_comp).now().day_of_week - 1];
-            
+          id: status_label
+          text: "Web portal active at http://${ip_address.state}"
+          text_color: ha_blue
+      - logger.log: 
+          format: "Web portal active at http://%s"
+          args: ['id(ip_address).state.c_str()']
+
   - id: check_light_schedules
     then:
       - lambda: |-
@@ -594,7 +508,7 @@ script:
           // ---- SWITCH 1: SUNRISE/SUNSET CONTROL ----
           
           // Check for sunrise events
-          auto sunrise_opt = id(sun_comp).sunrise();
+          auto sunrise_opt = id(sun_comp).sunrise(0.0);  // 0.0 degrees elevation
           if (sunrise_opt.has_value()) {
             auto sunrise = sunrise_opt.value();
             
@@ -619,7 +533,7 @@ script:
           }
           
           // Check for sunset events
-          auto sunset_opt = id(sun_comp).sunset();
+          auto sunset_opt = id(sun_comp).sunset(0.0);  // 0.0 degrees elevation
           if (sunset_opt.has_value()) {
             auto sunset = sunset_opt.value();
             
