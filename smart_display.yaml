@@ -85,8 +85,11 @@ wifi:
   on_connect:
     then:
       - logger.log: "WiFi connected, starting web server"
-      - component.update: web_servers
+      #- component.update: web_servers  # Changed from web_server to web_servers
       - delay: 1s
+      - script.execute: notify_web_portal
+  on_disconnect:
+    then:
       - script.execute: notify_web_portal
 
 time:
@@ -112,45 +115,14 @@ web_server:
 
 captive_portal:
 
-# Sun component for sunrise/sunset
+
+# For the sun component, we need to use fixed values initially
 sun:
-  latitude: !lambda "return id(location_latitude).state;"
-  longitude: !lambda "return id(location_longitude).state;"
+  latitude: 37.1  # Default value matching the initial_value in location_latitude
+  longitude: -8.0  # Default value matching the initial_value in location_longitude
   id: sun_comp
 
-# Sensors for Home Assistant data
-sensor:
-  - platform: wifi_signal
-    name: "WiFi Signal"
-    id: wifi_signal_db
-    update_interval: 60s
-    entity_category: diagnostic
-    internal: true
-
-  # Reports the WiFi signal strength in %
-  - platform: copy
-    source_id: wifi_signal_db
-    name: "WiFi Strength"
-    filters:
-      - lambda: return min(max(2 * (x + 100.0), 0.0), 100.0);
-    unit_of_measurement: "%"
-    entity_category: diagnostic
-    
-  # Temperature sensor from Home Assistant
-  - platform: homeassistant
-    id: outdoor_temp
-    entity_id: sensor.weather_temperature
-    name: "Outdoor Temperature"
-    unit_of_measurement: "°C"
-    
-  # Precipitation sensor from Home Assistant
-  - platform: homeassistant
-    id: precipitation
-    entity_id: sensor.weather_precipitation
-    name: "Precipitation"
-    unit_of_measurement: "mm"
-
-# Location settings
+# Add this to update the sun component when location changes
 number:
   - platform: template
     id: location_latitude
@@ -163,7 +135,8 @@ number:
     optimistic: true
     on_value:
       then:
-        - component.update: sun_comp
+        - lambda: |-
+            id(sun_comp).set_latitude(id(location_latitude).state);
     
   - platform: template
     id: location_longitude
@@ -176,7 +149,8 @@ number:
     optimistic: true
     on_value:
       then:
-        - component.update: sun_comp
+        - lambda: |-
+            id(sun_comp).set_longitude(id(location_longitude).state);
 
 text_sensor:
   - platform: wifi_info
@@ -201,7 +175,8 @@ text_sensor:
   - platform: template
     id: location_name
     name: "Weather Location"
-    initial_value: "Sao Bartolomeu de Messines, Portugal"
+    lambda: |-
+      return {id(location_name_str)};
 
 color:
   # Create a Home Assistant blue color
@@ -226,6 +201,10 @@ color:
 
 # Global variables for timer tracking and settings
 globals:
+  - id: location_name_str
+    type: std::string
+    restore_value: yes
+    initial_value: '"Sao Bartolomeu de Messines, Portugal"'
   # Timer tracking
   - id: sw1_off_time
     type: int
@@ -356,30 +335,31 @@ lvgl:
                   text_font: roboto24
                   align: center
                   text_color: 0xFFFFFF
-              - button:
-                  id: settings_button
-                  x: 420
-                  y: 10
-                  width: 40
-                  height: 40
-                  styles: nav_button_style
-                  widgets:
-                    - label:
-                        text: "${settings_icon}"
-                        text_font: icons24
-                        align: center
-                  on_click:
-                    then:
-                      - lambda: |-
-                          id(current_page) = 1;
-                          id(main_page).set_hidden(true);
-                          id(settings_page).set_hidden(false);
-        
+              # - button:
+              #     id: settings_button
+              #     x: 420
+              #     y: 10
+              #     width: 40
+              #     height: 40
+              #     styles: nav_button_style
+              #     widgets:
+              #       - label:
+              #           text: "${settings_icon}"
+              #           text_font: icons24
+              #           align: center
+              #     on_click:
+              #       then:
+              #         - lambda: |-
+              #             id(current_page) = 1;
+              #         - lvgl.widget.show: settings_page
+                        
         # Clock display
         - meter:
-            height: 200
-            width: 200
+            height: 300
+            width: 300
             align: center
+            x: 0
+            y: 0
             widgets:
             bg_opa: TRANSP
             text_color: 0xFFFFFF
@@ -433,6 +413,9 @@ lvgl:
         
         # Date display
         - obj:
+            align: center
+            x: 0
+            y: 150
             widgets:
             - label:
                 styles: date_style
@@ -508,9 +491,9 @@ lvgl:
                   id: sw3_button_label
                   text: !lambda |-
                     if (id(sw3_winter_mode)) {
-                      return std::string(id(rain_icon)) + " Weather-Based Light (Winter)";
+                      return " Weather-Based Light (Winter)";
                     } else {
-                      return std::string(id(thermometer_icon)) + " Weather-Based Light (Summer)";
+                      return "Weather-Based Light (Summer)";
                     }
                   text_font: roboto24
                   align: center
@@ -537,7 +520,7 @@ lvgl:
             - label:
                 id: ip_address_label
                 align: CENTER
-                text: 'Not connected'
+                text: 'wifi Not connected, Loading ...'
                 text_color: ha_blue
                 y: +10
     
@@ -580,8 +563,12 @@ lvgl:
                     then:
                       - lambda: |-
                           id(current_page) = 0;
-                          id(settings_page).set_hidden(true);
-                          id(main_page).set_hidden(false);
+                      - lvgl.widget.update:
+                          id: settings_page
+                          hidden: true
+                      - lvgl.widget.update:
+                          id: main_page
+                          hidden: false
         
         # Location settings
         - obj:
@@ -667,18 +654,29 @@ lvgl:
                     }
                   text_font: roboto24
                   align: center
-            on_click:
-              then:
-                - lambda: |-
-                    id(sw3_winter_mode) = !id(sw3_winter_mode);
-                    if (id(sw3_winter_mode)) {
-                      id(sw3_mode_label).set_text("SW3 Mode: Winter (Rain-based)");
-                      id(sw3_button_label).set_text(std::string(id(rain_icon)) + " Weather-Based Light (Winter)");
-                    } else {
-                      id(sw3_mode_label).set_text("SW3 Mode: Summer (Temperature-based)");
-                      id(sw3_button_label).set_text(std::string(id(thermometer_icon)) + " Weather-Based Light (Summer)");
-                    }
-        
+                  # For the SW3 mode toggle
+                  on_click:
+                    then:
+                      - lambda: |-
+                          id(sw3_winter_mode) = !id(sw3_winter_mode);
+                      - if:
+                          condition:
+                            lambda: 'return id(sw3_winter_mode);'
+                          then:
+                            - lvgl.label.update:
+                                id: sw3_mode_label
+                                text: "SW3 Mode: Winter (Rain-based)"
+                            - lvgl.label.update:
+                                id: sw3_button_label
+                                text: " Weather-Based Light (Winter)"
+                          else:
+                            - lvgl.label.update:
+                                id: sw3_mode_label
+                                text: "SW3 Mode: Summer (Temperature-based)"
+                            - lvgl.label.update:
+                                id: sw3_button_label
+                                text: "Weather-Based Light (Summer)"
+
         # System Info
         - obj:
             width: 100%
@@ -702,7 +700,7 @@ lvgl:
                   text_color: 0xCCCCCC
               - label:
                   id: wifi_signal_label
-                  text: !lambda 'return std::to_string((int)id(wifi_signal_db).state) + " dBm";'
+                  text: "Unknown"
                   text_font: roboto24
                   x: 240
                   y: 20
@@ -901,17 +899,36 @@ switch:
 script:
   - id: notify_web_portal
     then:
+      - if:
+          condition:
+            wifi.connected:
+          then:
+            - lvgl.label.update:
+                id: status_label
+                text: "Web portal active at http://${ip_address.state}"
+                text_color: ha_blue
+            - logger.log: 
+                format: "Web portal active at http://%s"
+                args: ['id(ip_address).state.c_str()']
+          else:
+            - lvgl.label.update:
+                id: status_label
+                text: "No internet. Connect to AP: PhiJo Smart Products"
+                text_color: orange_color
+            - logger.log: "No internet. Connect to AP: PhiJo Smart Products"
       - lvgl.label.update:
-          id: status_label
-          text: "Web portal active at http://${ip_address.state}"
-          text_color: ha_blue
-      - logger.log: 
-          format: "Web portal active at http://%s"
-          args: ['id(ip_address).state.c_str()']
+          id: ip_address_label
+          text: !lambda |-
+            if (id(ip_address).has_state()) {
+              return std::string("WiFi: ") + id(ip_address).state;
+            } else {
+              return "wifi Not connected";
+            }
 
   - id: time_update
     # update the clock display
     then:
+      - script.execute: notify_web_portal
       - lvgl.indicator.update:
           id: minute_hand
           value: !lambda |-
@@ -936,23 +953,7 @@ script:
             return day_names[id(time_comp).now().day_of_week - 1];
       - lvgl.label.update:
           id: weather_label
-          text: !lambda |-
-            std::string weather_text = "";
-            if (id(outdoor_temp).has_state()) {
-              weather_text += std::to_string((int)id(outdoor_temp).state) + "°C";
-            } else {
-              weather_text += "-- °C";
-            }
-            
-            weather_text += " | ";
-            
-            if (id(precipitation).has_state()) {
-              weather_text += std::to_string(id(precipitation).state) + "mm";
-            } else {
-              weather_text += "-- mm";
-            }
-            
-            return weather_text;
+          text: "Weather data unavailable"
             
   - id: check_light_schedules
     then:
@@ -963,19 +964,16 @@ script:
           if (id(sw1_manual_override_time) > 0 && 
               now.timestamp - id(sw1_manual_override_time) > 86400) {
             id(sw1_manual_override_time) = 0;
-            // Reset to automatic control will be handled by normal automation
           }
           
           if (id(sw2_manual_override_time) > 0 && 
               now.timestamp - id(sw2_manual_override_time) > 86400) {
             id(sw2_manual_override_time) = 0;
-            // Reset to automatic control will be handled by normal automation
           }
           
           if (id(sw3_manual_override_time) > 0 && 
               now.timestamp - id(sw3_manual_override_time) > 86400) {
             id(sw3_manual_override_time) = 0;
-            // Reset to automatic control will be handled by normal automation
           }
           
           // Only run automations if not in manual override mode
@@ -1038,16 +1036,6 @@ script:
               // Summer: Mar-Sep (6 hours), Winter: Oct-Feb (1 hour)
               int hours = (month >= 3 && month <= 9) ? 6 : 1;
               
-              // Temperature adjustment if sensor is available
-              if (id(outdoor_temp).has_state()) {
-                float temp = id(outdoor_temp).state;
-                if (temp > 22.0) {
-                  // Add 10% more time for each 10°C above 22°C
-                  float extra_time = (temp - 22.0) * 0.1;
-                  hours = hours * (1.0 + extra_time);
-                }
-              }
-              
               // Turn on SW2 and set timer
               id(sw2).turn_on();
               id(sw2_off_time) = now.timestamp + hours * 3600;
@@ -1063,35 +1051,13 @@ script:
           }
           
           // ---- SWITCH 3: WEATHER-BASED CONTROL ----
+          // For now, we'll just use a simple timer for SW3 without weather data
           if (id(sw3_manual_override_time) == 0) {
-            // Check weather conditions for SW3 if sensors are available
-            if (id(outdoor_temp).has_state() && id(precipitation).has_state()) {
-              float temp = id(outdoor_temp).state;
-              float rain = id(precipitation).state;
-              
-              if (id(sw3_winter_mode)) {
-                // Winter mode - focus on rain
-                if (rain > 0.0 && !id(sw3).state) {
-                  // Calculate runtime based on rain volume
-                  // Formula: 1 hour per mm of rain, up to 6 hours
-                  int hours = std::min(6, (int)(rain + 0.5));
-                  
-                  id(sw3).turn_on();
-                  id(sw3_off_time) = now.timestamp + hours * 3600;
-                  id(lvgl_comp).loop();
-                }
-              } else {
-                // Summer mode - focus on temperature
-                if (temp > 35.0 && !id(sw3).state) {
-                  // Calculate runtime based on temperature
-                  // 2 hours base + 30 min for each degree above 35°C
-                  int minutes = 120 + (temp - 35.0) * 30;
-                  
-                  id(sw3).turn_on();
-                  id(sw3_off_time) = now.timestamp + minutes * 60;
-                  id(lvgl_comp).loop();
-                }
-              }
+            // Turn on SW3 at 3 PM if it's not already on
+            if (now.hour == 15 && now.minute == 0 && !id(sw3).state) {
+              id(sw3).turn_on();
+              id(sw3_off_time) = now.timestamp + 3600; // 1 hour
+              id(lvgl_comp).loop();
             }
             
             // Check if it's time to turn off SW3
