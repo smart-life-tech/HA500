@@ -3,13 +3,19 @@ substitutions:
   friendly_name: "Guition Smart Light Control"
   device_description: "Guition ESP32-S3-4848S040 Smart Light Controller"
   project_name: "Guition.ESP32_S3_4848S040"
-  project_version: "1.0.1"
+  project_version: "1.0.2"
 
   lightbulb: "\U000F0335"
   ceiling_light: "\U000F0769"
   lamp: "\U000F06B5"
   floor_lamp: "\U000F08DD"
   string_lights: "\U000F12BA"
+  settings_icon: "\U000F0493"
+  home_icon: "\U000F02DC"
+  sun_icon: "\U000F0599"
+  moon_icon: "\U000F0F64"
+  rain_icon: "\U000F0596"
+  thermometer_icon: "\U000F050F"
 
 esphome:
   name: "${name}"
@@ -79,24 +85,23 @@ wifi:
   on_connect:
     then:
       - logger.log: "WiFi connected, starting web server"
+      - component.update: web_servers
       - delay: 1s
       - script.execute: notify_web_portal
-
-
 
 time:
   - platform: homeassistant
     id: time_comp
     on_time_sync:
-      - script.execute: check_light_schedules
+      - script.execute: time_update
     on_time:
       # Update clock display every minute
       - minutes: '*'
         seconds: 0
         then:
-          - script.execute: check_light_schedules
+          - script.execute: time_update
       
-      # Check for sunrise/sunset events
+      # Check for sunrise/sunset events and other automations
       - seconds: 0
         minutes: /1
         then:
@@ -109,8 +114,8 @@ captive_portal:
 
 # Sun component for sunrise/sunset
 sun:
-  latitude: !secret latitude
-  longitude: !secret longitude
+  latitude: !lambda "return id(location_latitude).state;"
+  longitude: !lambda "return id(location_longitude).state;"
   id: sun_comp
 
 # Sensors for Home Assistant data
@@ -145,6 +150,34 @@ sensor:
     name: "Precipitation"
     unit_of_measurement: "mm"
 
+# Location settings
+number:
+  - platform: template
+    id: location_latitude
+    name: "Location Latitude"
+    min_value: -90
+    max_value: 90
+    step: 0.01
+    restore_value: true
+    initial_value: 37.1  # Default to a central location
+    optimistic: true
+    on_value:
+      then:
+        - component.update: sun_comp
+    
+  - platform: template
+    id: location_longitude
+    name: "Location Longitude"
+    min_value: -180
+    max_value: 180
+    step: 0.01
+    restore_value: true
+    initial_value: -8.0  # Default to a central location
+    optimistic: true
+    on_value:
+      then:
+        - component.update: sun_comp
+
 text_sensor:
   - platform: wifi_info
     ip_address:
@@ -164,6 +197,11 @@ text_sensor:
     mac_address:
       name: "Mac Address"
       entity_category: diagnostic
+      
+  - platform: template
+    id: location_name
+    name: "Weather Location"
+    initial_value: "Sao Bartolomeu de Messines, Portugal"
 
 color:
   # Create a Home Assistant blue color
@@ -177,9 +215,18 @@ color:
     red: 80%
     green: 0%
     blue: 0%
+  - id: orange_color
+    red: 100%
+    green: 60%
+    blue: 0%
+  - id: blue_color
+    red: 0%
+    green: 40%
+    blue: 100%
 
-# Global variables for timer tracking
+# Global variables for timer tracking and settings
 globals:
+  # Timer tracking
   - id: sw1_off_time
     type: int
     restore_value: yes
@@ -196,6 +243,32 @@ globals:
     type: bool
     restore_value: yes
     initial_value: "false"
+    
+  # Manual override tracking
+  - id: sw1_manual_override_time
+    type: int
+    restore_value: yes
+    initial_value: "0"
+  - id: sw2_manual_override_time
+    type: int
+    restore_value: yes
+    initial_value: "0"
+  - id: sw3_manual_override_time
+    type: int
+    restore_value: yes
+    initial_value: "0"
+    
+  # SW3 mode (winter/summer)
+  - id: sw3_winter_mode
+    type: bool
+    restore_value: yes
+    initial_value: "false"  # Default to summer mode
+    
+  # Current page tracking
+  - id: current_page
+    type: int
+    restore_value: no
+    initial_value: "0"  # 0 = main page, 1 = settings page
 
 #-------------------------------------------
 # LVGL Interface
@@ -234,6 +307,11 @@ lvgl:
     - id: switch_style_off
       bg_color: 0x555555
       text_color: 0xCCCCCC
+    - id: nav_button_style
+      bg_color: 0x444444
+      text_color: 0xFFFFFF
+      radius: 15
+      pad_all: 5
 
   theme:
     button:
@@ -255,6 +333,7 @@ lvgl:
 
   page_wrap: true
   pages:
+    # Main Page
     - id: main_page
       skip: false
       layout:
@@ -277,6 +356,112 @@ lvgl:
                   text_font: roboto24
                   align: center
                   text_color: 0xFFFFFF
+              - button:
+                  id: settings_button
+                  x: 420
+                  y: 10
+                  width: 40
+                  height: 40
+                  styles: nav_button_style
+                  widgets:
+                    - label:
+                        text: "${settings_icon}"
+                        text_font: icons24
+                        align: center
+                  on_click:
+                    then:
+                      - lambda: |-
+                          id(current_page) = 1;
+                          id(main_page).set_hidden(true);
+                          id(settings_page).set_hidden(false);
+        
+        # Clock display
+        - meter:
+            height: 200
+            width: 200
+            align: center
+            widgets:
+            bg_opa: TRANSP
+            text_color: 0xFFFFFF
+            scales:
+              - ticks:
+                  width: 1
+                  count: 61
+                  length: 10
+                  color: 0xFFFFFF
+                range_from: 0
+                range_to: 60
+                angle_range: 360
+                rotation: 270
+                indicators:
+                  - line:
+                      id: minute_hand
+                      value: !lambda |-
+                        return id(time_comp).now().minute;
+                      width: 3
+                      color: 0xE0E0E0
+                      r_mod: -1
+              -
+                angle_range: 330
+                rotation: 300
+                range_from: 1
+                range_to: 12
+                ticks:
+                  width: 1
+                  count: 12
+                  length: 1
+                  major:
+                    stride: 1
+                    width: 4
+                    length: 8
+                    color: 0xC0C0C0
+                    label_gap: 6
+
+              - angle_range: 360
+                rotation: 270
+                range_from: 0
+                range_to: 720
+                indicators:
+                  - line:
+                      id: hour_hand
+                      value: !lambda |-
+                        auto now = id(time_comp).now();
+                        return std::fmod(now.hour, 12) * 60 + now.minute;
+                      width: 4
+                      color: 0xA0A0A0
+                      r_mod: -20
+        
+        # Date display
+        - obj:
+            widgets:
+            - label:
+                styles: date_style
+                id: day_label
+                y: -20
+                text: !lambda |-
+                  static const char * const day_names[] = {"SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"};
+                  return day_names[id(time_comp).now().day_of_week - 1];
+            - label:
+                styles: date_style
+                id: date_label
+                y: +20
+                text: !lambda |-
+                  static const char * const mon_names[] = {"JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"};
+                  static char date_buf[8];
+                  auto now = id(time_comp).now();
+                  snprintf(date_buf, sizeof(date_buf), "%s %2d", mon_names[now.month-1], now.day_of_month);
+                  return date_buf;
+        
+        # Weather info display
+        - obj:
+            width: 90%
+            height: 60
+            widgets:
+              - label:
+                  id: weather_label
+                  text: "Loading weather data..."
+                  text_color: 0xCCCCCC
+                  align: center
         
         # Switch 1 - Sunrise/Sunset Light
         - button:
@@ -286,12 +471,14 @@ lvgl:
             checkable: true
             widgets:
               - label:
-                  text: "Sunrise/Sunset Light"
+                  text: "${sun_icon} Sunrise/Sunset Light"
                   text_font: roboto24
                   align: center
             on_click:
               then:
                 - switch.toggle: sw1
+                - lambda: |-
+                    id(sw1_manual_override_time) = id(time_comp).now().timestamp;
             
         # Switch 2 - Seasonal Daytime Light
         - button:
@@ -301,12 +488,14 @@ lvgl:
             checkable: true
             widgets:
               - label:
-                  text: "Seasonal Daytime Light"
+                  text: "${thermometer_icon} Seasonal Daytime Light"
                   text_font: roboto24
                   align: center
             on_click:
               then:
                 - switch.toggle: sw2
+                - lambda: |-
+                    id(sw2_manual_override_time) = id(time_comp).now().timestamp;
                 
         # Switch 3 - Weather-Based Light
         - button:
@@ -316,12 +505,20 @@ lvgl:
             checkable: true
             widgets:
               - label:
-                  text: "Weather-Based Light"
+                  id: sw3_button_label
+                  text: !lambda |-
+                    if (id(sw3_winter_mode)) {
+                      return std::string(id(rain_icon)) + " Weather-Based Light (Winter)";
+                    } else {
+                      return std::string(id(thermometer_icon)) + " Weather-Based Light (Summer)";
+                    }
                   text_font: roboto24
                   align: center
             on_click:
               then:
                 - switch.toggle: sw3
+                - lambda: |-
+                    id(sw3_manual_override_time) = id(time_comp).now().timestamp;
                 
         # Status display
         - obj:
@@ -343,8 +540,210 @@ lvgl:
                 text: 'Not connected'
                 text_color: ha_blue
                 y: +10
-                
-        # OTA popup
+    
+    # Settings Page
+    - id: settings_page
+      hidden: true
+      layout:
+        type: flex
+        flex_flow: column_wrap
+      width: 100%
+      bg_color: 0x000000
+      bg_opa: cover
+      pad_all: 5
+      widgets:
+        # Title bar
+        - obj:
+            width: 100%
+            height: 60
+            bg_color: ha_blue
+            bg_opa: cover
+            widgets:
+              - label:
+                  text: "Settings"
+                  text_font: roboto24
+                  align: center
+                  text_color: 0xFFFFFF
+              - button:
+                  id: home_button
+                  x: 420
+                  y: 10
+                  width: 40
+                  height: 40
+                  styles: nav_button_style
+                  widgets:
+                    - label:
+                        text: "${home_icon}"
+                        text_font: icons24
+                        align: center
+                  on_click:
+                    then:
+                      - lambda: |-
+                          id(current_page) = 0;
+                          id(settings_page).set_hidden(true);
+                          id(main_page).set_hidden(false);
+        
+        # Location settings
+        - obj:
+            width: 100%
+            height: 40
+            widgets:
+              - label:
+                  text: "Location Settings"
+                  text_font: roboto24
+                  align: center
+                  text_color: 0xFFFFFF
+                  
+        - obj:
+            width: 90%
+            height: 60
+            widgets:
+              - label:
+                  text: "Location Name:"
+                  text_font: roboto24
+                  x: 10
+                  y: 20
+                  text_color: 0xCCCCCC
+              - label:
+                  id: location_name_label
+                  text: !lambda 'return id(location_name).state;'
+                  text_font: roboto24
+                  x: 240
+                  y: 20
+                  text_color: 0xFFFFFF
+                  
+        - obj:
+            width: 90%
+            height: 60
+            widgets:
+              - label:
+                  text: "Latitude:"
+                  text_font: roboto24
+                  x: 10
+                  y: 20
+                  text_color: 0xCCCCCC
+              - label:
+                  id: latitude_label
+                  text: !lambda 'return std::to_string(id(location_latitude).state);'
+                  text_font: roboto24
+                  x: 240
+                  y: 20
+                  text_color: 0xFFFFFF
+                  
+        - obj:
+            width: 90%
+            height: 60
+            widgets:
+              - label:
+                  text: "Longitude:"
+                  text_font: roboto24
+                  x: 10
+                  y: 20
+                  text_color: 0xCCCCCC
+              - label:
+                  id: longitude_label
+                  text: !lambda 'return std::to_string(id(location_longitude).state);'
+                  text_font: roboto24
+                  x: 240
+                  y: 20
+                  text_color: 0xFFFFFF
+        
+        # SW3 Mode Toggle
+        - button:
+            id: sw3_mode_toggle
+            width: 90%
+            height: 80
+            checkable: true
+            state:
+              checked: !lambda 'return id(sw3_winter_mode);'
+            widgets:
+              - label:
+                  id: sw3_mode_label
+                  text: !lambda |-
+                    if (id(sw3_winter_mode)) {
+                      return "SW3 Mode: Winter (Rain-based)";
+                    } else {
+                      return "SW3 Mode: Summer (Temperature-based)";
+                    }
+                  text_font: roboto24
+                  align: center
+            on_click:
+              then:
+                - lambda: |-
+                    id(sw3_winter_mode) = !id(sw3_winter_mode);
+                    if (id(sw3_winter_mode)) {
+                      id(sw3_mode_label).set_text("SW3 Mode: Winter (Rain-based)");
+                      id(sw3_button_label).set_text(std::string(id(rain_icon)) + " Weather-Based Light (Winter)");
+                    } else {
+                      id(sw3_mode_label).set_text("SW3 Mode: Summer (Temperature-based)");
+                      id(sw3_button_label).set_text(std::string(id(thermometer_icon)) + " Weather-Based Light (Summer)");
+                    }
+        
+        # System Info
+        - obj:
+            width: 100%
+            height: 40
+            widgets:
+              - label:
+                  text: "System Information"
+                  text_font: roboto24
+                  align: center
+                  text_color: 0xFFFFFF
+                  
+        - obj:
+            width: 90%
+            height: 60
+            widgets:
+              - label:
+                  text: "WiFi Signal:"
+                  text_font: roboto24
+                  x: 10
+                  y: 20
+                  text_color: 0xCCCCCC
+              - label:
+                  id: wifi_signal_label
+                  text: !lambda 'return std::to_string((int)id(wifi_signal_db).state) + " dBm";'
+                  text_font: roboto24
+                  x: 240
+                  y: 20
+                  text_color: 0xFFFFFF
+                  
+        - obj:
+            width: 90%
+            height: 60
+            widgets:
+              - label:
+                  text: "IP Address:"
+                  text_font: roboto24
+                  x: 10
+                  y: 20
+                  text_color: 0xCCCCCC
+              - label:
+                  id: settings_ip_label
+                  text: !lambda 'return id(ip_address).state;'
+                  text_font: roboto24
+                  x: 240
+                  y: 20
+                  text_color: 0xFFFFFF
+                  
+        - obj:
+            width: 90%
+            height: 60
+            widgets:
+              - label:
+                  text: "Version:"
+                  text_font: roboto24
+                  x: 10
+                  y: 20
+                  text_color: 0xCCCCCC
+              - label:
+                  text: "${project_version}"
+                  text_font: roboto24
+                  x: 240
+                  y: 20
+                  text_color: 0xFFFFFF
+                  
+        # OTA popup (shared between pages)
         - obj:
             id: popup_obj
             hidden: true
@@ -473,7 +872,12 @@ switch:
               checked: true
         - lvgl.label.update:
             id: status_label
-            text: "Weather-Based Light ON"
+            text: !lambda |-
+              if (id(sw3_winter_mode)) {
+                return "Weather-Based Light ON (Winter)";
+              } else {
+                return "Weather-Based Light ON (Summer)";
+              }
             text_color: green_color
     on_turn_off:
       then:
@@ -483,7 +887,12 @@ switch:
               checked: false
         - lvgl.label.update:
             id: status_label
-            text: "Weather-Based Light OFF"
+            text: !lambda |-
+              if (id(sw3_winter_mode)) {
+                return "Weather-Based Light OFF (Winter)";
+              } else {
+                return "Weather-Based Light OFF (Summer)";
+              }
             text_color: red_color
 
 #-------------------------------------------
@@ -500,111 +909,197 @@ script:
           format: "Web portal active at http://%s"
           args: ['id(ip_address).state.c_str()']
 
+  - id: time_update
+    # update the clock display
+    then:
+      - lvgl.indicator.update:
+          id: minute_hand
+          value: !lambda |-
+            return id(time_comp).now().minute;
+      - lvgl.indicator.update:
+          id: hour_hand
+          value: !lambda |-
+            auto now = id(time_comp).now();
+            return std::fmod(now.hour, 12) * 60 + now.minute;
+      - lvgl.label.update:
+          id: date_label
+          text: !lambda |-
+            static const char * const mon_names[] = {"JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"};
+            static char date_buf[8];
+            auto now = id(time_comp).now();
+            snprintf(date_buf, sizeof(date_buf), "%s %2d", mon_names[now.month-1], now.day_of_month);
+            return date_buf;
+      - lvgl.label.update:
+          id: day_label
+          text: !lambda |-
+            static const char * const day_names[] = {"SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"};
+            return day_names[id(time_comp).now().day_of_week - 1];
+      - lvgl.label.update:
+          id: weather_label
+          text: !lambda |-
+            std::string weather_text = "";
+            if (id(outdoor_temp).has_state()) {
+              weather_text += std::to_string((int)id(outdoor_temp).state) + "°C";
+            } else {
+              weather_text += "-- °C";
+            }
+            
+            weather_text += " | ";
+            
+            if (id(precipitation).has_state()) {
+              weather_text += std::to_string(id(precipitation).state) + "mm";
+            } else {
+              weather_text += "-- mm";
+            }
+            
+            return weather_text;
+            
   - id: check_light_schedules
     then:
       - lambda: |-
           auto now = id(time_comp).now();
           
+          // Check for manual override timeouts (24 hours = 86400 seconds)
+          if (id(sw1_manual_override_time) > 0 && 
+              now.timestamp - id(sw1_manual_override_time) > 86400) {
+            id(sw1_manual_override_time) = 0;
+            // Reset to automatic control will be handled by normal automation
+          }
+          
+          if (id(sw2_manual_override_time) > 0 && 
+              now.timestamp - id(sw2_manual_override_time) > 86400) {
+            id(sw2_manual_override_time) = 0;
+            // Reset to automatic control will be handled by normal automation
+          }
+          
+          if (id(sw3_manual_override_time) > 0 && 
+              now.timestamp - id(sw3_manual_override_time) > 86400) {
+            id(sw3_manual_override_time) = 0;
+            // Reset to automatic control will be handled by normal automation
+          }
+          
+          // Only run automations if not in manual override mode
+          
           // ---- SWITCH 1: SUNRISE/SUNSET CONTROL ----
-          
-          // Check for sunrise events
-          auto sunrise_opt = id(sun_comp).sunrise(0.0);  // 0.0 degrees elevation
-          if (sunrise_opt.has_value()) {
-            auto sunrise = sunrise_opt.value();
-            
-            // Check if it's 30 minutes before sunrise (between 30 and 29 minutes before)
-            if (sunrise.timestamp - now.timestamp <= 1800 && 
-                sunrise.timestamp - now.timestamp > 1740 && 
-                !id(sw1_before_sunrise)) {
-              // Turn on light 30 minutes before sunrise
-              id(sw1).turn_on();
-              id(sw1_before_sunrise) = true;
-              id(lvgl_comp).loop();
-            }
-            
-            // Check if it's sunrise time (within 1 minute)
-            if (abs(sunrise.timestamp - now.timestamp) < 60 && 
-                id(sw1_before_sunrise)) {
-              // Turn off light at sunrise
-              id(sw1).turn_off();
-              id(sw1_before_sunrise) = false;
-              id(lvgl_comp).loop();
-            }
-          }
-          
-          // Check for sunset events
-          auto sunset_opt = id(sun_comp).sunset(0.0);  // 0.0 degrees elevation
-          if (sunset_opt.has_value()) {
-            auto sunset = sunset_opt.value();
-            
-            // Check if it's sunset time (within 1 minute)
-            if (abs(sunset.timestamp - now.timestamp) < 60) {
-              // Turn on light at sunset and set timer for 2 hours
-              id(sw1).turn_on();
-              id(sw1_off_time) = now.timestamp + 7200; // 2 hours
-              id(lvgl_comp).loop();
-            }
-          }
-          
-          // Check if it's time to turn off SW1 after sunset
-          if (id(sw1).state && !id(sw1_before_sunrise) && 
-              now.timestamp >= id(sw1_off_time) && id(sw1_off_time) > 0) {
-            id(sw1).turn_off();
-            id(sw1_off_time) = 0;
-            id(lvgl_comp).loop();
-          }
-          
-          // ---- SWITCH 2: SEASONAL DAYTIME CONTROL ----
-          
-          // Run the seasonal timer at noon
-          if (now.hour == 12 && now.minute == 0) {
-            int month = now.month;
-            // Summer: Mar-Sep (6 hours), Winter: Oct-Feb (1 hour)
-            int hours = (month >= 3 && month <= 9) ? 6 : 1;
-            
-            // Temperature adjustment if sensor is available
-            if (id(outdoor_temp).has_state()) {
-              float temp = id(outdoor_temp).state;
-              if (temp > 22.0) {
-                // Add 10% more time for each 10°C above 22°C
-                float extra_time = (temp - 22.0) * 0.1;
-                hours = hours * (1.0 + extra_time);
+          if (id(sw1_manual_override_time) == 0) {
+            // Check for sunrise events
+            auto sunrise_opt = id(sun_comp).sunrise(0.0);  // 0.0 degrees elevation
+            if (sunrise_opt.has_value()) {
+              auto sunrise = sunrise_opt.value();
+              
+              // Check if it's 30 minutes before sunrise (between 30 and 29 minutes before)
+              if (sunrise.timestamp - now.timestamp <= 1800 && 
+                  sunrise.timestamp - now.timestamp > 1740 && 
+                  !id(sw1_before_sunrise)) {
+                // Turn on light 30 minutes before sunrise
+                id(sw1).turn_on();
+                id(sw1_before_sunrise) = true;
+                id(lvgl_comp).loop();
+              }
+              
+              // Check if it's sunrise time (within 1 minute)
+              if (abs(sunrise.timestamp - now.timestamp) < 60 && 
+                  id(sw1_before_sunrise)) {
+                // Turn off light at sunrise
+                id(sw1).turn_off();
+                id(sw1_before_sunrise) = false;
+                id(lvgl_comp).loop();
               }
             }
             
-            // Turn on SW2 and set timer
-            id(sw2).turn_on();
-            id(sw2_off_time) = now.timestamp + hours * 3600;
-            id(lvgl_comp).loop();
-          }
-          
-          // Check if it's time to turn off SW2
-          if (id(sw2).state && now.timestamp >= id(sw2_off_time) && id(sw2_off_time) > 0) {
-            id(sw2).turn_off();
-            id(sw2_off_time) = 0;
-            id(lvgl_comp).loop();
-          }
-          
-          // ---- SWITCH 3: WEATHER-BASED CONTROL ----
-          
-          // Check weather conditions for SW3 if sensors are available
-          if (id(outdoor_temp).has_state() && id(precipitation).has_state()) {
-            float temp = id(outdoor_temp).state;
-            float rain = id(precipitation).state;
+            // Check for sunset events
+            auto sunset_opt = id(sun_comp).sunset(0.0);  // 0.0 degrees elevation
+            if (sunset_opt.has_value()) {
+              auto sunset = sunset_opt.value();
+              
+              // Check if it's sunset time (within 1 minute)
+              if (abs(sunset.timestamp - now.timestamp) < 60) {
+                // Turn on light at sunset and set timer for 2 hours
+                id(sw1).turn_on();
+                id(sw1_off_time) = now.timestamp + 7200; // 2 hours
+                id(lvgl_comp).loop();
+              }
+            }
             
-            // Activate if temperature is high or heavy rain
-            if ((temp > 35.0 || rain > 10.0) && !id(sw3).state) {
-              id(sw3).turn_on();
-              id(sw3_off_time) = now.timestamp + 7200; // 2 hours
+            // Check if it's time to turn off SW1 after sunset
+            if (id(sw1).state && !id(sw1_before_sunrise) && 
+                now.timestamp >= id(sw1_off_time) && id(sw1_off_time) > 0) {
+              id(sw1).turn_off();
+              id(sw1_off_time) = 0;
               id(lvgl_comp).loop();
             }
           }
           
-          // Check if it's time to turn off SW3
-          if (id(sw3).state && now.timestamp >= id(sw3_off_time) && id(sw3_off_time) > 0) {
-            id(sw3).turn_off();
-            id(sw3_off_time) = 0;
-            id(lvgl_comp).loop();
+          // ---- SWITCH 2: SEASONAL DAYTIME CONTROL ----
+          if (id(sw2_manual_override_time) == 0) {
+            // Run the seasonal timer at noon
+            if (now.hour == 12 && now.minute == 0) {
+              int month = now.month;
+              // Summer: Mar-Sep (6 hours), Winter: Oct-Feb (1 hour)
+              int hours = (month >= 3 && month <= 9) ? 6 : 1;
+              
+              // Temperature adjustment if sensor is available
+              if (id(outdoor_temp).has_state()) {
+                float temp = id(outdoor_temp).state;
+                if (temp > 22.0) {
+                  // Add 10% more time for each 10°C above 22°C
+                  float extra_time = (temp - 22.0) * 0.1;
+                  hours = hours * (1.0 + extra_time);
+                }
+              }
+              
+              // Turn on SW2 and set timer
+              id(sw2).turn_on();
+              id(sw2_off_time) = now.timestamp + hours * 3600;
+              id(lvgl_comp).loop();
+            }
+            
+            // Check if it's time to turn off SW2
+            if (id(sw2).state && now.timestamp >= id(sw2_off_time) && id(sw2_off_time) > 0) {
+              id(sw2).turn_off();
+              id(sw2_off_time) = 0;
+              id(lvgl_comp).loop();
+            }
+          }
+          
+          // ---- SWITCH 3: WEATHER-BASED CONTROL ----
+          if (id(sw3_manual_override_time) == 0) {
+            // Check weather conditions for SW3 if sensors are available
+            if (id(outdoor_temp).has_state() && id(precipitation).has_state()) {
+              float temp = id(outdoor_temp).state;
+              float rain = id(precipitation).state;
+              
+              if (id(sw3_winter_mode)) {
+                // Winter mode - focus on rain
+                if (rain > 0.0 && !id(sw3).state) {
+                  // Calculate runtime based on rain volume
+                  // Formula: 1 hour per mm of rain, up to 6 hours
+                  int hours = std::min(6, (int)(rain + 0.5));
+                  
+                  id(sw3).turn_on();
+                  id(sw3_off_time) = now.timestamp + hours * 3600;
+                  id(lvgl_comp).loop();
+                }
+              } else {
+                // Summer mode - focus on temperature
+                if (temp > 35.0 && !id(sw3).state) {
+                  // Calculate runtime based on temperature
+                  // 2 hours base + 30 min for each degree above 35°C
+                  int minutes = 120 + (temp - 35.0) * 30;
+                  
+                  id(sw3).turn_on();
+                  id(sw3_off_time) = now.timestamp + minutes * 60;
+                  id(lvgl_comp).loop();
+                }
+              }
+            }
+            
+            // Check if it's time to turn off SW3
+            if (id(sw3).state && now.timestamp >= id(sw3_off_time) && id(sw3_off_time) > 0) {
+              id(sw3).turn_off();
+              id(sw3_off_time) = 0;
+              id(lvgl_comp).loop();
+            }
           }
 
 #-------------------------------------------
@@ -615,16 +1110,29 @@ font:
     id: roboto24
     size: 24
     bpp: 4
-    extras:
-      - file: "fonts/materialdesignicons-webfont.ttf"
-        glyphs:
-          [
-            "\U000F0335", # mdi-lightbulb
-            "\U000F0769", # mdi-ceiling-light
-            "\U000F06B5", # mdi-lamp
-            "\U000F08DD", # mdi-floor-lamp
-            "\U000F12BA", # mdi-string-lights
-          ]
+    
+  - file: "gfonts://Roboto"
+    id: roboto
+    size: 18
+    bpp: 4
+
+  - file: "fonts/materialdesignicons-webfont.ttf"
+    id: icons24
+    size: 24
+    bpp: 4
+    glyphs: [
+        "\U000F0335", # mdi-lightbulb
+        "\U000F0769", # mdi-ceiling-light
+        "\U000F06B5", # mdi-lamp
+        "\U000F08DD", # mdi-floor-lamp
+        "\U000F12BA", # mdi-string-lights
+        "\U000F0493", # mdi-settings
+        "\U000F02DC", # mdi-home
+        "\U000F0599", # mdi-weather-sunny
+        "\U000F0F64", # mdi-weather-night
+        "\U000F0596", # mdi-weather-pouring
+        "\U000F050F", # mdi-thermometer
+      ]
 
   - file: "fonts/materialdesignicons-webfont.ttf"
     id: light40
