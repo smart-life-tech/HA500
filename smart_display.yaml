@@ -331,7 +331,7 @@ lvgl:
             bg_opa: cover
             widgets:
               - label:
-                  text: "Smart Light Control"
+                  text: "Phijo Smart Control"
                   text_font: roboto24
                   align: center
                   text_color: 0xFFFFFF
@@ -353,98 +353,70 @@ lvgl:
               #             id(current_page) = 1;
               #         - lvgl.widget.show: settings_page
                         
-        # Clock display
-        - meter:
-            height: 300
+        # Digital Clock display
+        - obj:
+            height: 150
             width: 300
             align: center
             x: 0
             y: 0
             widgets:
-            bg_opa: TRANSP
-            text_color: 0xFFFFFF
-            scales:
-              - ticks:
-                  width: 1
-                  count: 61
-                  length: 10
-                  color: 0xFFFFFF
-                range_from: 0
-                range_to: 60
-                angle_range: 360
-                rotation: 270
-                indicators:
-                  - line:
-                      id: minute_hand
-                      value: !lambda |-
-                        return id(time_comp).now().minute;
-                      width: 3
-                      color: 0xE0E0E0
-                      r_mod: -1
-              -
-                angle_range: 330
-                rotation: 300
-                range_from: 1
-                range_to: 12
-                ticks:
-                  width: 1
-                  count: 12
-                  length: 1
-                  major:
-                    stride: 1
-                    width: 4
-                    length: 8
-                    color: 0xC0C0C0
-                    label_gap: 6
-
-              - angle_range: 360
-                rotation: 270
-                range_from: 0
-                range_to: 720
-                indicators:
-                  - line:
-                      id: hour_hand
-                      value: !lambda |-
-                        auto now = id(time_comp).now();
-                        return std::fmod(now.hour, 12) * 60 + now.minute;
-                      width: 4
-                      color: 0xA0A0A0
-                      r_mod: -20
+              - label:
+                  id: digital_clock
+                  text: !lambda |-
+                    auto now = id(time_comp).now();
+                    static char time_buf[6];
+                    sprintf(time_buf, "%02d:%02d", now.hour, now.minute);
+                    return time_buf;
+                  text_font: roboto_large
+                  align: center
+                  text_color: 0xFFFFFF
         
-        # Date display
+        # Full date display
         - obj:
             align: center
             x: 0
-            y: 150
+            y: 100
             widgets:
-            - label:
-                styles: date_style
-                id: day_label
-                y: -20
-                text: !lambda |-
-                  static const char * const day_names[] = {"SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"};
-                  return day_names[id(time_comp).now().day_of_week - 1];
-            - label:
-                styles: date_style
-                id: date_label
-                y: +20
-                text: !lambda |-
-                  static const char * const mon_names[] = {"JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"};
-                  static char date_buf[8];
-                  auto now = id(time_comp).now();
-                  snprintf(date_buf, sizeof(date_buf), "%s %2d", mon_names[now.month-1], now.day_of_month);
-                  return date_buf;
+              - label:
+                  id: full_date_label
+                  text: !lambda |-
+                    static const char * const day_names[] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
+                    static const char * const mon_names[] = {"January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"};
+                    static char date_buf[32];
+                    auto now = id(time_comp).now();
+                    sprintf(date_buf, "%s, %s %d, %d", day_names[now.day_of_week - 1], mon_names[now.month-1], now.day_of_month, now.year);
+                    return date_buf;
+                  text_font: roboto
+                  align: center
+                  text_color: 0xCCCCCC
         
-        # Weather info display
+        # Weather info display - expanded
         - obj:
             width: 90%
-            height: 60
+            height: 120
             widgets:
               - label:
                   id: weather_label
                   text: "Loading weather data..."
+                  text_font: roboto
                   text_color: 0xCCCCCC
                   align: center
+                  y: -40
+              - label:
+                  id: weather_forecast
+                  text: "Weather forecast unavailable"
+                  text_font: roboto
+                  text_color: 0xCCCCCC
+                  align: center
+                  y: 0
+              - label:
+                  id: temperature_label
+                  text: ""
+                  text_font: roboto
+                  text_color: 0xCCCCCC
+                  align: center
+                  y: 40
         
         # Switch 1 - Sunrise/Sunset Light
         - button:
@@ -929,31 +901,28 @@ script:
     # update the clock display
     then:
       - script.execute: notify_web_portal
-      - lvgl.indicator.update:
-          id: minute_hand
-          value: !lambda |-
-            return id(time_comp).now().minute;
-      - lvgl.indicator.update:
-          id: hour_hand
-          value: !lambda |-
-            auto now = id(time_comp).now();
-            return std::fmod(now.hour, 12) * 60 + now.minute;
-      - lvgl.label.update:
-          id: date_label
-          text: !lambda |-
-            static const char * const mon_names[] = {"JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"};
-            static char date_buf[8];
-            auto now = id(time_comp).now();
-            snprintf(date_buf, sizeof(date_buf), "%s %2d", mon_names[now.month-1], now.day_of_month);
-            return date_buf;
-      - lvgl.label.update:
-          id: day_label
-          text: !lambda |-
-            static const char * const day_names[] = {"SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"};
-            return day_names[id(time_comp).now().day_of_week - 1];
       - lvgl.label.update:
           id: weather_label
           text: "Weather data unavailable"
+      - lvgl.label.update:
+          id: digital_clock
+          text: !lambda |-
+            auto now = id(time_comp).now();
+            static char time_buf[6];
+            sprintf(time_buf, "%02d:%02d", now.hour, now.minute);
+            return time_buf;
+      - lvgl.label.update:
+          id: full_date_label
+          text: !lambda |-
+            static const char * const day_names[] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
+            static const char * const mon_names[] = {"January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"};
+            static char date_buf[32];
+            auto now = id(time_comp).now();
+            sprintf(date_buf, "%s, %s %d, %d", day_names[now.day_of_week - 1], mon_names[now.month-1], now.day_of_month, now.year);
+            return date_buf;
+      - lvgl.label.update:
+          id: weather_forecast
+          text: "Weather forecast: Sunny with chance of clouds"
             
   - id: check_light_schedules
     then:
@@ -1111,6 +1080,11 @@ font:
         "\U000F08DD", # mdi-floor-lamp
         "\U000F12BA", # mdi-string-lights
       ]
+
+  - file: "gfonts://Roboto"
+    id: roboto_large
+    size: 72
+    bpp: 4
 
 #-------------------------------------------
 # Touchscreen gt911 i2c
