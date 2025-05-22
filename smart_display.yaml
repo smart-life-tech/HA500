@@ -25,6 +25,9 @@ esphome:
     version: "${project_version}"
   platformio_options:
     board_build.flash_mode: dio
+    build_unflags: "-f"
+    build_flags: "-shared"
+    
 
 esp32:
   board: esp32-s3-devkitc-1
@@ -79,19 +82,28 @@ ota:
 wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
+  
+  # Add these parameters for better connection reliability
+  power_save_mode: NONE
+  fast_connect: true
+  reboot_timeout: 15min
+  
+  # Existing fallback AP configuration
   ap:
     ssid: "PhiJo Smart Products Fallback"
     password: !secret wifi_fallback_password
+  
+  # Existing event handlers
   on_connect:
     then:
       - logger.log: "WiFi connected, starting web server"
-      #- component.update: web_servers  # Changed from web_server to web_servers
+      #- component.update: web_server  # Uncommented and corrected
       - delay: 1s
       - script.execute: notify_web_portal
   on_disconnect:
     then:
+      - logger.log: "WiFi disconnected, attempting to reconnect"
       - script.execute: notify_web_portal
-
 time:
   - platform: homeassistant
     id: time_comp
@@ -356,18 +368,15 @@ lvgl:
         # Digital Clock display
         - obj:
             height: 150
-            width: 300
+            width: 100%
             align: center
-            x: 0
+            bg_color: 0x000000
+            x: 20
             y: 0
             widgets:
               - label:
                   id: digital_clock
-                  text: !lambda |-
-                    auto now = id(time_comp).now();
-                    static char time_buf[6];
-                    sprintf(time_buf, "%02d:%02d", now.hour, now.minute);
-                    return time_buf;
+                  text: "06:00"
                   text_font: roboto_large
                   align: center
                   text_color: 0xFFFFFF
@@ -375,8 +384,11 @@ lvgl:
         # Full date display
         - obj:
             align: center
+            bg_color: 0x000000
             x: 0
             y: 100
+            width: 100%
+            height: 100
             widgets:
               - label:
                   id: full_date_label
@@ -393,8 +405,9 @@ lvgl:
         
         # Weather info display - expanded
         - obj:
-            width: 90%
-            height: 120
+            width: 100%
+            bg_color: 0x000000
+            height: 130
             widgets:
               - label:
                   id: weather_label
@@ -412,7 +425,7 @@ lvgl:
                   y: 0
               - label:
                   id: temperature_label
-                  text: ""
+                  text: "Temperature: 10°C"
                   text_font: roboto
                   text_color: 0xCCCCCC
                   align: center
@@ -421,12 +434,12 @@ lvgl:
         # Switch 1 - Sunrise/Sunset Light
         - button:
             id: sw1_button
-            width: 90%
-            height: 80
+            width: 100%
+            height: 100
             checkable: true
             widgets:
               - label:
-                  text: "${sun_icon} Sunrise/Sunset Light"
+                  text: "Sunrise/Sunset Light"
                   text_font: roboto24
                   align: center
             on_click:
@@ -438,8 +451,8 @@ lvgl:
         # Switch 2 - Seasonal Daytime Light
         - button:
             id: sw2_button
-            width: 90%
-            height: 80
+            width: 100%
+            height: 100
             checkable: true
             widgets:
               - label:
@@ -455,8 +468,8 @@ lvgl:
         # Switch 3 - Weather-Based Light
         - button:
             id: sw3_button
-            width: 90%
-            height: 80
+            width: 100%
+            height: 100
             checkable: true
             widgets:
               - label:
@@ -477,22 +490,25 @@ lvgl:
                 
         # Status display
         - obj:
-            width: 90%
-            height: 60
+            width: 100%
+            height: 100
             widgets:
               - label:
                   id: status_label
                   text: "Ready"
-                  text_color: 0xCCCCCC
+                  text_color: 0x000000
                   align: center
                   
         # IP Address display
         - obj:
+            width: 100%
+            height: 60
+            bg_color: 0x000000
             widgets:
             - label:
                 id: ip_address_label
                 align: CENTER
-                text: 'wifi Not connected, Loading ...'
+                text: 'wifi Not connected, local IP 192.168.4.1'
                 text_color: ha_blue
                 y: +10
     
