@@ -270,6 +270,11 @@ lvgl:
     - my_display
   touchscreens:
     - touchscreen_id: my_touchscreen
+  
+  # Add these lines to set the background image
+  bg_color: 0x000000  # Fallback color
+  disp_bg_image: background_image  # Use the image ID defined above
+  
   on_idle:
     - timeout: 15s
       then:
@@ -1187,3 +1192,8 @@ display:
         - 6 #b3
         - 7 #b4
         - 15 #b5
+image:
+  - file: "images/background.png"  # Path to your background image
+    id: background_image
+    resize: 480x480  # Match your display resolution
+    type: RGB565     # Efficient color format for ESP32
