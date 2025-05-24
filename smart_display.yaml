@@ -54,7 +54,16 @@ logger:
 api:
   encryption:
     key: !secret encryption_key
-
+  id: api_server
+  on_client_connected:
+    then:
+      - logger.log: "API DEBUG: Home Assistant connected"
+      - delay: 2s
+      - script.execute: time_update
+  on_client_disconnected:
+    then:
+      - logger.log: "API DEBUG: Home Assistant disconnected"
+      - script.execute: time_update
 ota:
   - platform: esphome
     id: my_ota
@@ -107,12 +116,41 @@ wifi:
 time:
   - platform: homeassistant
     id: time_comp
-    timezone: "Europe/Lisbon"  # Set your timezone explicitly
+    timezone: "Europe/Lisbon"
     on_time_sync:
       then:
         - logger.log: "TIME DEBUG: Time synchronized with Home Assistant"
         - script.execute: time_update
-    
+    on_time:
+      # Update clock display every minute
+      - minutes: '*'
+        seconds: 0
+        then:
+          - script.execute: time_update
+      
+      # Check for sunrise/sunset events and other automations
+      - seconds: 0
+        minutes: /1
+        then:
+          - script.execute: check_light_schedules
+  
+  # Add SNTP as fallback when Home Assistant is unavailable
+  - platform: sntp
+    id: sntp_time
+    timezone: "Europe/Lisbon"
+    servers:
+      - "pool.ntp.org"
+      - "time.nist.gov"
+      - "time.google.com"
+    on_time_sync:
+      then:
+        - logger.log: "TIME DEBUG: Time synchronized with SNTP server"
+        - if:
+            condition:
+              not:
+                api.connected:
+            then:
+              - script.execute: time_update    
 
 web_server:
   port: 80
@@ -324,100 +362,38 @@ lvgl:
     # Main Page
     - id: main_page
       skip: false
-      layout:
-        type: flex
-        flex_flow: column_wrap
-      width: 100%
       bg_color: 0x000000
       bg_opa: cover
-      pad_all: 5
+      pad_all: 0
+      border_width: 0
       widgets:
-        # Background image with absolute positioning
-        - obj:
-            id: bg_container
+        # Just the background image, no container
+        - image:
+            src: background_image
             x: 0
             y: 0
             width: 480
             height: 480
-            bg_opa: 0  # Transparent background
-            border_width: 0
-            
-            widgets:
-              - image:
-                  id: bg_image_widget
-                  src: background_image
-                  x: 0
-                  y: 0
-                  width: 480
-                  height: 480
         
-        # Title bar (now will appear on top of the background)
-        - obj:
-            width: 100%
-            height: 60
-            bg_color: ha_blue
-            bg_opa: cover
-            widgets:
-              - label:
-                  text: "Phijo Smart Control"
-                  text_font: roboto24
-                  align: center
-                  text_color: 0xFFFFFF
-              # - button:
-              #     id: settings_button
-              #     x: 420
-              #     y: 10
-              #     width: 40
-              #     height: 40
-              #     styles: nav_button_style
-              #     widgets:
-              #       - label:
-              #           text: "${settings_icon}"
-              #           text_font: icons24
-              #           align: center
-              #     on_click:
-              #       then:
-              #         - lambda: |-
-              #             id(current_page) = 1;
-              #         - lvgl.widget.show: settings_page
-                        
-        # Digital Clock display
-        - obj:
-            height: 150
-            width: 100%
+        # Overlay all your content on top
+        - label:
+            id: digital_clock
+            text: "06:00"
+            text_font: roboto_large
             align: center
-            bg_color: 0x000000
-            x: 20
-            y: 0
-            widgets:
-              - label:
-                  id: digital_clock
-                  text: "06:00"
-                  text_font: roboto_large
-                  align: center
-                  text_color: 0xFFFFFF
-        
-        # Full date display
-        - obj:
-            align: center
-            bg_color: 0x000000
-            x: 0
+            text_color: 0xFFFFFF
+            x: 240
             y: 100
-            width: 100%
-            height: 100
-            widgets:
-              - label:
-                  id: full_date_label
-                  text: !lambda |-
-                    static const char * const day_names[] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
-                    static const char * const mon_names[] = {"January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"};
-                    static char date_buf[32];
-                    auto now = id(time_comp).now();
-                    sprintf(date_buf, "%s, %s %d, %d", day_names[now.day_of_week - 1], mon_names[now.month-1], now.day_of_month, now.year);
-                    return date_buf;
-                  text_font: roboto
-                  align: center
-                  text_color: 0xCCCCCC
+        
+        # Position other elements absolutely
+        - label:
+            id: full_date_label
+            text: "Date will appear here"
+            text_font: roboto
+            align: center
+            text_color: 0xFFFFFF
+            x: 240
+            y: 200
         
         # Weather info display - expanded
         - obj:
@@ -930,11 +906,16 @@ script:
             }
 
   - id: time_update
-    # update the clock display
     then:
       - script.execute: notify_web_portal
       - logger.log:
-          format: "TIME DEBUG: Current time from time_comp: %04d-%02d-%02d %02d:%02d:%02d"
+          format: "TIME DEBUG: HA connected: %s, Time valid: %s"
+          args: [
+            'id(api_server).is_connected() ? "YES" : "NO"',
+            'id(time_comp).now().is_valid() ? "YES" : "NO"'
+          ]
+      - logger.log:
+          format: "TIME DEBUG: Current time: %04d-%02d-%02d %02d:%02d:%02d"
           args: [
             'id(time_comp).now().year',
             'id(time_comp).now().month',
@@ -943,32 +924,33 @@ script:
             'id(time_comp).now().minute',
             'id(time_comp).now().second'
           ]
-      - logger.log:
-          format: "TIME DEBUG: Has time been synced:"
-          
-      - lvgl.label.update:
-          id: weather_label
-          text: "Weather data unavailable"
       - lvgl.label.update:
           id: digital_clock
           text: !lambda |-
             auto now = id(time_comp).now();
+            if (!now.is_valid()) {
+              // Try SNTP time if HA time is invalid
+              now = id(sntp_time).now();
+            }
             static char time_buf[6];
             sprintf(time_buf, "%02d:%02d", now.hour, now.minute);
             return time_buf;
       - lvgl.label.update:
           id: full_date_label
           text: !lambda |-
+            auto now = id(time_comp).now();
+            if (!now.is_valid()) {
+              // Try SNTP time if HA time is invalid
+              now = id(sntp_time).now();
+            }
             static const char * const day_names[] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
             static const char * const mon_names[] = {"January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"};
             static char date_buf[32];
-            auto now = id(time_comp).now();
             sprintf(date_buf, "%s, %s %d, %d", day_names[now.day_of_week - 1], mon_names[now.month-1], now.day_of_month, now.year);
             return date_buf;
       - lvgl.label.update:
           id: weather_forecast
-          text: "Weather forecast: Sunny with chance of clouds"
-            
+          text: "Weather forecast: Sunny with chance of clouds"            
   - id: check_light_schedules
     then:
       - lambda: |-
@@ -1217,7 +1199,18 @@ display:
         - 7 #b4
         - 15 #b5
 image:
-  - file: "images/background.png"
+  - file: "images/background.jpg"
     id: background_image
     resize: 480x480
     type: RGB565
+interval:
+  - interval: 30s
+    then:
+      - lambda: |-
+          // Check if time is still valid and force resync if needed
+          auto now = id(time_comp).now();
+          if (!now.is_valid() || now.year < 2020) {
+            ESP_LOGW("time", "Time appears invalid, requesting resync");
+            id(time_comp).call_setup();
+          }
+      - script.execute: time_update
