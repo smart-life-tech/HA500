@@ -301,9 +301,7 @@ lvgl:
   touchscreens:
     - touchscreen_id: my_touchscreen
   
-  # Add these lines to set the background image
-  bg_color: 0x000000  # Fallback color
-  # disp_bg_image: background_image  # Use the image ID defined above
+  bg_color: 0x000000
   
   on_idle:
     - timeout: 15s
@@ -338,6 +336,12 @@ lvgl:
       text_color: 0xFFFFFF
       radius: 15
       pad_all: 5
+    - id: title_style
+      bg_color: 0x1E3A8A
+      text_color: 0xFFFFFF
+      text_font: roboto24
+      radius: 10
+      pad_all: 8
 
   theme:
     button:
@@ -345,7 +349,7 @@ lvgl:
       scroll_on_focus: true
       radius: 25
       width: 150
-      height: 109
+      height: 60
       pad_left: 10px
       pad_top: 10px
       pad_bottom: 10px
@@ -359,7 +363,7 @@ lvgl:
 
   page_wrap: true
   pages:
-    # Main Page
+    # Main Page - Dashboard with Clock, Date, Weather
     - id: main_page
       skip: false
       bg_color: 0x000000
@@ -367,7 +371,7 @@ lvgl:
       pad_all: 0
       border_width: 0
       widgets:
-        # Just the background image, no container
+        # Background image - fixed position
         - image:
             src: background_image
             x: 0
@@ -375,7 +379,25 @@ lvgl:
             width: 480
             height: 480
         
-        # Overlay all your content on top
+        # Title Bar
+        - obj:
+            width: 460
+            height: 50
+            bg_color: 0x1E3A8A
+            bg_opa: 200
+            radius: 10
+            x: 10
+            y: 10
+            widgets:
+              - label:
+                  text: "PHIJO SMART DEVICE SCREEN"
+                  text_font: roboto24
+                  align: center
+                  text_color: 0xFFFFFF
+                  x: 0
+                  y: 12
+        
+        # Clock - positioned below title
         - label:
             id: digital_clock
             text: "06:00"
@@ -383,55 +405,166 @@ lvgl:
             align: center
             text_color: 0xFFFFFF
             x: 240
-            y: 100
+            y: 120
         
-        # Position other elements absolutely
+        # Date - positioned below clock
         - label:
             id: full_date_label
             text: "Date will appear here"
-            text_font: roboto
+            text_font: roboto24
             align: center
             text_color: 0xFFFFFF
             x: 240
             y: 200
         
-        # Weather info display - expanded
+        # Weather section - semi-transparent overlay
         - obj:
-            width: 100%
+            width: 460
+            height: 120
             bg_color: 0x000000
-            height: 130
+            bg_opa: 150
+            radius: 10
+            pad_all: 10
+            x: 10
+            y: 240
             widgets:
               - label:
                   id: weather_label
-                  text: "Loading weather data..."
-                  text_font: roboto
+                  text: "Loading weather..."
+                  text_font: roboto24
                   text_color: 0xCCCCCC
                   align: center
-                  y: -40
-              - label:
-                  id: weather_forecast
-                  text: "Weather forecast unavailable"
-                  text_font: roboto
-                  text_color: 0xCCCCCC
-                  align: center
-                  y: 0
+                  x: 0
+                  y: 10
               - label:
                   id: temperature_label
-                  text: "Temperature: 10°C"
+                  text: "Temperature: --°C"
                   text_font: roboto
                   text_color: 0xCCCCCC
                   align: center
+                  x: 0
                   y: 40
+              - label:
+                  id: weather_forecast
+                  text: "Forecast unavailable"
+                  text_font: roboto
+                  text_color: 0xCCCCCC
+                  align: center
+                  x: 0
+                  y: 65
+        
+        # Status and IP section
+        - obj:
+            width: 460
+            height: 60
+            bg_color: 0x000000
+            bg_opa: 150
+            radius: 10
+            x: 10
+            y: 380
+            widgets:
+              - label:
+                  id: status_label
+                  text: "Ready"
+                  text_color: 0xFFFFFF
+                  text_font: roboto
+                  align: center
+                  x: 0
+                  y: 5
+              - label:
+                  id: ip_address_label
+                  align: center
+                  text: 'WiFi: Not connected'
+                  text_color: ha_blue
+                  text_font: roboto
+                  x: 0
+                  y: 30
+        
+        # Navigation buttons
+        - button:
+            id: controls_nav_button
+            x: 10
+            y: 450
+            width: 100
+            height: 25
+            styles: nav_button_style
+            widgets:
+              - label:
+                  text: "Controls"
+                  text_font: roboto
+                  align: center
+            on_click:
+              then:
+                - lvgl.page.next:
+        
+        - button:
+            id: settings_nav_button
+            x: 120
+            y: 450
+            width: 100
+            height: 25
+            styles: nav_button_style
+            widgets:
+              - label:
+                  text: "Settings"
+                  text_font: roboto
+                  align: center
+            on_click:
+              then:
+                - lambda: |-
+                    id(current_page) = 2;
+                - lvgl.widget.update:
+                    id: main_page
+                    hidden: true
+                - lvgl.widget.update:
+                    id: settings_page
+                    hidden: false
+    
+    # Controls Page - Light Control Buttons
+    - id: controls_page
+      skip: false
+      bg_color: 0x000000
+      bg_opa: cover
+      pad_all: 0
+      border_width: 0
+      widgets:
+        # Background image for controls page
+        - image:
+            src: background_image
+            x: 0
+            y: 0
+            width: 480
+            height: 480
+        
+        # Title Bar
+        - obj:
+            width: 460
+            height: 50
+            bg_color: 0x1E3A8A
+            bg_opa: 200
+            radius: 10
+            x: 10
+            y: 10
+            widgets:
+              - label:
+                  text: "LIGHT CONTROLS"
+                  text_font: roboto24
+                  align: center
+                  text_color: 0xFFFFFF
+                  x: 0
+                  y: 12
         
         # Switch 1 - Sunrise/Sunset Light
         - button:
             id: sw1_button
-            width: 100%
-            height: 100
+            width: 400
+            height: 70
+            x: 40
+            y: 100
             checkable: true
             widgets:
               - label:
-                  text: "Sunrise/Sunset Light"
+                  text: "${sun_icon} Sunrise/Sunset Light"
                   text_font: roboto24
                   align: center
             on_click:
@@ -439,16 +572,18 @@ lvgl:
                 - switch.toggle: sw1
                 - lambda: |-
                     id(sw1_manual_override_time) = id(time_comp).now().timestamp;
-            
+        
         # Switch 2 - Seasonal Daytime Light
         - button:
             id: sw2_button
-            width: 100%
-            height: 100
+            width: 400
+            height: 70
+            x: 40
+            y: 190
             checkable: true
             widgets:
               - label:
-                  text: "${thermometer_icon} Seasonal Daytime Light"
+                  text: "${thermometer_icon} Seasonal Light"
                   text_font: roboto24
                   align: center
             on_click:
@@ -456,21 +591,23 @@ lvgl:
                 - switch.toggle: sw2
                 - lambda: |-
                     id(sw2_manual_override_time) = id(time_comp).now().timestamp;
-                
+        
         # Switch 3 - Weather-Based Light
         - button:
             id: sw3_button
-            width: 100%
-            height: 100
+            width: 400
+            height: 70
+            x: 40
+            y: 280
             checkable: true
             widgets:
               - label:
                   id: sw3_button_label
                   text: !lambda |-
                     if (id(sw3_winter_mode)) {
-                      return " Weather-Based Light (Winter)";
+                      return "${rain_icon} Weather Light (Winter)";
                     } else {
-                      return "Weather-Based Light (Summer)";
+                      return "${rain_icon} Weather Light (Summer)";
                     }
                   text_font: roboto24
                   align: center
@@ -479,147 +616,146 @@ lvgl:
                 - switch.toggle: sw3
                 - lambda: |-
                     id(sw3_manual_override_time) = id(time_comp).now().timestamp;
-                
-        # Status display
+        
+        # Control status
         - obj:
-            width: 100%
-            height: 100
-            widgets:
-              - label:
-                  id: status_label
-                  text: "Ready"
-                  text_color: 0x000000
-                  align: center
-                  
-        # IP Address display
-        - obj:
-            width: 100%
+            width: 460
             height: 60
             bg_color: 0x000000
+            bg_opa: 150
+            radius: 10
+            x: 10
+            y: 370
             widgets:
-            - label:
-                id: ip_address_label
-                align: CENTER
-                text: 'wifi Not connected, local IP 192.168.4.1'
-                text_color: ha_blue
-                y: +10
+              - label:
+                  id: control_status_label
+                  text: "Touch buttons to control lights"
+                  text_color: 0xFFFFFF
+                  text_font: roboto
+                  align: center
+                  x: 0
+                  y: 20
+        
+        # Navigation buttons
+        - button:
+            id: home_nav_button
+            x: 10
+            y: 450
+            width: 80
+            height: 25
+            styles: nav_button_style
+            widgets:
+              - label:
+                  text: "Home"
+                  text_font: roboto
+                  align: center
+            on_click:
+              then:
+                - lvgl.page.previous:
+        
+        - button:
+            id: settings_nav_button2
+            x: 100
+            y: 450
+            width: 80
+            height: 25
+            styles: nav_button_style
+            widgets:
+              - label:
+                  text: "Settings"
+                  text_font: roboto
+                  align: center
+            on_click:
+              then:
+                - lambda: |-
+                    id(current_page) = 2;
+                - lvgl.widget.update:
+                    id: controls_page
+                    hidden: true
+                - lvgl.widget.update:
+                    id: settings_page
+                    hidden: false
     
     # Settings Page
     - id: settings_page
       hidden: true
-      layout:
-        type: flex
-        flex_flow: column_wrap
-      width: 100%
       bg_color: 0x000000
       bg_opa: cover
-      pad_all: 5
+      pad_all: 0
+      border_width: 0
       widgets:
+        # Background image for settings page
+        - image:
+            src: background_image
+            x: 0
+            y: 0
+            width: 480
+            height: 480
+        
         # Title bar
         - obj:
-            width: 100%
-            height: 60
-            bg_color: ha_blue
-            bg_opa: cover
+            width: 460
+            height: 50
+            bg_color: 0x1E3A8A
+            bg_opa: 200
+            radius: 10
+            x: 10
+            y: 10
             widgets:
               - label:
-                  text: "Settings"
+                  text: "SETTINGS"
                   text_font: roboto24
                   align: center
                   text_color: 0xFFFFFF
-              - button:
-                  id: home_button
-                  x: 420
-                  y: 10
-                  width: 40
-                  height: 40
-                  styles: nav_button_style
-                  widgets:
-                    - label:
-                        text: "${home_icon}"
-                        text_font: icons24
-                        align: center
-                  on_click:
-                    then:
-                      - lambda: |-
-                          id(current_page) = 0;
-                      - lvgl.widget.update:
-                          id: settings_page
-                          hidden: true
-                      - lvgl.widget.update:
-                          id: main_page
-                          hidden: false
+                  x: 0
+                  y: 12
         
-        # Location settings
+        # Location settings container
         - obj:
-            width: 100%
-            height: 40
+            width: 460
+            height: 120
+            bg_color: 0x000000
+            bg_opa: 150
+            radius: 10
+            x: 10
+            y: 80
             widgets:
               - label:
                   text: "Location Settings"
                   text_font: roboto24
-                  align: center
                   text_color: 0xFFFFFF
-                  
-        - obj:
-            width: 90%
-            height: 60
-            widgets:
-              - label:
-                  text: "Location Name:"
-                  text_font: roboto24
                   x: 10
-                  y: 20
+                  y: 10
+              - label:
+                  text: "Location:"
+                  text_font: roboto
+                  x: 10
+                  y: 40
                   text_color: 0xCCCCCC
               - label:
                   id: location_name_label
                   text: !lambda 'return id(location_name).state;'
-                  text_font: roboto24
-                  x: 240
-                  y: 20
+                  text_font: roboto
+                  x: 100
+                  y: 40
                   text_color: 0xFFFFFF
-                  
-        - obj:
-            width: 90%
-            height: 60
-            widgets:
               - label:
-                  text: "Latitude:"
-                  text_font: roboto24
+                  id: location_name_label
+                  text: !lambda |-
+                    return "Lat: " + std::to_string(id(location_latitude).state).substr(0,6) + 
+                           " Lng: " + std::to_string(id(location_longitude).state).substr(0,6);
+                  text_font: roboto
                   x: 10
-                  y: 20
+                  y: 65
                   text_color: 0xCCCCCC
-              - label:
-                  id: latitude_label
-                  text: !lambda 'return std::to_string(id(location_latitude).state);'
-                  text_font: roboto24
-                  x: 240
-                  y: 20
-                  text_color: 0xFFFFFF
-                  
-        - obj:
-            width: 90%
-            height: 60
-            widgets:
-              - label:
-                  text: "Longitude:"
-                  text_font: roboto24
-                  x: 10
-                  y: 20
-                  text_color: 0xCCCCCC
-              - label:
-                  id: longitude_label
-                  text: !lambda 'return std::to_string(id(location_longitude).state);'
-                  text_font: roboto24
-                  x: 240
-                  y: 20
-                  text_color: 0xFFFFFF
         
         # SW3 Mode Toggle
         - button:
             id: sw3_mode_toggle
-            width: 90%
-            height: 80
+            width: 460
+            height: 60
+            x: 10
+            y: 220
             checkable: true
             state:
               checked: !lambda 'return id(sw3_winter_mode);'
@@ -632,95 +768,107 @@ lvgl:
                     } else {
                       return "SW3 Mode: Summer (Temperature-based)";
                     }
-                  text_font: roboto24
+                  text_font: roboto
                   align: center
-                  # For the SW3 mode toggle
-                  on_click:
+            on_click:
+              then:
+                - lambda: |-
+                    id(sw3_winter_mode) = !id(sw3_winter_mode);
+                - if:
+                    condition:
+                      lambda: 'return id(sw3_winter_mode);'
                     then:
-                      - lambda: |-
-                          id(sw3_winter_mode) = !id(sw3_winter_mode);
-                      - if:
-                          condition:
-                            lambda: 'return id(sw3_winter_mode);'
-                          then:
-                            - lvgl.label.update:
-                                id: sw3_mode_label
-                                text: "SW3 Mode: Winter (Rain-based)"
-                            - lvgl.label.update:
-                                id: sw3_button_label
-                                text: " Weather-Based Light (Winter)"
-                          else:
-                            - lvgl.label.update:
-                                id: sw3_mode_label
-                                text: "SW3 Mode: Summer (Temperature-based)"
-                            - lvgl.label.update:
-                                id: sw3_button_label
-                                text: "Weather-Based Light (Summer)"
+                      - lvgl.label.update:
+                          id: sw3_mode_label
+                          text: "SW3 Mode: Winter (Rain-based)"
+                      - lvgl.label.update:
+                          id: sw3_button_label
+                          text: "${rain_icon} Weather Light (Winter)"
+                    else:
+                      - lvgl.label.update:
+                          id: sw3_mode_label
+                          text: "SW3 Mode: Summer (Temperature-based)"
+                      - lvgl.label.update:
+                          id: sw3_button_label
+                          text: "${rain_icon} Weather Light (Summer)"
 
-        # System Info
+        # System Info container
         - obj:
-            width: 100%
-            height: 40
+            width: 460
+            height: 100
+            bg_color: 0x000000
+            bg_opa: 150
+            radius: 10
+            x: 10
+            y: 300
             widgets:
               - label:
                   text: "System Information"
                   text_font: roboto24
+                  text_color: 0xFFFFFF
+                  x: 10
+                  y: 10
+              - label:
+                  text: !lambda |-
+                    return "IP: " + id(ip_address).state;
+                  text_font: roboto
+                  x: 10
+                  y: 40
+                  text_color: 0xCCCCCC
+              - label:
+                  text: "Version: ${project_version}"
+                  text_font: roboto
+                  x: 10
+                  y: 65
+                  text_color: 0xFFFFFF
+        
+        # Navigation buttons
+        - button:
+            id: home_button
+            x: 10
+            y: 450
+            width: 80
+            height: 25
+            styles: nav_button_style
+            widgets:
+              - label:
+                  text: "Home"
+                  text_font: roboto
                   align: center
-                  text_color: 0xFFFFFF
-                  
-        - obj:
-            width: 90%
-            height: 60
+            on_click:
+              then:
+                - lambda: |-
+                    id(current_page) = 0;
+                - lvgl.widget.update:
+                    id: settings_page
+                    hidden: true
+                - lvgl.widget.update:
+                    id: main_page
+                    hidden: false
+        
+        - button:
+            id: controls_button
+            x: 100
+            y: 450
+            width: 80
+            height: 25
+            styles: nav_button_style
             widgets:
               - label:
-                  text: "WiFi Signal:"
-                  text_font: roboto24
-                  x: 10
-                  y: 20
-                  text_color: 0xCCCCCC
-              - label:
-                  id: wifi_signal_label
-                  text: "Unknown"
-                  text_font: roboto24
-                  x: 240
-                  y: 20
-                  text_color: 0xFFFFFF
-                  
-        - obj:
-            width: 90%
-            height: 60
-            widgets:
-              - label:
-                  text: "IP Address:"
-                  text_font: roboto24
-                  x: 10
-                  y: 20
-                  text_color: 0xCCCCCC
-              - label:
-                  id: settings_ip_label
-                  text: !lambda 'return id(ip_address).state;'
-                  text_font: roboto24
-                  x: 240
-                  y: 20
-                  text_color: 0xFFFFFF
-                  
-        - obj:
-            width: 90%
-            height: 60
-            widgets:
-              - label:
-                  text: "Version:"
-                  text_font: roboto24
-                  x: 10
-                  y: 20
-                  text_color: 0xCCCCCC
-              - label:
-                  text: "${project_version}"
-                  text_font: roboto24
-                  x: 240
-                  y: 20
-                  text_color: 0xFFFFFF
-                  
+                  text: "Controls"
+                  text_font: roboto
+                  align: center
+            on_click:
+              then:
+                - lambda: |-
+                    id(current_page) = 1;
+                - lvgl.widget.update:
+                    id: settings_page
+                    hidden: true
+                - lvgl.widget.update:
+                    id: controls_page
+                    hidden: false
+
         # OTA popup (shared between pages)
         - obj:
             id: popup_obj
