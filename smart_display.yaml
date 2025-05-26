@@ -382,9 +382,9 @@ lvgl:
         # Title Bar
         - obj:
             width: 460
-            height: 50
+            height: 60
             bg_color: 0x1E3A8A
-            bg_opa: 80%
+            bg_opa: 20%
             radius: 10
             x: 10
             y: 10
@@ -397,25 +397,25 @@ lvgl:
                   x: 0
                   y: 12
         
-        # Clock - positioned below title
+        # Clock - positioned below title (fixed positioning)
         - label:
             id: digital_clock
             text: "06:00"
             text_font: roboto_large
             align: center
             text_color: 0xFFFFFF
-            x: 240
-            y: 120
+            x: 20
+            y: 70
         
-        # Date - positioned below clock
+        # Date - positioned below clock (fixed positioning)
         - label:
             id: full_date_label
             text: "Date will appear here"
             text_font: roboto24
             align: center
             text_color: 0xFFFFFF
-            x: 240
-            y: 200
+            x: 20
+            y: 150
         
         # Weather section - semi-transparent overlay
         - obj:
@@ -426,7 +426,7 @@ lvgl:
             radius: 10
             pad_all: 10
             x: 10
-            y: 240
+            y: 210
             widgets:
               - label:
                   id: weather_label
@@ -461,7 +461,7 @@ lvgl:
             bg_opa: 50%
             radius: 10
             x: 10
-            y: 380
+            y: 350
             widgets:
               - label:
                   id: status_label
@@ -506,19 +506,13 @@ lvgl:
             styles: nav_button_style
             widgets:
               - label:
-                  text: "Settings"
+                  text: "Settings page"
                   text_font: roboto
                   align: center
             on_click:
               then:
-                - lambda: |-
-                    id(current_page) = 2;
-                - lvgl.widget.update:
-                    id: main_page
-                    hidden: true
-                - lvgl.widget.update:
-                    id: settings_page
-                    hidden: false
+                - script.execute: goto_settings
+
     
     # Controls Page - Light Control Buttons
     - id: controls_page
@@ -667,8 +661,6 @@ lvgl:
                   align: center
             on_click:
               then:
-                - lambda: |-
-                    id(current_page) = 2;
                 - lvgl.widget.update:
                     id: controls_page
                     hidden: true
@@ -733,14 +725,14 @@ lvgl:
                   y: 40
                   text_color: 0xCCCCCC
               - label:
-                  id: location_name_label_state
+                  id: location_name_label
                   text: !lambda 'return id(location_name).state;'
                   text_font: roboto
                   x: 100
                   y: 40
                   text_color: 0xFFFFFF
               - label:
-                  id: location_name_label
+                  id: coordinates_label
                   text: !lambda |-
                     return "Lat: " + std::to_string(id(location_latitude).state).substr(0,6) + 
                            " Lng: " + std::to_string(id(location_longitude).state).substr(0,6);
@@ -809,6 +801,7 @@ lvgl:
                   x: 10
                   y: 10
               - label:
+                  id: settings_ip_display
                   text: !lambda |-
                     return "IP: " + id(ip_address).state;
                   text_font: roboto
@@ -837,8 +830,6 @@ lvgl:
                   align: center
             on_click:
               then:
-                - lambda: |-
-                    id(current_page) = 0;
                 - lvgl.widget.update:
                     id: settings_page
                     hidden: true
@@ -860,8 +851,6 @@ lvgl:
                   align: center
             on_click:
               then:
-                - lambda: |-
-                    id(current_page) = 1;
                 - lvgl.widget.update:
                     id: settings_page
                     hidden: true
@@ -869,7 +858,7 @@ lvgl:
                     id: controls_page
                     hidden: false
 
-        # OTA popup (shared between pages)
+# OTA popup (moved outside pages to be global)
         - obj:
             id: popup_obj
             hidden: true
@@ -1025,6 +1014,17 @@ switch:
 # Scripts for automation logic
 #-------------------------------------------
 script:
+  - id: goto_settings
+    then:
+      - lvgl.widget.update:
+          id: settings_page
+          hidden: false
+      - delay: 50ms
+      - lvgl.widget.update:
+          id: main_page
+          hidden: true
+      - lvgl.widget.redraw:
+
   - id: notify_web_portal
     then:
       - if:
