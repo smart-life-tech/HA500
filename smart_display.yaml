@@ -384,7 +384,7 @@ lvgl:
             width: 460
             height: 50
             bg_color: 0x1E3A8A
-            bg_opa: 200
+            bg_opa: 80%
             radius: 10
             x: 10
             y: 10
@@ -422,7 +422,7 @@ lvgl:
             width: 460
             height: 120
             bg_color: 0x000000
-            bg_opa: 150
+            bg_opa: 50%
             radius: 10
             pad_all: 10
             x: 10
@@ -458,7 +458,7 @@ lvgl:
             width: 460
             height: 60
             bg_color: 0x000000
-            bg_opa: 150
+            bg_opa: 50%
             radius: 10
             x: 10
             y: 380
@@ -541,7 +541,7 @@ lvgl:
             width: 460
             height: 50
             bg_color: 0x1E3A8A
-            bg_opa: 200
+            bg_opa: 80%
             radius: 10
             x: 10
             y: 10
@@ -622,7 +622,7 @@ lvgl:
             width: 460
             height: 60
             bg_color: 0x000000
-            bg_opa: 150
+            bg_opa: 50%
             radius: 10
             x: 10
             y: 370
@@ -697,7 +697,7 @@ lvgl:
             width: 460
             height: 50
             bg_color: 0x1E3A8A
-            bg_opa: 200
+            bg_opa: 80%
             radius: 10
             x: 10
             y: 10
@@ -715,7 +715,7 @@ lvgl:
             width: 460
             height: 120
             bg_color: 0x000000
-            bg_opa: 150
+            bg_opa: 50%
             radius: 10
             x: 10
             y: 80
@@ -733,7 +733,7 @@ lvgl:
                   y: 40
                   text_color: 0xCCCCCC
               - label:
-                  id: location_name_label
+                  id: location_name_label_state
                   text: !lambda 'return id(location_name).state;'
                   text_font: roboto
                   x: 100
@@ -797,7 +797,7 @@ lvgl:
             width: 460
             height: 100
             bg_color: 0x000000
-            bg_opa: 150
+            bg_opa: 50%
             radius: 10
             x: 10
             y: 300
