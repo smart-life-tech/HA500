@@ -396,27 +396,37 @@ lvgl:
                   text_color: 0xFFFFFF
                   x: 0
                   y: 12
-        
-        # Clock - positioned below title (fixed positioning)
-        - label:
-            id: digital_clock
-            text: "06:00"
-            text_font: roboto_large
-            align: center
-            text_color: 0xFFFFFF
-            x: 20
-            y: 70
-        
-        # Date - positioned below clock (fixed positioning)
-        - label:
-            id: full_date_label
-            text: "Date will appear here"
-            text_font: roboto24
-            align: center
-            text_color: 0xFFFFFF
-            x: 20
-            y: 150
-        
+        - obj:
+            width: 460
+            height: 140
+            bg_color: 0x1E3A8A
+            bg_opa: 20%
+            radius: 10
+            x: 10
+            y: 75
+            widgets:
+              # Clock - positioned below title (fixed positioning)
+              - label:
+                  id: digital_clock
+                  text: "06:00"
+                  text_font: roboto_large
+                  align: center
+                  text_color: 0xFFFFFF
+                  x: 150
+                  y:   0
+                  width: 480             
+              
+              # Date - positioned below clock (fixed positioning)
+              - label:
+                  id: full_date_label
+                  text: "Date will appear here"
+                  text_font: roboto24
+                  align: center
+                  text_color: 0xFFFFFF
+                  x: 150
+                  y: 45
+                  width: 480
+          
         # Weather section - semi-transparent overlay
         - obj:
             width: 460
@@ -486,7 +496,7 @@ lvgl:
             x: 10
             y: 450
             width: 100
-            height: 25
+            height: 35
             styles: nav_button_style
             widgets:
               - label:
@@ -502,16 +512,17 @@ lvgl:
             x: 120
             y: 450
             width: 100
-            height: 25
+            height: 35
             styles: nav_button_style
             widgets:
               - label:
-                  text: "Settings page"
+                  text: "Settings"
                   text_font: roboto
                   align: center
             on_click:
               then:
                 - script.execute: goto_settings
+                - lvgl.page.previous:
 
     
     # Controls Page - Light Control Buttons
@@ -1019,7 +1030,7 @@ script:
       - lvgl.widget.update:
           id: settings_page
           hidden: false
-      - delay: 50ms
+      - delay: 1000ms
       - lvgl.widget.update:
           id: main_page
           hidden: true
