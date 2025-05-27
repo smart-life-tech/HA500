@@ -423,7 +423,7 @@ lvgl:
                   text_font: roboto24
                   align: center
                   text_color: 0xFFFFFF
-                  x: 150
+                  x: 110
                   y: 45
                   width: 480
           
@@ -521,8 +521,8 @@ lvgl:
                   align: center
             on_click:
               then:
-                - script.execute: goto_settings
-                - lvgl.page.previous:
+                #- script.execute: goto_settings
+                - lvgl.page.next:
 
     
     # Controls Page - Light Control Buttons
@@ -1044,7 +1044,7 @@ script:
           then:
             - lvgl.label.update:
                 id: status_label
-                text: "Web portal active at http://${ip_address.state}"
+                text: "Web portal active "
                 text_color: ha_blue
             - logger.log: 
                 format: "Web portal active at http://%s"
