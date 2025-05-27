@@ -346,7 +346,7 @@ lvgl:
   theme:
     button:
       text_font: roboto24
-      scroll_on_focus: true
+      scroll_on_focus: false
       radius: 25
       width: 150
       height: 60
@@ -355,6 +355,7 @@ lvgl:
       pad_bottom: 10px
       pad_right: 10px
       shadow_width: 0
+      border_width: 0
       bg_color: 0x313131
       text_color: 0xB6B6B6
       checked:
@@ -382,20 +383,23 @@ lvgl:
         # Title Bar
         - obj:
             width: 460
+            scrollable: false  # Add this
             height: 60
             bg_color: 0x1E3A8A
             bg_opa: 20%
             radius: 10
             x: 10
             y: 10
+            border_width: 0
             widgets:
               - label:
                   text: "PHIJO SMART DEVICE SCREEN"
                   text_font: roboto24
                   align: center
                   text_color: 0xFFFFFF
-                  x: 0
-                  y: 12
+                  x: 10
+                  y: 8
+                  border_width: 0
         - obj:
             width: 460
             height: 140
@@ -404,6 +408,8 @@ lvgl:
             radius: 10
             x: 10
             y: 75
+            border_width: 0
+            scrollable: false  # Add this
             widgets:
               # Clock - positioned below title (fixed positioning)
               - label:
@@ -414,6 +420,7 @@ lvgl:
                   text_color: 0xFFFFFF
                   x: 150
                   y:   0
+                  border_width: 0
                   width: 480             
               
               # Date - positioned below clock (fixed positioning)
@@ -425,18 +432,22 @@ lvgl:
                   text_color: 0xFFFFFF
                   x: 110
                   y: 45
+                  border_width: 0
                   width: 480
+                  scrollable: false  # Add this
           
         # Weather section - semi-transparent overlay
         - obj:
             width: 460
             height: 120
             bg_color: 0x000000
-            bg_opa: 80%
+            bg_opa: 20%
             radius: 10
             pad_all: 10
             x: 10
             y: 210
+            border_width: 0
+            scrollable: false  # Add this
             widgets:
               - label:
                   id: weather_label
@@ -445,7 +456,8 @@ lvgl:
                   text_color: 0xCCCCCC
                   align: center
                   x: 0
-                  y: 10
+                  y: 00
+                  border_width: 0
               - label:
                   id: temperature_label
                   text: "Temperature: --°C"
@@ -454,6 +466,7 @@ lvgl:
                   align: center
                   x: 0
                   y: 40
+                  border_width: 0
               - label:
                   id: weather_forecast
                   text: "Forecast unavailable"
@@ -462,10 +475,12 @@ lvgl:
                   align: center
                   x: 0
                   y: 65
+                  border_width: 0
         
         # Status and IP section
         - obj:
             width: 460
+            scrollable: false  # Add this
             height: 60
             bg_color: 0x000000
             bg_opa: 50%
@@ -481,6 +496,7 @@ lvgl:
                   align: center
                   x: 0
                   y: 5
+                  border_width: 0
               - label:
                   id: ip_address_label
                   align: center
@@ -494,9 +510,9 @@ lvgl:
         - button:
             id: controls_nav_button
             x: 10
-            y: 450
+            y: 420
             width: 100
-            height: 35
+            height: 40
             styles: nav_button_style
             widgets:
               - label:
@@ -507,22 +523,24 @@ lvgl:
               then:
                 - lvgl.page.next:
         
-        - button:
-            id: settings_nav_button
-            x: 120
-            y: 450
-            width: 100
-            height: 35
-            styles: nav_button_style
-            widgets:
-              - label:
-                  text: "Settings"
-                  text_font: roboto
-                  align: center
-            on_click:
-              then:
-                #- script.execute: goto_settings
-                - lvgl.page.next:
+        # - button:
+        #     id: settings_nav_button
+        #     x: 120
+        #     y: 420
+        #     width: 100
+        #     height: 55
+        #     styles: nav_button_style
+        #     widgets:
+        #       - label:
+        #           text: "Settings"
+        #           text_font: roboto
+        #           align: center
+        #     on_click:
+        #       then:
+        #         #- script.execute: goto_settings
+        #         - lvgl.page.next:
+        #         - delay: 1000ms
+        #         - lvgl.page.next:
 
     
     # Controls Page - Light Control Buttons
@@ -546,18 +564,22 @@ lvgl:
             width: 460
             height: 50
             bg_color: 0x1E3A8A
-            bg_opa: 80%
+            bg_opa: 20%
             radius: 10
             x: 10
             y: 10
+            scrollable: false  # Add this
             widgets:
               - label:
                   text: "LIGHT CONTROLS"
                   text_font: roboto24
+                  width: 460 
                   align: center
                   text_color: 0xFFFFFF
-                  x: 0
-                  y: 12
+                  x: 150
+                  y: 5
+                 
+                  scrollable: false  # Add this
         
         # Switch 1 - Sunrise/Sunset Light
         - button:
@@ -625,6 +647,7 @@ lvgl:
         # Control status
         - obj:
             width: 460
+            scrollable: false  # Add this
             height: 60
             bg_color: 0x000000
             bg_opa: 50%
@@ -639,7 +662,7 @@ lvgl:
                   text_font: roboto
                   align: center
                   x: 0
-                  y: 20
+                  y: 5
         
         # Navigation buttons
         - button:
@@ -647,7 +670,7 @@ lvgl:
             x: 10
             y: 450
             width: 80
-            height: 25
+            height: 40
             styles: nav_button_style
             widgets:
               - label:
@@ -663,7 +686,7 @@ lvgl:
             x: 100
             y: 450
             width: 80
-            height: 25
+            height: 40
             styles: nav_button_style
             widgets:
               - label:
@@ -672,16 +695,10 @@ lvgl:
                   align: center
             on_click:
               then:
-                - lvgl.widget.update:
-                    id: controls_page
-                    hidden: true
-                - lvgl.widget.update:
-                    id: settings_page
-                    hidden: false
+                - lvgl.page.next:
     
     # Settings Page
     - id: settings_page
-      hidden: true
       bg_color: 0x000000
       bg_opa: cover
       pad_all: 0
@@ -711,7 +728,7 @@ lvgl:
                   align: center
                   text_color: 0xFFFFFF
                   x: 0
-                  y: 12
+                  y: 5
         
         # Location settings container
         - obj:
@@ -830,30 +847,9 @@ lvgl:
         - button:
             id: home_button
             x: 10
-            y: 450
+            y: 420
             width: 80
-            height: 25
-            styles: nav_button_style
-            widgets:
-              - label:
-                  text: "Home"
-                  text_font: roboto
-                  align: center
-            on_click:
-              then:
-                - lvgl.widget.update:
-                    id: settings_page
-                    hidden: true
-                - lvgl.widget.update:
-                    id: main_page
-                    hidden: false
-        
-        - button:
-            id: controls_button
-            x: 100
-            y: 450
-            width: 80
-            height: 25
+            height: 40
             styles: nav_button_style
             widgets:
               - label:
@@ -862,12 +858,28 @@ lvgl:
                   align: center
             on_click:
               then:
-                - lvgl.widget.update:
-                    id: settings_page
-                    hidden: true
-                - lvgl.widget.update:
-                    id: controls_page
-                    hidden: false
+                - lvgl.page.previous:
+        
+        # - button:
+        #     id: controls_button
+        #     x: 100
+        #     y: 450
+        #     width: 80
+        #     height: 25
+        #     styles: nav_button_style
+        #     widgets:
+        #       - label:
+        #           text: "Controls"
+        #           text_font: roboto
+        #           align: center
+        #     on_click:
+        #       then:
+        #         - lvgl.widget.update:
+        #             id: settings_page
+        #             hidden: true
+        #         - lvgl.widget.update:
+        #             id: controls_page
+        #             hidden: false
 
 # OTA popup (moved outside pages to be global)
         - obj:
@@ -1027,13 +1039,14 @@ switch:
 script:
   - id: goto_settings
     then:
+      - delay: 1000ms
       - lvgl.widget.update:
           id: settings_page
           hidden: false
-      - delay: 1000ms
-      - lvgl.widget.update:
-          id: main_page
-          hidden: true
+      
+      # - lvgl.widget.update:
+      #     id: main_page
+      #     hidden: true
       - lvgl.widget.redraw:
 
   - id: notify_web_portal
