@@ -400,7 +400,7 @@ lvgl:
             width: 460
             height: 140
             bg_color: 0x1E3A8A
-            bg_opa: 20%
+            bg_opa: 30%
             radius: 10
             x: 10
             y: 75
@@ -432,7 +432,7 @@ lvgl:
             width: 460
             height: 120
             bg_color: 0x000000
-            bg_opa: 50%
+            bg_opa: 80%
             radius: 10
             pad_all: 10
             x: 10
