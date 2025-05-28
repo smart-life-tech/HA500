@@ -291,6 +291,12 @@ globals:
     restore_value: no
     initial_value: "0"  # 0 = main page, 1 = settings page
 
+  # Add this missing global variable for touch tracking
+  - id: touch_start_y
+    type: int
+    restore_value: no
+    initial_value: "0"
+
 #-------------------------------------------
 # LVGL Interface
 #-------------------------------------------
@@ -1303,15 +1309,45 @@ touchscreen:
 
   on_touch:
     - lambda: |-
-        ESP_LOGD("touch", "Touch at (%d, %d)", touch.x, touch.y);
+        static bool touch_started = false;
+        static int start_y = 0;
+        
+        if (!touch_started) {
+          start_y = touch.y;
+          touch_started = true;
+          id(touch_start_y) = touch.y;
+        }
+        
   on_release:
-    then:
-      - if:
-          condition: lvgl.is_paused
-          then:
-            - light.turn_on: backlight
-            - lvgl.resume:
-            - lvgl.widget.redraw:
+    - lambda: |-
+        int swipe_distance = id(touch_start_y) - touch.y;
+        int min_swipe_distance = 80; // Adjust sensitivity
+        
+        ESP_LOGD("swipe", "Swipe distance: %d", swipe_distance);
+        
+        if (abs(swipe_distance) > min_swipe_distance) {
+          if (swipe_distance > 0) {
+            // Swipe up - next page
+            ESP_LOGD("swipe", "Swipe up detected - next page");
+            auto call = id(lvgl_comp).get_page_next();
+            call.perform();
+          } else {
+            // Swipe down - previous page
+            ESP_LOGD("swipe", "Swipe down detected - previous page");  
+            auto call = id(lvgl_comp).get_page_previous();
+            call.perform();
+          }
+        }
+        
+        // Reset touch tracking
+        static bool touch_started = false;
+        touch_started = false;
+    - if:
+        condition: lvgl.is_paused
+        then:
+          - light.turn_on: backlight
+          - lvgl.resume:
+          - lvgl.widget.redraw:
 
 #-------------------------------------------
 # Display st7701s spi
