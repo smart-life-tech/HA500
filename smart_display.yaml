@@ -87,6 +87,20 @@ ota:
                 format: "OTA progress %0.1f%%"
                 args: ["x"]
           - lambda: "id(lvgl_comp).loop();"  
+sensor:
+  - platform: template
+    name: "OWM Temperature"
+    id: owm_temperature
+    unit_of_measurement: "°C"
+        
+http_request:
+  id: http_requests  # Add this ID
+  useragent: esphome/device
+  timeout: 10s
+
+external_components:
+  - source: github://esphome/esphome
+    components: [http_request]
 
 wifi:
   ssid: !secret wifi_ssid
@@ -195,6 +209,14 @@ number:
             id(sun_comp).set_longitude(id(location_longitude).state);
 
 text_sensor:
+  - platform: template
+    id: weather_condition
+    name: "Weather Condition"
+    
+  - platform: template
+    id: weather_description
+    name: "Weather Description"
+
   - platform: wifi_info
     ip_address:
       name: "IP Address"
@@ -296,6 +318,14 @@ globals:
     type: int
     restore_value: no
     initial_value: "0"
+  - id: touch_end_y
+    type: int
+    restore_value: no
+    initial_value: "0"
+  - id: touch_active
+    type: bool
+    restore_value: no
+    initial_value: "false"
 
 #-------------------------------------------
 # LVGL Interface
@@ -377,6 +407,7 @@ lvgl:
       bg_opa: cover
       pad_all: 0
       border_width: 0
+      scrollable: false
       widgets:
         # Background image - fixed position
         - image:
@@ -445,7 +476,7 @@ lvgl:
         # Weather section - semi-transparent overlay
         - obj:
             width: 460
-            height: 120
+            height: 150
             bg_color: 0x000000
             bg_opa: 20%
             radius: 10
@@ -462,7 +493,7 @@ lvgl:
                   text_color: 0xCCCCCC
                   align: center
                   x: 0
-                  y: 00
+                  y: 0
                   border_width: 0
               - label:
                   id: temperature_label
@@ -471,7 +502,7 @@ lvgl:
                   text_color: 0xCCCCCC
                   align: center
                   x: 0
-                  y: 40
+                  y: 30
                   border_width: 0
               - label:
                   id: weather_forecast
@@ -480,7 +511,7 @@ lvgl:
                   text_color: 0xCCCCCC
                   align: center
                   x: 0
-                  y: 65
+                  y: 40
                   border_width: 0
         
         # Status and IP section
@@ -556,6 +587,7 @@ lvgl:
       bg_opa: cover
       pad_all: 0
       border_width: 0
+      scrollable: false
       widgets:
         # Background image for controls page
         - image:
@@ -584,7 +616,7 @@ lvgl:
                   text_color: 0xFFFFFF
                   x: 150
                   y: 5
-                 
+                  border_width: 0
                   scrollable: false  # Add this
         
         # Switch 1 - Sunrise/Sunset Light
@@ -658,6 +690,7 @@ lvgl:
             bg_color: 0x000000
             bg_opa: 50%
             radius: 10
+            hidden: true
             x: 10
             y: 370
             widgets:
@@ -709,6 +742,7 @@ lvgl:
       bg_opa: cover
       pad_all: 0
       border_width: 0
+      scrollable: false
       widgets:
         # Background image for settings page
         - image:
@@ -825,6 +859,7 @@ lvgl:
             bg_color: 0x000000
             bg_opa: 50%
             radius: 10
+            scrollable: false
             x: 10
             y: 300
             widgets:
@@ -1049,11 +1084,24 @@ script:
       - lvgl.widget.update:
           id: settings_page
           hidden: false
-      
-      # - lvgl.widget.update:
-      #     id: main_page
-      #     hidden: true
       - lvgl.widget.redraw:
+  - id: fetch_weather_data
+    then:
+      - http_request.get:
+          url: !lambda |-
+            // Example using OpenWeatherMap API (you'll need an API key)
+            std::string lat = std::to_string(id(location_latitude).state);
+            std::string lon = std::to_string(id(location_longitude).state);
+            return "http://api.openweathermap.org/data/2.5/weather?lat=" + lat + "&lon=" + lon + "&appid=b0fed035f1b875bafaf66f85d33f4e71&units=metric";
+          request_headers:
+            Content-Type: application/json
+          on_response:
+            then:
+              - lambda: |-
+                  ESP_LOGD("weather", "HTTP Response: %s", body.c_str());
+                  // Parse JSON response and update sensors
+                  // You would need to implement JSON parsing here
+                  
 
   - id: notify_web_portal
     then:
@@ -1309,39 +1357,43 @@ touchscreen:
 
   on_touch:
     - lambda: |-
-        static bool touch_started = false;
-        static int start_y = 0;
-        
-        if (!touch_started) {
-          start_y = touch.y;
-          touch_started = true;
+        ESP_LOGD("touch", "Touch at (%d, %d)", touch.x, touch.y);
+        if (!id(touch_active)) {
+          // Store initial touch position
           id(touch_start_y) = touch.y;
+          id(touch_active) = true;
         }
+        // Always update end position while touching
+        id(touch_end_y) = touch.y;
         
   on_release:
     - lambda: |-
-        int swipe_distance = id(touch_start_y) - touch.y;
-        int min_swipe_distance = 80; // Adjust sensitivity
+        // Calculate swipe distance
+        int swipe_distance = id(touch_start_y) - id(touch_end_y);
+        int min_swipe_distance = 80;
         
-        ESP_LOGD("swipe", "Swipe distance: %d", swipe_distance);
+        ESP_LOGD("swipe", "Start: %d, End: %d, Distance: %d", id(touch_start_y), id(touch_end_y), swipe_distance);
+        
+        // Reset touch tracking
+        id(touch_active) = false;
         
         if (abs(swipe_distance) > min_swipe_distance) {
           if (swipe_distance > 0) {
-            // Swipe up - next page
             ESP_LOGD("swipe", "Swipe up detected - next page");
-            auto call = id(lvgl_comp).get_page_next();
-            call.perform();
           } else {
-            // Swipe down - previous page
-            ESP_LOGD("swipe", "Swipe down detected - previous page");  
-            auto call = id(lvgl_comp).get_page_previous();
-            call.perform();
+            ESP_LOGD("swipe", "Swipe down detected - previous page");
           }
         }
-        
-        // Reset touch tracking
-        static bool touch_started = false;
-        touch_started = false;
+    - if:
+        condition:
+          lambda: 'return (id(touch_start_y) - id(touch_end_y)) > 80;'
+        then:
+          - lvgl.page.next:
+    - if:
+        condition:
+          lambda: 'return (id(touch_end_y) - id(touch_start_y)) > 80;'
+        then:
+          - lvgl.page.previous:
     - if:
         condition: lvgl.is_paused
         then:
@@ -1415,10 +1467,54 @@ interval:
   - interval: 30s
     then:
       - lambda: |-
-          // Check if time is still valid and force resync if needed
           auto now = id(time_comp).now();
           if (!now.is_valid() || now.year < 2020) {
             ESP_LOGW("time", "Time appears invalid, requesting resync");
             id(time_comp).call_setup();
           }
       - script.execute: time_update
+      
+  - interval: 10min
+    then:
+      - http_request.get:
+          url: "http://api.openweathermap.org/data/2.5/weather?q=lisbon&appid=b0fed035f1b875bafaf66f85d33f4e71&units=metric"
+          on_response:
+            then:
+              - lambda: |-
+                  ESP_LOGD("weather", "HTTP Response received");
+                  ESP_LOGD("weather", "Response body: %s", body.c_str());
+                  
+                  // Manual JSON parsing - fix variable naming conflict
+                  std::string json_body = body;
+                  
+                  // Parse temperature
+                  size_t temp_pos = json_body.find("\"temp\":");
+                  if (temp_pos != std::string::npos) {
+                    size_t start = temp_pos + 7;
+                    size_t end = json_body.find(",", start);
+                    if (end == std::string::npos) end = json_body.find("}", start);
+                    
+                    if (end != std::string::npos) {
+                      std::string temp_str = json_body.substr(start, end - start);
+                      float temperature = std::stof(temp_str);
+                      id(owm_temperature).publish_state(temperature);
+                      ESP_LOGD("weather", "Temperature: %.1f°C", temperature);
+                    }
+                  }
+                  
+                  // Parse weather description
+                  size_t desc_pos = json_body.find("\"description\":\"");
+                  if (desc_pos != std::string::npos) {
+                    size_t start = desc_pos + 15;
+                    size_t end = json_body.find("\"", start);
+                    
+                    if (end != std::string::npos) {
+                      std::string description = json_body.substr(start, end - start);
+                      // Convert first character to uppercase
+                      if (!description.empty()) {
+                        description[0] = std::toupper(description[0]);
+                      }
+                      id(weather_condition).publish_state(description);
+                      ESP_LOGD("weather", "Weather: %s", description.c_str());
+                    }
+                  }
