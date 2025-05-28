@@ -49,6 +49,7 @@ psram:
 
 # Enable logging
 logger:
+  level: DEBUG
 
 # Enable Home Assistant API
 api:
@@ -94,9 +95,12 @@ sensor:
     unit_of_measurement: "°C"
         
 http_request:
-  id: http_requests  # Add this ID
-  useragent: esphome/device
-  timeout: 10s
+  id: http_requests
+  useragent: "ESPHome/1.0"
+  timeout: 30s  # Increase timeout
+  verify_ssl: false
+  follow_redirects: true
+  buffer_size_rx: 1024  # Add buffer size
 
 external_components:
   - source: github://esphome/esphome
@@ -488,7 +492,11 @@ lvgl:
             widgets:
               - label:
                   id: weather_label
-                  text: "Loading weather..."
+                  text: !lambda |-
+                    if (id(weather_condition).has_state()) {
+                      return id(weather_condition).state.c_str();
+                    }
+                    return "Loading weather...";
                   text_font: roboto24
                   text_color: 0xCCCCCC
                   align: center
@@ -497,7 +505,13 @@ lvgl:
                   border_width: 0
               - label:
                   id: temperature_label
-                  text: "Temperature: --°C"
+                  text: !lambda |-
+                    if (id(owm_temperature).has_state()) {
+                      static char temp_text[30];
+                      snprintf(temp_text, sizeof(temp_text), "Temperature: %.1f°C", id(owm_temperature).state);
+                      return temp_text;
+                    }
+                    return "Temperature: --°C";
                   text_font: roboto
                   text_color: 0xCCCCCC
                   align: center
@@ -511,7 +525,7 @@ lvgl:
                   text_color: 0xCCCCCC
                   align: center
                   x: 0
-                  y: 40
+                  y: 50
                   border_width: 0
         
         # Status and IP section
@@ -1177,6 +1191,31 @@ script:
       - lvgl.label.update:
           id: weather_forecast
           text: "Weather forecast: Sunny with chance of clouds"            
+      - lvgl.label.update:
+          id: weather_label
+          text: !lambda |-
+            if (id(weather_condition).has_state()) {
+              return id(weather_condition).state.c_str();
+            }
+            return "Loading weather...";
+      - lvgl.label.update:
+          id: temperature_label
+          text: !lambda |-
+            if (id(owm_temperature).has_state()) {
+              static char temp_text[30];
+              snprintf(temp_text, sizeof(temp_text), "Temperature: %.1f°C", id(owm_temperature).state);
+              return temp_text;
+            }
+            return "Temperature: --°C";
+      - lvgl.label.update:
+          id: weather_forecast
+          text: !lambda |-
+            if (id(weather_condition).has_state()) {
+              static char forecast_text[50];
+              snprintf(forecast_text, sizeof(forecast_text), "Forecast: %s", id(weather_condition).state.c_str());
+              return forecast_text;
+            }
+            return "Forecast unavailable";
   - id: check_light_schedules
     then:
       - lambda: |-
@@ -1474,47 +1513,51 @@ interval:
           }
       - script.execute: time_update
       
-  - interval: 10min
+  - interval: 20s  # For testing, change to 10min later
     then:
+      - logger.log: "Starting weather API request..."
       - http_request.get:
           url: "http://api.openweathermap.org/data/2.5/weather?q=lisbon&appid=b0fed035f1b875bafaf66f85d33f4e71&units=metric"
+          request_headers:
+            User-Agent: "ESPHome/1.0"
           on_response:
             then:
+              - delay: 1000ms
               - lambda: |-
-                  ESP_LOGD("weather", "HTTP Response received");
-                  ESP_LOGD("weather", "Response body: %s", body.c_str());
+                  ESP_LOGD("weather", "=== HTTP Response Debug ===");
+                  ESP_LOGD("weather", "Response received");
+                  ESP_LOGD("weather", "Body length: %d", body.length());
+                  ESP_LOGD("weather", "Body content: '%s'", response);
+                  ESP_LOGD("weather", "=== End Debug ===");
                   
-                  // Manual JSON parsing - fix variable naming conflict
+                  if (body.length() == 0) {
+                    ESP_LOGD("weather", "Empty response body received!");
+                    return;
+                  }
+                  
+                  // Continue with parsing only if body is not empty
                   std::string json_body = body;
+                  ESP_LOGD("weather", "JSON body assigned, length: %d", json_body.length());
                   
                   // Parse temperature
                   size_t temp_pos = json_body.find("\"temp\":");
                   if (temp_pos != std::string::npos) {
+                    ESP_LOGD("weather", "Found temperature field at position: %d", temp_pos);
                     size_t start = temp_pos + 7;
                     size_t end = json_body.find(",", start);
                     if (end == std::string::npos) end = json_body.find("}", start);
                     
                     if (end != std::string::npos) {
                       std::string temp_str = json_body.substr(start, end - start);
+                      ESP_LOGD("weather", "Temperature string: '%s'", temp_str.c_str());
                       float temperature = std::stof(temp_str);
                       id(owm_temperature).publish_state(temperature);
-                      ESP_LOGD("weather", "Temperature: %.1f°C", temperature);
+                      ESP_LOGD("weather", "Temperature updated: %.1f°C", temperature);
                     }
+                  } else {
+                    ESP_LOGW("weather", "Temperature field not found in response");
                   }
-                  
-                  // Parse weather description
-                  size_t desc_pos = json_body.find("\"description\":\"");
-                  if (desc_pos != std::string::npos) {
-                    size_t start = desc_pos + 15;
-                    size_t end = json_body.find("\"", start);
-                    
-                    if (end != std::string::npos) {
-                      std::string description = json_body.substr(start, end - start);
-                      // Convert first character to uppercase
-                      if (!description.empty()) {
-                        description[0] = std::toupper(description[0]);
-                      }
-                      id(weather_condition).publish_state(description);
-                      ESP_LOGD("weather", "Weather: %s", description.c_str());
-                    }
-                  }
+          on_error:
+            then:
+              - lambda: |-
+                  ESP_LOGE("weather", "HTTP request failed!");
