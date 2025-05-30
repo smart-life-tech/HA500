@@ -607,12 +607,12 @@ lvgl:
         - obj:
             width: 460
             scrollable: false  # Add this
-            height: 70
+            height: 85
             bg_color: 0x000000
             bg_opa: 50%
             radius: 10
             x: 10
-            y: 350
+            y: 380
             widgets:
               - label:
                   id: status_label
@@ -1263,34 +1263,34 @@ script:
             static char date_buf[32];
             sprintf(date_buf, "%s, %s %d, %d", day_names[now.day_of_week - 1], mon_names[now.month-1], now.day_of_month, now.year);
             return date_buf;
-      - lvgl.label.update:
-          id: weather_forecast
-          text: "Weather forecast: Sunny with chance of clouds"            
-      - lvgl.label.update:
-          id: weather_label
-          text: !lambda |-
-            if (id(weather_condition).has_state()) {
-              return id(weather_condition).state.c_str();
-            }
-            return "Loading weather...";
-      - lvgl.label.update:
-          id: temperature_label
-          text: !lambda |-
-            if (id(owm_temperature).has_state()) {
-              static char temp_text[30];
-              snprintf(temp_text, sizeof(temp_text), "Temperature: %.1f°C", id(owm_temperature).state);
-              return temp_text;
-            }
-            return "Temperature: --°C";
-      - lvgl.label.update:
-          id: weather_forecast
-          text: !lambda |-
-            if (id(weather_condition).has_state()) {
-              static char forecast_text[50];
-              snprintf(forecast_text, sizeof(forecast_text), "Forecast: %s", id(weather_condition).state.c_str());
-              return forecast_text;
-            }
-            return "Forecast unavailable";
+      # - lvgl.label.update:
+      #     id: weather_forecast
+      #     text: "Weather forecast: Sunny with chance of clouds"            
+      # - lvgl.label.update:
+      #     id: weather_label
+      #     text: !lambda |-
+      #       if (id(weather_condition).has_state()) {
+      #         return id(weather_condition).state.c_str();
+      #       }
+      #       return "Loading weather...";
+      # - lvgl.label.update:
+      #     id: temperature_label
+      #     text: !lambda |-
+      #       if (id(owm_temperature).has_state()) {
+      #         static char temp_text[30];
+      #         snprintf(temp_text, sizeof(temp_text), "Temperature: %.1f°C", id(owm_temperature).state);
+      #         return temp_text;
+      #       }
+      #       return "Temperature: --°C";
+      # - lvgl.label.update:
+      #     id: weather_forecast
+      #     text: !lambda |-
+      #       if (id(weather_condition).has_state()) {
+      #         static char forecast_text[50];
+      #         snprintf(forecast_text, sizeof(forecast_text), "Forecast: %s", id(weather_condition).state.c_str());
+      #         return forecast_text;
+      #       }
+      #       return "Forecast unavailable";
   - id: check_light_schedules
     then:
       - lambda: |-
