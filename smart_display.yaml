@@ -93,6 +93,31 @@ sensor:
     name: "OWM Temperature"
     id: owm_temperature
     unit_of_measurement: "°C"
+    accuracy_decimals: 1
+    
+  - platform: template
+    name: "OWM Humidity"
+    id: owm_humidity
+    unit_of_measurement: "%"
+    accuracy_decimals: 0
+    
+  - platform: template
+    name: "OWM Pressure"
+    id: owm_pressure
+    unit_of_measurement: "hPa"
+    accuracy_decimals: 0
+    
+  - platform: template
+    name: "OWM Wind Speed"
+    id: owm_wind_speed
+    unit_of_measurement: "m/s"
+    accuracy_decimals: 1
+    
+  - platform: template
+    name: "OWM Feels Like"
+    id: owm_feels_like
+    unit_of_measurement: "°C"
+    accuracy_decimals: 1
         
 http_request:
   id: http_requests
@@ -102,9 +127,9 @@ http_request:
   follow_redirects: true
   buffer_size_rx: 1024  # Add buffer size
 
-external_components:
-  - source: github://esphome/esphome
-    components: [http_request]
+# external_components:
+#   - source: github://esphome/esphome
+#     components: [http_request]
 
 wifi:
   ssid: !secret wifi_ssid
@@ -471,7 +496,7 @@ lvgl:
                   text_font: roboto24
                   align: center
                   text_color: 0xFFFFFF
-                  x: 110
+                  x: 120
                   y: 45
                   border_width: 0
                   width: 480
@@ -482,13 +507,13 @@ lvgl:
             width: 460
             height: 150
             bg_color: 0x000000
-            bg_opa: 20%
+            bg_opa: 50%
             radius: 10
             pad_all: 10
             x: 10
-            y: 210
+            y: 200
             border_width: 0
-            scrollable: false  # Add this
+            scrollable: false
             widgets:
               - label:
                   id: weather_label
@@ -507,8 +532,13 @@ lvgl:
                   id: temperature_label
                   text: !lambda |-
                     if (id(owm_temperature).has_state()) {
-                      static char temp_text[30];
-                      snprintf(temp_text, sizeof(temp_text), "Temperature: %.1f°C", id(owm_temperature).state);
+                      static char temp_text[50];
+                      if (id(owm_feels_like).has_state()) {
+                        snprintf(temp_text, sizeof(temp_text), "%.1f°C (feels %.1f°C)", 
+                                id(owm_temperature).state, id(owm_feels_like).state);
+                      } else {
+                        snprintf(temp_text, sizeof(temp_text), "Temperature: %.1f°C", id(owm_temperature).state);
+                      }
                       return temp_text;
                     }
                     return "Temperature: --°C";
@@ -520,19 +550,64 @@ lvgl:
                   border_width: 0
               - label:
                   id: weather_forecast
-                  text: "Forecast unavailable"
+                  text: !lambda |-
+                    if (id(weather_description).has_state() && id(owm_temperature).has_state()) {
+                      static char weather_text[150];
+                      
+                      std::string condition = id(weather_condition).state;
+                      float temp = id(owm_temperature).state;
+                      
+                      // Create weather-based recommendations
+                      std::string recommendation = "";
+                      
+                      if (condition == "Rain" || condition == "Drizzle" || condition == "Thunderstorm") {
+                        recommendation = "Rainy weather - lights may be needed";
+                      } else if (condition == "Clouds") {
+                        if (temp < 15) {
+                          recommendation = "Cloudy and cool - consider heating";
+                        } else {
+                          recommendation = "Cloudy conditions - moderate lighting";
+                        }
+                      } else if (condition == "Clear") {
+                        if (temp > 25) {
+                          recommendation = "Clear and warm - minimal lighting needed";
+                        } else {
+                          recommendation = "Clear skies - natural light available";
+                        }
+                      } else if (condition == "Snow") {
+                        recommendation = "Snowy weather - extra lighting recommended";
+                      } else if (condition == "Mist" || condition == "Fog") {
+                        recommendation = "Low visibility - additional lighting advised";
+                      } else {
+                        recommendation = "Weather conditions monitored";
+                      }
+                      
+                      // Add current conditions
+                      if (id(owm_humidity).has_state()) {
+                        snprintf(weather_text, sizeof(weather_text), 
+                                "%s | %.0f%% humidity", 
+                                recommendation.c_str(), 
+                                id(owm_humidity).state);
+                      } else {
+                        snprintf(weather_text, sizeof(weather_text), "%s", recommendation.c_str());
+                      }
+                      
+                      return weather_text;
+                    }
+                    return "Weather monitoring active";
                   text_font: roboto
                   text_color: 0xCCCCCC
                   align: center
                   x: 0
-                  y: 50
+                  y: 65
                   border_width: 0
+
         
         # Status and IP section
         - obj:
             width: 460
             scrollable: false  # Add this
-            height: 60
+            height: 70
             bg_color: 0x000000
             bg_opa: 50%
             radius: 10
@@ -561,7 +636,7 @@ lvgl:
         - button:
             id: controls_nav_button
             x: 10
-            y: 420
+            y: 450
             width: 100
             height: 40
             styles: nav_button_style
@@ -783,7 +858,7 @@ lvgl:
                   text_color: 0xFFFFFF
                   x: 0
                   y: 5
-        
+                  scrollable: false
         # Location settings container
         - obj:
             width: 460
@@ -1107,7 +1182,7 @@ script:
             std::string lat = std::to_string(id(location_latitude).state);
             std::string lon = std::to_string(id(location_longitude).state);
             return "http://api.openweathermap.org/data/2.5/weather?lat=" + lat + "&lon=" + lon + "&appid=b0fed035f1b875bafaf66f85d33f4e71&units=metric";
-          request_headers:
+          headers:
             Content-Type: application/json
           on_response:
             then:
@@ -1311,11 +1386,39 @@ script:
             }
           }
           
-          // ---- SWITCH 3: WEATHER-BASED CONTROL ----
-          // For now, we'll just use a simple timer for SW3 without weather data
+           // ---- SWITCH 3: ENHANCED WEATHER-BASED CONTROL ----
           if (id(sw3_manual_override_time) == 0) {
-            // Turn on SW3 at 3 PM if it's not already on
-            if (now.hour == 15 && now.minute == 0 && !id(sw3).state) {
+            bool should_turn_on = false;
+            
+            if (id(sw3_winter_mode)) {
+              // Winter mode: Rain-based
+              if (id(weather_condition).has_state()) {
+                std::string condition = id(weather_condition).state;
+                if (condition == "Rain" || condition == "Drizzle" || 
+                    condition == "Thunderstorm" || condition == "Snow") {
+                  should_turn_on = true;
+                }
+              }
+            } else {
+              // Summer mode: Temperature-based
+              if (id(owm_temperature).has_state()) {
+                float temp = id(owm_temperature).state;
+                if (temp > 28.0) {  // Hot day, might need cooling/ventilation
+                  should_turn_on = true;
+                }
+              }
+            }
+            
+            // Also consider cloudy conditions during daytime
+            if (id(weather_condition).has_state() && now.hour >= 10 && now.hour <= 16) {
+              std::string condition = id(weather_condition).state;
+              if (condition == "Clouds" && !id(sw3).state) {
+                should_turn_on = true;
+              }
+            }
+            
+            // Turn on/off based on weather conditions
+            if (should_turn_on && !id(sw3).state) {
               id(sw3).turn_on();
               id(sw3_off_time) = now.timestamp + 3600; // 1 hour
               id(lvgl_comp).loop();
@@ -1513,51 +1616,140 @@ interval:
           }
       - script.execute: time_update
       
-  - interval: 20s  # For testing, change to 10min later
+  - interval: 2min  # For testing, change to 10min later
     then:
-      - logger.log: "Starting weather API request..."
-      - http_request.get:
-          url: "http://api.openweathermap.org/data/2.5/weather?q=lisbon&appid=b0fed035f1b875bafaf66f85d33f4e71&units=metric"
-          request_headers:
-            User-Agent: "ESPHome/1.0"
-          on_response:
-            then:
-              - delay: 1000ms
-              - lambda: |-
-                  ESP_LOGD("weather", "=== HTTP Response Debug ===");
-                  ESP_LOGD("weather", "Response received");
-                  ESP_LOGD("weather", "Body length: %d", body.length());
-                  ESP_LOGD("weather", "Body content: '%s'", response);
-                  ESP_LOGD("weather", "=== End Debug ===");
-                  
-                  if (body.length() == 0) {
-                    ESP_LOGD("weather", "Empty response body received!");
-                    return;
-                  }
-                  
-                  // Continue with parsing only if body is not empty
-                  std::string json_body = body;
-                  ESP_LOGD("weather", "JSON body assigned, length: %d", json_body.length());
-                  
-                  // Parse temperature
-                  size_t temp_pos = json_body.find("\"temp\":");
-                  if (temp_pos != std::string::npos) {
-                    ESP_LOGD("weather", "Found temperature field at position: %d", temp_pos);
-                    size_t start = temp_pos + 7;
-                    size_t end = json_body.find(",", start);
-                    if (end == std::string::npos) end = json_body.find("}", start);
-                    
-                    if (end != std::string::npos) {
-                      std::string temp_str = json_body.substr(start, end - start);
-                      ESP_LOGD("weather", "Temperature string: '%s'", temp_str.c_str());
-                      float temperature = std::stof(temp_str);
-                      id(owm_temperature).publish_state(temperature);
-                      ESP_LOGD("weather", "Temperature updated: %.1f°C", temperature);
-                    }
-                  } else {
-                    ESP_LOGW("weather", "Temperature field not found in response");
-                  }
-          on_error:
-            then:
-              - lambda: |-
-                  ESP_LOGE("weather", "HTTP request failed!");
+      - if:
+          condition:
+            wifi.connected:
+          then:
+            - logger.log: "Making weather API request..."
+            - http_request.get:
+                url: "http://api.openweathermap.org/data/2.5/weather?q=lisbon&appid=b0fed035f1b875bafaf66f85d33f4e71&units=metric"
+                headers:
+                  User-Agent: "ESPHome/1.0"
+                capture_response: true
+                on_response:
+                  then:
+                    - lambda: |-
+    
+                        ESP_LOGD("weather", "HTTP Status: %d", response);
+                        ESP_LOGD("weather", "Response body: %s", body.c_str());
+                        
+                        if ( body.length() > 0) {
+                          
+                          // Parse temperature
+                          size_t temp_pos = body.find("\"temp\":");
+                          if (temp_pos != std::string::npos) {
+                            size_t start = temp_pos + 7;
+                            size_t end = body.find(",", start);
+                            if (end == std::string::npos) end = body.find("}", start);
+                            
+                            if (end != std::string::npos) {
+                              std::string temp_str = body.substr(start, end - start);
+                              float temperature = std::stof(temp_str);
+                              id(owm_temperature).publish_state(temperature);
+                              ESP_LOGD("weather", "Temperature: %.1f°C", temperature);
+                            }
+                          }
+                          
+                          // Parse weather main condition (e.g., "Clear", "Clouds", "Rain")
+                          size_t main_pos = body.find("\"main\":\"");
+                          if (main_pos != std::string::npos) {
+                            size_t start = main_pos + 8;
+                            size_t end = body.find("\"", start);
+                            
+                            if (end != std::string::npos) {
+                              std::string main_weather = body.substr(start, end - start);
+                              id(weather_condition).publish_state(main_weather);
+                              ESP_LOGD("weather", "Weather main: %s", main_weather.c_str());
+                            }
+                          }
+                          
+                          // Parse weather description (e.g., "clear sky", "few clouds")
+                          size_t desc_pos = body.find("\"description\":\"");
+                          if (desc_pos != std::string::npos) {
+                            size_t start = desc_pos + 15;
+                            size_t end = body.find("\"", start);
+                            
+                            if (end != std::string::npos) {
+                              std::string description = body.substr(start, end - start);
+                              // Capitalize first letter
+                              if (!description.empty()) {
+                                description[0] = std::toupper(description[0]);
+                              }
+                              id(weather_description).publish_state(description);
+                              ESP_LOGD("weather", "Weather description: %s", description.c_str());
+                            }
+                          }
+                          
+                          // Parse humidity
+                          size_t humidity_pos = body.find("\"humidity\":");
+                          if (humidity_pos != std::string::npos) {
+                            size_t start = humidity_pos + 11;
+                            size_t end = body.find(",", start);
+                            if (end == std::string::npos) end = body.find("}", start);
+                            
+                            if (end != std::string::npos) {
+                              std::string humidity_str = body.substr(start, end - start);
+                              float humidity = std::stof(humidity_str);
+                              id(owm_humidity).publish_state(humidity);
+                              ESP_LOGD("weather", "Humidity: %.0f%%", humidity);
+                            }
+                          }
+                          
+                          // Parse pressure
+                          size_t pressure_pos = body.find("\"pressure\":");
+                          if (pressure_pos != std::string::npos) {
+                            size_t start = pressure_pos + 11;
+                            size_t end = body.find(",", start);
+                            if (end == std::string::npos) end = body.find("}", start);
+                            
+                            if (end != std::string::npos) {
+                              std::string pressure_str = body.substr(start, end - start);
+                              float pressure = std::stof(pressure_str);
+                              id(owm_pressure).publish_state(pressure);
+                              ESP_LOGD("weather", "Pressure: %.0f hPa", pressure);
+                            }
+                          }
+                          
+                          // Parse wind speed
+                          size_t wind_pos = body.find("\"speed\":");
+                          if (wind_pos != std::string::npos) {
+                            size_t start = wind_pos + 8;
+                            size_t end = body.find(",", start);
+                            if (end == std::string::npos) end = body.find("}", start);
+                            
+                            if (end != std::string::npos) {
+                              std::string wind_str = body.substr(start, end - start);
+                              float wind_speed = std::stof(wind_str);
+                              id(owm_wind_speed).publish_state(wind_speed);
+                              ESP_LOGD("weather", "Wind speed: %.1f m/s", wind_speed);
+                            }
+                          }
+                          
+                          // Parse feels like temperature
+                          size_t feels_pos = body.find("\"feels_like\":");
+                          if (feels_pos != std::string::npos) {
+                            size_t start = feels_pos + 13;
+                            size_t end = body.find(",", start);
+                            if (end == std::string::npos) end = body.find("}", start);
+                            
+                            if (end != std::string::npos) {
+                              std::string feels_str = body.substr(start, end - start);
+                              float feels_like = std::stof(feels_str);
+                              id(owm_feels_like).publish_state(feels_like);
+                              ESP_LOGD("weather", "Feels like: %.1f°C", feels_like);
+                            }
+                          }
+                          
+                          // Update display immediately after parsing
+                          id(lvgl_comp).loop();
+                          
+                        } else {
+                          ESP_LOGW("weather", "Invalid response: status=%d, body_len=%d", body.length());
+                        }
+                on_error:
+                  then:
+                    - logger.log: "Weather API request failed"
+          else:
+            - logger.log: "WiFi not connected, skipping weather update"
