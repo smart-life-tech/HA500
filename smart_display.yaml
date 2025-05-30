@@ -1263,34 +1263,76 @@ script:
             static char date_buf[32];
             sprintf(date_buf, "%s, %s %d, %d", day_names[now.day_of_week - 1], mon_names[now.month-1], now.day_of_month, now.year);
             return date_buf;
-      # - lvgl.label.update:
-      #     id: weather_forecast
-      #     text: "Weather forecast: Sunny with chance of clouds"            
-      # - lvgl.label.update:
-      #     id: weather_label
-      #     text: !lambda |-
-      #       if (id(weather_condition).has_state()) {
-      #         return id(weather_condition).state.c_str();
-      #       }
-      #       return "Loading weather...";
-      # - lvgl.label.update:
-      #     id: temperature_label
-      #     text: !lambda |-
-      #       if (id(owm_temperature).has_state()) {
-      #         static char temp_text[30];
-      #         snprintf(temp_text, sizeof(temp_text), "Temperature: %.1f°C", id(owm_temperature).state);
-      #         return temp_text;
-      #       }
-      #       return "Temperature: --°C";
-      # - lvgl.label.update:
-      #     id: weather_forecast
-      #     text: !lambda |-
-      #       if (id(weather_condition).has_state()) {
-      #         static char forecast_text[50];
-      #         snprintf(forecast_text, sizeof(forecast_text), "Forecast: %s", id(weather_condition).state.c_str());
-      #         return forecast_text;
-      #       }
-      #       return "Forecast unavailable";
+      - lvgl.label.update:
+          id: weather_label
+          text: !lambda |-
+            if (id(weather_condition).has_state()) {
+              return id(weather_condition).state.c_str();
+            }
+            return "Loading weather...";
+      
+      - lvgl.label.update:
+          id: temperature_label
+          text: !lambda |-
+            if (id(owm_temperature).has_state()) {
+              static char temp_text[50];
+              if (id(owm_feels_like).has_state()) {
+                snprintf(temp_text, sizeof(temp_text), "%.1f°C (feels %.1f°C)", 
+                        id(owm_temperature).state, id(owm_feels_like).state);
+              } else {
+                snprintf(temp_text, sizeof(temp_text), "Temperature: %.1f°C", id(owm_temperature).state);
+              }
+              return temp_text;
+            }
+            return "Temperature: --°C";
+      
+      - lvgl.label.update:
+          id: weather_forecast
+          text: !lambda |-
+            if (id(weather_description).has_state() && id(owm_temperature).has_state()) {
+              static char weather_text[150];
+              
+              std::string condition = id(weather_condition).state;
+              float temp = id(owm_temperature).state;
+              
+              // Create weather-based recommendations
+              std::string recommendation = "";
+              
+              if (condition == "Rain" || condition == "Drizzle" || condition == "Thunderstorm") {
+                recommendation = "Rainy weather - lights may be needed";
+              } else if (condition == "Clouds") {
+                if (temp < 15) {
+                  recommendation = "Cloudy and cool - consider heating";
+                } else {
+                  recommendation = "Cloudy conditions - moderate lighting";
+                }
+              } else if (condition == "Clear") {
+                if (temp > 25) {
+                  recommendation = "Clear and warm - minimal lighting needed";
+                } else {
+                  recommendation = "Clear skies - natural light available";
+                }
+              } else if (condition == "Snow") {
+                recommendation = "Snowy weather - extra lighting recommended";
+              } else if (condition == "Mist" || condition == "Fog") {
+                recommendation = "Low visibility - additional lighting advised";
+              } else {
+                recommendation = "Weather conditions monitored";
+              }
+              
+              // Add current conditions
+              if (id(owm_humidity).has_state()) {
+                snprintf(weather_text, sizeof(weather_text), 
+                        "%s | %.0f%% humidity", 
+                        recommendation.c_str(), 
+                        id(owm_humidity).state);
+              } else {
+                snprintf(weather_text, sizeof(weather_text), "%s", recommendation.c_str());
+              }
+              
+              return weather_text;
+            }
+            return "Weather monitoring active";
   - id: check_light_schedules
     then:
       - lambda: |-
