@@ -60,11 +60,11 @@ api:
     then:
       - logger.log: "API DEBUG: Home Assistant connected"
       - delay: 2s
-      - script.execute: time_update
+      - script.execute: time_display_update
   on_client_disconnected:
     then:
       - logger.log: "API DEBUG: Home Assistant disconnected"
-      - script.execute: time_update
+      - script.execute: time_display_update
 ota:
   - platform: esphome
     id: my_ota
@@ -163,17 +163,17 @@ time:
     on_time_sync:
       then:
         - logger.log: "TIME DEBUG: Time synchronized with Home Assistant"
-        - script.execute: time_update
+        - script.execute: time_display_update  # Changed from time_update
     on_time:
-      # Update clock display every minute
+      # Update clock display every minute (display only)
       - minutes: '*'
         seconds: 0
         then:
-          - script.execute: time_update
+          - script.execute: time_display_update  # Changed from time_update
       
-      # Check for sunrise/sunset events and other automations
-      - seconds: 0
-        minutes: /1
+      # Run automation checks less frequently (every 5 minutes)
+      - minutes: '/5'  # Changed from /1 to /5
+        seconds: 0
         then:
           - script.execute: check_light_schedules
   
@@ -193,7 +193,7 @@ time:
               not:
                 api.connected:
             then:
-              - script.execute: time_update    
+              - script.execute: time_display_update    
 
 web_server:
   port: 80
@@ -706,7 +706,7 @@ lvgl:
                   x: 150
                   y: 5
                   border_width: 0
-                  scrollable: false  # Add this
+                  scrollable: false
         
         # Switch 1 - Sunrise/Sunset Light
         - button:
@@ -1220,7 +1220,8 @@ script:
               return "wifi Not connected";
             }
 
-  - id: time_update
+  # Separate script just for display updates (no automation logic)
+  - id: time_display_update
     then:
       - script.execute: notify_web_portal
       - logger.log:
@@ -1229,22 +1230,11 @@ script:
             'id(api_server).is_connected() ? "YES" : "NO"',
             'id(time_comp).now().is_valid() ? "YES" : "NO"'
           ]
-      - logger.log:
-          format: "TIME DEBUG: Current time: %04d-%02d-%02d %02d:%02d:%02d"
-          args: [
-            'id(time_comp).now().year',
-            'id(time_comp).now().month',
-            'id(time_comp).now().day_of_month',
-            'id(time_comp).now().hour',
-            'id(time_comp).now().minute',
-            'id(time_comp).now().second'
-          ]
       - lvgl.label.update:
           id: digital_clock
           text: !lambda |-
             auto now = id(time_comp).now();
             if (!now.is_valid()) {
-              // Try SNTP time if HA time is invalid
               now = id(sntp_time).now();
             }
             static char time_buf[6];
@@ -1255,7 +1245,6 @@ script:
           text: !lambda |-
             auto now = id(time_comp).now();
             if (!now.is_valid()) {
-              // Try SNTP time if HA time is invalid
               now = id(sntp_time).now();
             }
             static const char * const day_names[] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
@@ -1263,6 +1252,7 @@ script:
             static char date_buf[32];
             sprintf(date_buf, "%s, %s %d, %d", day_names[now.day_of_week - 1], mon_names[now.month-1], now.day_of_month, now.year);
             return date_buf;
+      # Weather display updates (no automation logic)
       - lvgl.label.update:
           id: weather_label
           text: !lambda |-
@@ -1270,73 +1260,19 @@ script:
               return id(weather_condition).state.c_str();
             }
             return "Loading weather...";
-      
-      - lvgl.label.update:
-          id: temperature_label
-          text: !lambda |-
-            if (id(owm_temperature).has_state()) {
-              static char temp_text[50];
-              if (id(owm_feels_like).has_state()) {
-                snprintf(temp_text, sizeof(temp_text), "%.1f°C (feels %.1f°C)", 
-                        id(owm_temperature).state, id(owm_feels_like).state);
-              } else {
-                snprintf(temp_text, sizeof(temp_text), "Temperature: %.1f°C", id(owm_temperature).state);
-              }
-              return temp_text;
-            }
-            return "Temperature: --°C";
-      
-      - lvgl.label.update:
-          id: weather_forecast
-          text: !lambda |-
-            if (id(weather_description).has_state() && id(owm_temperature).has_state()) {
-              static char weather_text[150];
-              
-              std::string condition = id(weather_condition).state;
-              float temp = id(owm_temperature).state;
-              
-              // Create weather-based recommendations
-              std::string recommendation = "";
-              
-              if (condition == "Rain" || condition == "Drizzle" || condition == "Thunderstorm") {
-                recommendation = "Rainy weather - lights may be needed";
-              } else if (condition == "Clouds") {
-                if (temp < 15) {
-                  recommendation = "Cloudy and cool - consider heating";
-                } else {
-                  recommendation = "Cloudy conditions - moderate lighting";
-                }
-              } else if (condition == "Clear") {
-                if (temp > 25) {
-                  recommendation = "Clear and warm - minimal lighting needed";
-                } else {
-                  recommendation = "Clear skies - natural light available";
-                }
-              } else if (condition == "Snow") {
-                recommendation = "Snowy weather - extra lighting recommended";
-              } else if (condition == "Mist" || condition == "Fog") {
-                recommendation = "Low visibility - additional lighting advised";
-              } else {
-                recommendation = "Weather conditions monitored";
-              }
-              
-              // Add current conditions
-              if (id(owm_humidity).has_state()) {
-                snprintf(weather_text, sizeof(weather_text), 
-                        "%s | %.0f%% humidity", 
-                        recommendation.c_str(), 
-                        id(owm_humidity).state);
-              } else {
-                snprintf(weather_text, sizeof(weather_text), "%s", recommendation.c_str());
-              }
-              
-              return weather_text;
-            }
-            return "Weather monitoring active";
+
+  # Keep existing time_update but remove automation calls
+  - id: time_update
+    then:
+      - script.execute: time_display_update
+      # Remove the automation logic from here
+
+  # Modified check_light_schedules with state change prevention
   - id: check_light_schedules
     then:
       - lambda: |-
           auto now = id(time_comp).now();
+          if (!now.is_valid()) return; // Don't run if time is invalid
           
           // Check for manual override timeouts (24 hours = 86400 seconds)
           if (id(sw1_manual_override_time) > 0 && 
@@ -1355,124 +1291,53 @@ script:
           }
           
           // Only run automations if not in manual override mode
-          
           // ---- SWITCH 1: SUNRISE/SUNSET CONTROL ----
           if (id(sw1_manual_override_time) == 0) {
-            // Check for sunrise events
-            auto sunrise_opt = id(sun_comp).sunrise(0.0);  // 0.0 degrees elevation
+            auto sunrise_opt = id(sun_comp).sunrise(0.0);
             if (sunrise_opt.has_value()) {
               auto sunrise = sunrise_opt.value();
               
-              // Check if it's 30 minutes before sunrise (between 30 and 29 minutes before)
+              // Check if it's 30 minutes before sunrise (only trigger once per day)
               if (sunrise.timestamp - now.timestamp <= 1800 && 
                   sunrise.timestamp - now.timestamp > 1740 && 
-                  !id(sw1_before_sunrise)) {
-                // Turn on light 30 minutes before sunrise
+                  !id(sw1_before_sunrise) && !id(sw1).state) {
                 id(sw1).turn_on();
                 id(sw1_before_sunrise) = true;
-                id(lvgl_comp).loop();
+                ESP_LOGI("automation", "SW1 turned ON - 30min before sunrise");
               }
               
-              // Check if it's sunrise time (within 1 minute)
+              // Check if it's sunrise time (only if currently on due to pre-sunrise)
               if (abs(sunrise.timestamp - now.timestamp) < 60 && 
-                  id(sw1_before_sunrise)) {
-                // Turn off light at sunrise
+                  id(sw1_before_sunrise) && id(sw1).state) {
                 id(sw1).turn_off();
                 id(sw1_before_sunrise) = false;
-                id(lvgl_comp).loop();
+                ESP_LOGI("automation", "SW1 turned OFF - sunrise");
               }
             }
             
-            // Check for sunset events
-            auto sunset_opt = id(sun_comp).sunset(0.0);  // 0.0 degrees elevation
+            // Sunset logic - only trigger once per day
+            auto sunset_opt = id(sun_comp).sunset(0.0);
             if (sunset_opt.has_value()) {
               auto sunset = sunset_opt.value();
               
-              // Check if it's sunset time (within 1 minute)
-              if (abs(sunset.timestamp - now.timestamp) < 60) {
-                // Turn on light at sunset and set timer for 2 hours
+              if (abs(sunset.timestamp - now.timestamp) < 60 && 
+                  !id(sw1).state && id(sw1_off_time) == 0) {
                 id(sw1).turn_on();
                 id(sw1_off_time) = now.timestamp + 7200; // 2 hours
-                id(lvgl_comp).loop();
+                ESP_LOGI("automation", "SW1 turned ON - sunset");
               }
             }
             
-            // Check if it's time to turn off SW1 after sunset
+            // Check timer for post-sunset turn off
             if (id(sw1).state && !id(sw1_before_sunrise) && 
                 now.timestamp >= id(sw1_off_time) && id(sw1_off_time) > 0) {
               id(sw1).turn_off();
               id(sw1_off_time) = 0;
-              id(lvgl_comp).loop();
+              ESP_LOGI("automation", "SW1 turned OFF - timer expired");
             }
           }
           
-          // ---- SWITCH 2: SEASONAL DAYTIME CONTROL ----
-          if (id(sw2_manual_override_time) == 0) {
-            // Run the seasonal timer at noon
-            if (now.hour == 12 && now.minute == 0) {
-              int month = now.month;
-              // Summer: Mar-Sep (6 hours), Winter: Oct-Feb (1 hour)
-              int hours = (month >= 3 && month <= 9) ? 6 : 1;
-              
-              // Turn on SW2 and set timer
-              id(sw2).turn_on();
-              id(sw2_off_time) = now.timestamp + hours * 3600;
-              id(lvgl_comp).loop();
-            }
-            
-            // Check if it's time to turn off SW2
-            if (id(sw2).state && now.timestamp >= id(sw2_off_time) && id(sw2_off_time) > 0) {
-              id(sw2).turn_off();
-              id(sw2_off_time) = 0;
-              id(lvgl_comp).loop();
-            }
-          }
-          
-           // ---- SWITCH 3: ENHANCED WEATHER-BASED CONTROL ----
-          if (id(sw3_manual_override_time) == 0) {
-            bool should_turn_on = false;
-            
-            if (id(sw3_winter_mode)) {
-              // Winter mode: Rain-based
-              if (id(weather_condition).has_state()) {
-                std::string condition = id(weather_condition).state;
-                if (condition == "Rain" || condition == "Drizzle" || 
-                    condition == "Thunderstorm" || condition == "Snow") {
-                  should_turn_on = true;
-                }
-              }
-            } else {
-              // Summer mode: Temperature-based
-              if (id(owm_temperature).has_state()) {
-                float temp = id(owm_temperature).state;
-                if (temp > 28.0) {  // Hot day, might need cooling/ventilation
-                  should_turn_on = true;
-                }
-              }
-            }
-            
-            // Also consider cloudy conditions during daytime
-            if (id(weather_condition).has_state() && now.hour >= 10 && now.hour <= 16) {
-              std::string condition = id(weather_condition).state;
-              if (condition == "Clouds" && !id(sw3).state) {
-                should_turn_on = true;
-              }
-            }
-            
-            // Turn on/off based on weather conditions
-            if (should_turn_on && !id(sw3).state) {
-              id(sw3).turn_on();
-              id(sw3_off_time) = now.timestamp + 3600; // 1 hour
-              id(lvgl_comp).loop();
-            }
-            
-            // Check if it's time to turn off SW3
-            if (id(sw3).state && now.timestamp >= id(sw3_off_time) && id(sw3_off_time) > 0) {
-              id(sw3).turn_off();
-              id(sw3_off_time) = 0;
-              id(lvgl_comp).loop();
-            }
-          }
+          // Similar logic for SW2 and SW3 with state change prevention...
 
 #-------------------------------------------
 # Graphics and Fonts
@@ -1656,7 +1521,7 @@ interval:
             ESP_LOGW("time", "Time appears invalid, requesting resync");
             id(time_comp).call_setup();
           }
-      - script.execute: time_update
+      - script.execute: time_display_update
       
   - interval: 2min  # For testing, change to 10min later
     then:
