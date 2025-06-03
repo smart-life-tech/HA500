@@ -297,7 +297,7 @@ globals:
   - id: location_name_str
     type: std::string
     restore_value: yes
-    initial_value: '"Sao Bartolomeu de Messines, Portugal"'
+    initial_value: '"weather in Sao Bartolomeu de Messines, Portugal"'
   # Timer tracking
   - id: sw1_off_time
     type: int
@@ -501,7 +501,7 @@ lvgl:
                   border_width: 0
                   width: 480
                   scrollable: false  # Add this
-          
+
         # Weather section - semi-transparent overlay
         - obj:
             width: 460
@@ -601,7 +601,16 @@ lvgl:
                   x: 0
                   y: 65
                   border_width: 0
-
+              - label:
+                  id: location_display_label
+                  text: "weather in Sao Bartolomeu de Messines, Portugal"
+                  text_font: roboto
+                  align: center
+                  text_color: 0xFFFFFF
+                  x: 0
+                  y: 75
+                  border_width: 0
+                  width: 480
         
         # Status and IP section
         - obj:
@@ -649,26 +658,7 @@ lvgl:
               then:
                 - lvgl.page.next:
         
-        # - button:
-        #     id: settings_nav_button
-        #     x: 120
-        #     y: 420
-        #     width: 100
-        #     height: 55
-        #     styles: nav_button_style
-        #     widgets:
-        #       - label:
-        #           text: "Settings"
-        #           text_font: roboto
-        #           align: center
-        #     on_click:
-        #       then:
-        #         #- script.execute: goto_settings
-        #         - lvgl.page.next:
-        #         - delay: 1000ms
-        #         - lvgl.page.next:
-
-    
+       
     # Controls Page - Light Control Buttons
     - id: controls_page
       skip: false
@@ -1260,6 +1250,69 @@ script:
               return id(weather_condition).state.c_str();
             }
             return "Loading weather...";
+      # ADD THIS - Update temperature label
+      - lvgl.label.update:
+          id: temperature_label
+          text: !lambda |-
+            if (id(owm_temperature).has_state()) {
+              static char temp_text[50];
+              if (id(owm_feels_like).has_state()) {
+                snprintf(temp_text, sizeof(temp_text), "%.1f°C (feels %.1f°C)", 
+                        id(owm_temperature).state, id(owm_feels_like).state);
+              } else {
+                snprintf(temp_text, sizeof(temp_text), "Temperature: %.1f°C", id(owm_temperature).state);
+              }
+              return temp_text;
+            }
+            return "Temperature: --°C";
+      # ADD THIS - Update weather forecast label
+      - lvgl.label.update:
+          id: weather_forecast
+          text: !lambda |-
+            if (id(weather_description).has_state() && id(owm_temperature).has_state()) {
+              static char weather_text[150];
+              
+              std::string condition = id(weather_condition).state;
+              float temp = id(owm_temperature).state;
+              
+              // Create weather-based recommendations
+              std::string recommendation = "";
+              
+              if (condition == "Rain" || condition == "Drizzle" || condition == "Thunderstorm") {
+                recommendation = "Rainy weather - lights may be needed";
+              } else if (condition == "Clouds") {
+                if (temp < 15) {
+                  recommendation = "Cloudy and cool - consider heating";
+                } else {
+                  recommendation = "Cloudy conditions - moderate lighting";
+                }
+              } else if (condition == "Clear") {
+                if (temp > 25) {
+                  recommendation = "Clear and warm - minimal lighting needed";
+                } else {
+                  recommendation = "Clear skies - natural light available";
+                }
+              } else if (condition == "Snow") {
+                recommendation = "Snowy weather - extra lighting recommended";
+              } else if (condition == "Mist" || condition == "Fog") {
+                recommendation = "Low visibility - additional lighting advised";
+              } else {
+                recommendation = "Weather conditions monitored";
+              }
+              
+              // Add current conditions
+              if (id(owm_humidity).has_state()) {
+                snprintf(weather_text, sizeof(weather_text), 
+                        "%s | %.0f%% humidity", 
+                        recommendation.c_str(), 
+                        id(owm_humidity).state);
+              } else {
+                snprintf(weather_text, sizeof(weather_text), "%s", recommendation.c_str());
+              }
+              
+              return weather_text;
+            }
+            return "Weather monitoring active";
 
   # Keep existing time_update but remove automation calls
   - id: time_update
@@ -1523,7 +1576,7 @@ interval:
           }
       - script.execute: time_display_update
       
-  - interval: 2min  # For testing, change to 10min later
+  - interval: 1min
     then:
       - if:
           condition:
@@ -1538,11 +1591,10 @@ interval:
                 on_response:
                   then:
                     - lambda: |-
-    
                         ESP_LOGD("weather", "HTTP Status: %d", response);
                         ESP_LOGD("weather", "Response body: %s", body.c_str());
                         
-                        if ( body.length() > 0) {
+                        if (body.length() > 0) {
                           
                           // Parse temperature
                           size_t temp_pos = body.find("\"temp\":");
@@ -1649,12 +1701,85 @@ interval:
                             }
                           }
                           
-                          // Update display immediately after parsing
-                          id(lvgl_comp).loop();
-                          
+                          ESP_LOGD("weather", "Weather data parsing complete - updating display");
                         } else {
                           ESP_LOGW("weather", "Invalid response: status=%d, body_len=%d", body.length());
                         }
+                    
+                    # UPDATE WEATHER LABELS DIRECTLY HERE
+                    - lvgl.label.update:
+                        id: weather_label
+                        text: !lambda |-
+                          if (id(weather_condition).has_state()) {
+                            return id(weather_condition).state.c_str();
+                          }
+                          return "Loading weather...";
+                    
+                    - lvgl.label.update:
+                        id: temperature_label
+                        text: !lambda |-
+                          if (id(owm_temperature).has_state()) {
+                            static char temp_text[50];
+                            if (id(owm_feels_like).has_state()) {
+                              snprintf(temp_text, sizeof(temp_text), "%.1f°C (feels %.1f°C)", 
+                                      id(owm_temperature).state, id(owm_feels_like).state);
+                            } else {
+                              snprintf(temp_text, sizeof(temp_text), "Temperature: %.1f°C", id(owm_temperature).state);
+                            }
+                            return temp_text;
+                          }
+                          return "Temperature: --°C";
+                    
+                    - lvgl.label.update:
+                        id: weather_forecast
+                        text: !lambda |-
+                          if (id(weather_description).has_state() && id(owm_temperature).has_state()) {
+                            static char weather_text[150];
+                            
+                            std::string condition = id(weather_condition).state;
+                            float temp = id(owm_temperature).state;
+                            
+                            // Create weather-based recommendations
+                            std::string recommendation = "";
+                            
+                            if (condition == "Rain" || condition == "Drizzle" || condition == "Thunderstorm") {
+                              recommendation = "Rainy weather - lights may be needed";
+                            } else if (condition == "Clouds") {
+                              if (temp < 15) {
+                                recommendation = "Cloudy and cool - consider heating";
+                              } else {
+                                recommendation = "Cloudy conditions - moderate lighting";
+                              }
+                            } else if (condition == "Clear") {
+                              if (temp > 25) {
+                                recommendation = "Clear and warm - minimal lighting needed";
+                              } else {
+                                recommendation = "Clear skies - natural light available";
+                              }
+                            } else if (condition == "Snow") {
+                              recommendation = "Snowy weather - extra lighting recommended";
+                            } else if (condition == "Mist" || condition == "Fog") {
+                              recommendation = "Low visibility - additional lighting advised";
+                            } else {
+                              recommendation = "Weather conditions monitored";
+                            }
+                            
+                            // Add current conditions
+                            if (id(owm_humidity).has_state()) {
+                              snprintf(weather_text, sizeof(weather_text), 
+                                      "%s | %.0f%% humidity", 
+                                      recommendation.c_str(), 
+                                      id(owm_humidity).state);
+                            } else {
+                              snprintf(weather_text, sizeof(weather_text), "%s", recommendation.c_str());
+                            }
+                            
+                            return weather_text;
+                          }
+                          return "Weather monitoring active";
+                    
+                    - logger.log: "Weather display labels updated"
+                    
                 on_error:
                   then:
                     - logger.log: "Weather API request failed"
