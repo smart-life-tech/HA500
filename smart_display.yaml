@@ -313,13 +313,25 @@ color:
     red: 0%
     green: 40%
     blue: 100%
+  - id: black_color
+    red: 0%
+    green: 0%
+    blue: 0%
+  - id: white_color
+    red: 100%
+    green: 100%
+    blue: 100%
+  - id: yellow_color
+    red: 100%
+    green: 100%
+    blue: 0%
 
 # Global variables for timer tracking and settings
 globals:
   - id: location_name_str
     type: std::string
     restore_value: yes
-    initial_value: '"weather in Sao Bartolomeu de Messines, Portugal"'
+    initial_value: '"Sao Bartolomeu de Messines, Portugal"'
   # Timer tracking
   - id: sw1_off_time
     type: int
@@ -391,7 +403,7 @@ lvgl:
   bg_color: 0x000000
   
   on_idle:
-    - timeout: 15s
+    - timeout: 25s
       then:
         - logger.log: idle 15s timeout
         - light.turn_off:
@@ -411,7 +423,7 @@ lvgl:
       text_color: 0x333333
       bg_opa: cover
       radius: 4
-      pad_all: 2
+      #pad_all: 2
     - id: switch_style_on
       bg_color: 0x00AA00
       text_color: 0xFFFFFF
@@ -456,7 +468,7 @@ lvgl:
       skip: false
       bg_color: 0x000000
       bg_opa: cover
-      pad_all: 0
+      #pad_all: 0
       border_width: 0
       scrollable: false
       widgets:
@@ -467,6 +479,7 @@ lvgl:
             y: 0
             width: 480
             height: 480
+            align: TOP_LEFT
         
         # Title Bar
         - obj:
@@ -474,25 +487,25 @@ lvgl:
             scrollable: false  # Add this
             height: 60
             bg_color: 0x1E3A8A
-            bg_opa: 20%
+            bg_opa: 0%
             radius: 10
             x: 10
             y: 10
             border_width: 0
             widgets:
               - label:
-                  text: "PHIJO SMART DEVICE SCREEN"
+                  text: "PHIJO SMART "
                   text_font: roboto24
                   align: center
                   text_color: 0xFFFFFF
-                  x: 10
+                  x: 25
                   y: 8
                   border_width: 0
         - obj:
             width: 460
             height: 140
             bg_color: 0x1E3A8A
-            bg_opa: 20%
+            bg_opa: 0%
             radius: 10
             x: 10
             y: 75
@@ -529,11 +542,11 @@ lvgl:
             width: 460
             height: 250  # Increased height to fit more info
             bg_color: 0x000000
-            bg_opa: 20%
+            bg_opa: 0%
             radius: 10
             #pad_all: 10
             x: 10
-            y: 120  # Adjusted position
+            y: 180  # Adjusted position
             border_width: 0
             scrollable: false
             widgets:
@@ -546,13 +559,18 @@ lvgl:
                     }
                     return "Loading weather...";
                   text_font: roboto24
-                  text_color: 0xCCCCCC
+                  text_color: yellow_color
                   align: center
-                  x: 50
+                  x: 0
                   y: 0
                   border_width: 0
               
               # Temperature and feels like
+              # Temperature with thermometer icon
+              - image:
+                  src: thermometer_icon
+                  x: 0
+                  y: 20
               - label:
                   id: temperature_label
                   text: !lambda |-
@@ -567,8 +585,8 @@ lvgl:
                       return temp_text;
                     }
                     return "Temperature: --°C";
-                  text_font: roboto
-                  text_color: 0xCCCCCC
+                  text_font: roboto24
+                  text_color: yellow_color
                   align: center
                   x: 0
                   y: 30
@@ -580,18 +598,18 @@ lvgl:
                   text: !lambda |-
                     static char info_text[50];
                     if (id(owm_humidity).has_state() && id(owm_pressure).has_state()) {
-                      snprintf(info_text, sizeof(info_text), "Humidity: %.0f%% | Pressure: %.0fhPa", 
+                      snprintf(info_text, sizeof(info_text), "Hum: %.0f%% | Pre: %.0fhPa ", 
                               id(owm_humidity).state, id(owm_pressure).state);
                     } else if (id(owm_humidity).has_state()) {
-                      snprintf(info_text, sizeof(info_text), "Humidity: %.0f%%", id(owm_humidity).state);
+                      snprintf(info_text, sizeof(info_text), "Hum: %.0f%%", id(owm_humidity).state);
                     } else {
-                      snprintf(info_text, sizeof(info_text), "Humidity: --%");
+                      snprintf(info_text, sizeof(info_text), "Hum: --%");
                     }
                     return info_text;
                   text_font: roboto
-                  text_color: 0xAABBCC
+                  text_color: yellow_color
                   align: LEFT_MID
-                  x: 10
+                  x: 1
                   y: 60
                   border_width: 0
               
@@ -602,19 +620,19 @@ lvgl:
                     static char wind_text[50];
                     if (id(owm_wind_speed).has_state()) {
                       if (id(owm_wind_gust).has_state() && id(owm_wind_gust).state > id(owm_wind_speed).state) {
-                        snprintf(wind_text, sizeof(wind_text), "windspeed: %.1fm/s (gust %.1f)", 
+                        snprintf(wind_text, sizeof(wind_text), "   wind: %.1fm/s (gust %.1f)", 
                                 id(owm_wind_speed).state, id(owm_wind_gust).state);
                       } else {
-                        snprintf(wind_text, sizeof(wind_text), "windspeed: %.1fm/s", id(owm_wind_speed).state);
+                        snprintf(wind_text, sizeof(wind_text), "   wind: %.1fm/s", id(owm_wind_speed).state);
                       }
                     } else {
                       snprintf(wind_text, sizeof(wind_text), "Wind: --m/s");
                     }
                     return wind_text;
                   text_font: roboto
-                  text_color: 0xAABBCC
+                  text_color: yellow_color
                   align: RIGHT_MID
-                  x: -10
+                  x: -15
                   y: 60
                   border_width: 0
               
@@ -632,68 +650,23 @@ lvgl:
                       snprintf(vis_text, sizeof(vis_text), "Visibility: --km");
                     }
                     return vis_text;
-                  text_font: roboto
-                  text_color: 0xAABBCC
+                  text_font: roboto24
+                  text_color: yellow_color
                   align: center
                   x: 0
-                  y: 85
+                  y: 93
                   border_width: 0
               
-              # Weather recommendation
-              - label:
-                  id: weather_forecast
-                  text: !lambda |-
-                    if (id(weather_description).has_state() && id(owm_temperature).has_state()) {
-                      static char weather_text[120];
-                      
-                      std::string condition = id(weather_condition).state;
-                      float temp = id(owm_temperature).state;
-                      
-                      // Create weather-based recommendations
-                      std::string recommendation = "";
-                      
-                      if (condition == "Rain" || condition == "Drizzle" || condition == "Thunderstorm") {
-                        recommendation = "☔ Rainy weather - lights may be needed";
-                      } else if (condition == "Clouds") {
-                        if (temp < 15) {
-                          recommendation = "☁️ Cloudy and cool - consider heating";
-                        } else {
-                          recommendation = "☁️ Cloudy conditions - moderate lighting";
-                        }
-                      } else if (condition == "Clear") {
-                        if (temp > 25) {
-                          recommendation = "☀️ Clear and warm - minimal lighting needed";
-                        } else {
-                          recommendation = "☀️ Clear skies - natural light available";
-                        }
-                      } else if (condition == "Snow") {
-                        recommendation = "❄️ Snowy weather - extra lighting recommended";
-                      } else if (condition == "Mist" || condition == "Fog") {
-                        recommendation = "🌫️ Low visibility - additional lighting advised";
-                      } else {
-                        recommendation = "🌤️ Weather conditions monitored";
-                      }
-                      
-                      snprintf(weather_text, sizeof(weather_text), "%s", recommendation.c_str());
-                      return weather_text;
-                    }
-                    return "Weather monitoring active";
-                  text_font: roboto
-                  text_color: 0xCCCCCC
-                  align: center
-                  x: 0
-                  y: 110
-                  border_width: 0
               
               # Location name
               - label:
                   id: location_display_label
                   text: !lambda 'return id(location_name_str);'
-                  text_font: roboto
+                  text_font: roboto24
                   align: center
-                  text_color: 0x888888
+                  text_color: black_color
                   x: 0
-                  y: 135
+                  y: 115
                   border_width: 0
                   width: 440
 
@@ -704,10 +677,11 @@ lvgl:
             scrollable: false  # Add this
             height: 85
             bg_color: 0x000000
-            bg_opa: 50%
+            bg_opa: 0%
             radius: 10
             x: 10
             y: 430
+            border_width: 0
             widgets:
               - label:
                   id: status_label
@@ -761,13 +735,13 @@ lvgl:
             y: 0
             width: 480
             height: 480
-        
+            align: TOP_LEFT
         # Title Bar
         - obj:
             width: 460
             height: 50
             bg_color: 0x1E3A8A
-            bg_opa: 20%
+            bg_opa: 0%
             radius: 10
             x: 10
             y: 10
@@ -916,7 +890,7 @@ lvgl:
             y: 0
             width: 480
             height: 480
-        
+            align: TOP_LEFT
         # Title bar
         - obj:
             width: 460
@@ -1357,54 +1331,7 @@ script:
               return temp_text;
             }
             return "Temperature: --°C";
-      # ADD THIS - Update weather forecast label
-      - lvgl.label.update:
-          id: weather_forecast
-          text: !lambda |-
-            if (id(weather_description).has_state() && id(owm_temperature).has_state()) {
-              static char weather_text[150];
-              
-              std::string condition = id(weather_condition).state;
-              float temp = id(owm_temperature).state;
-              
-              // Create weather-based recommendations
-              std::string recommendation = "";
-              
-              if (condition == "Rain" || condition == "Drizzle" || condition == "Thunderstorm") {
-                recommendation = "Rainy weather - lights may be needed";
-              } else if (condition == "Clouds") {
-                if (temp < 15) {
-                  recommendation = "Cloudy and cool - consider heating";
-                } else {
-                  recommendation = "Cloudy conditions - moderate lighting";
-                }
-              } else if (condition == "Clear") {
-                if (temp > 25) {
-                  recommendation = "Clear and warm - minimal lighting needed";
-                } else {
-                  recommendation = "Clear skies - natural light available";
-                }
-              } else if (condition == "Snow") {
-                recommendation = "Snowy weather - extra lighting recommended";
-              } else if (condition == "Mist" || condition == "Fog") {
-                recommendation = "Low visibility - additional lighting advised";
-              } else {
-                recommendation = "Weather conditions monitored";
-              }
-              
-              // Add current conditions
-              if (id(owm_humidity).has_state()) {
-                snprintf(weather_text, sizeof(weather_text), 
-                        "%s | %.0f%% humidity", 
-                        recommendation.c_str(), 
-                        id(owm_humidity).state);
-              } else {
-                snprintf(weather_text, sizeof(weather_text), "%s", recommendation.c_str());
-              }
-              
-              return weather_text;
-            }
-            return "Weather monitoring active";
+      
 
   # Keep existing time_update but remove automation calls
   - id: time_update
@@ -1657,6 +1584,42 @@ image:
     id: background_image
     resize: 480x480
     type: RGB565
+
+  # - file: "images/weather-sunny.png"
+  #   id: sunny_icon
+  #   resize: 32x32
+  #   type: RGB565
+  
+  - file: "images/cloud.png"
+    id: cloudy_icon
+    resize: 32x32
+    type: RGB565
+  
+  - file: "images/pressure.png"
+    id: pressure
+    resize: 32x32
+    type: RGB565
+  
+  - file: "images/temp.png"
+    id: thermometer_icon
+    resize: 24x24
+    type: RGB565
+  
+  - file: "images/humidity.png"
+    id: humidity_icon
+    resize: 24x24
+    type: RGB565
+  
+  - file: "images/wind.png"
+    id: wind_icon
+    resize: 24x24
+    type: RGB565
+  
+  - file: "images/visibility.png"
+    id: visibility_icon
+    resize: 24x24
+    type: RGB565
+
 interval:
   - interval: 30s
     then:
@@ -1885,12 +1848,12 @@ interval:
                         text: !lambda |-
                           static char info_text[50];
                           if (id(owm_humidity).has_state() && id(owm_pressure).has_state()) {
-                            snprintf(info_text, sizeof(info_text), "💧%.0f%% | 🌡️%.0fhPa", 
+                            snprintf(info_text, sizeof(info_text), "Hum %.0f%% | Pre %.0fhPa ", 
                                     id(owm_humidity).state, id(owm_pressure).state);
                           } else if (id(owm_humidity).has_state()) {
-                            snprintf(info_text, sizeof(info_text), "Humidity: %.0f%%", id(owm_humidity).state);
+                            snprintf(info_text, sizeof(info_text), "Hum: %.0f%%", id(owm_humidity).state);
                           } else {
-                            snprintf(info_text, sizeof(info_text), "Humidity: --%");
+                            snprintf(info_text, sizeof(info_text), "Hum: --%");
                           }
                           return info_text;
                     
@@ -1900,10 +1863,10 @@ interval:
                           static char wind_text[50];
                           if (id(owm_wind_speed).has_state()) {
                             if (id(owm_wind_gust).has_state() && id(owm_wind_gust).state > id(owm_wind_speed).state) {
-                              snprintf(wind_text, sizeof(wind_text), "💨%.1fm/s (gust %.1f)", 
+                              snprintf(wind_text, sizeof(wind_text), "Wind %.1fm/s (gust %.1f)", 
                                       id(owm_wind_speed).state, id(owm_wind_gust).state);
                             } else {
-                              snprintf(wind_text, sizeof(wind_text), "💨%.1fm/s", id(owm_wind_speed).state);
+                              snprintf(wind_text, sizeof(wind_text), "wind:%.1fm/s", id(owm_wind_speed).state);
                             }
                           } else {
                             snprintf(wind_text, sizeof(wind_text), "Wind: --m/s");
@@ -1915,7 +1878,7 @@ interval:
                         text: !lambda |-
                           static char vis_text[60];
                           if (id(owm_visibility).has_state() && id(owm_clouds).has_state()) {
-                            snprintf(vis_text, sizeof(vis_text), "👁️%.1fkm | ☁️%.0f%% clouds", 
+                            snprintf(vis_text, sizeof(vis_text), "Visibility: %.1fkm | Clouds : %.0f%% clouds", 
                                     id(owm_visibility).state, id(owm_clouds).state);
                           } else if (id(owm_visibility).has_state()) {
                             snprintf(vis_text, sizeof(vis_text), "Visibility: %.1fkm", id(owm_visibility).state);
@@ -1924,44 +1887,6 @@ interval:
                           }
                           return vis_text;
                     
-                    - lvgl.label.update:
-                        id: weather_forecast
-                        text: !lambda |-
-                          if (id(weather_description).has_state() && id(owm_temperature).has_state()) {
-                            static char weather_text[120];
-                            
-                            std::string condition = id(weather_condition).state;
-                            float temp = id(owm_temperature).state;
-                            
-                            // Create weather-based recommendations
-                            std::string recommendation = "";
-                            
-                            if (condition == "Rain" || condition == "Drizzle" || condition == "Thunderstorm") {
-                              recommendation = "☔ Rainy weather - lights may be needed";
-                            } else if (condition == "Clouds") {
-                              if (temp < 15) {
-                                recommendation = "☁️ Cloudy and cool - consider heating";
-                              } else {
-                                recommendation = "☁️ Cloudy conditions - moderate lighting";
-                              }
-                            } else if (condition == "Clear") {
-                              if (temp > 25) {
-                                recommendation = "☀️ Clear and warm - minimal lighting needed";
-                              } else {
-                                recommendation = "☀️ Clear skies - natural light available";
-                              }
-                            } else if (condition == "Snow") {
-                              recommendation = "❄️ Snowy weather - extra lighting recommended";
-                            } else if (condition == "Mist" || condition == "Fog") {
-                              recommendation = "🌫️ Low visibility - additional lighting advised";
-                            } else {
-                              recommendation = "🌤️ Weather conditions monitored";
-                            }
-                            
-                            snprintf(weather_text, sizeof(weather_text), "%s", recommendation.c_str());
-                            return weather_text;
-                          }
-                          return "Weather monitoring active";
                     
                     - logger.log: "All weather display labels updated"
                     
