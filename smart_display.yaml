@@ -401,9 +401,9 @@ lvgl:
   bg_color: 0x000000
 
   on_idle:
-    - timeout: 25s
+    - timeout: 30s
       then:
-        - logger.log: idle 15s timeout
+        - logger.log: idle 30s timeout
         - light.turn_off:
             id: backlight
             transition_length: 5s
@@ -554,26 +554,26 @@ lvgl:
               - image:
                   src: cloud_icon
                   x: 0
-                  y: 10
+                  y: 70
               - label:
                   id: weather_label
                   text: !lambda |-
                     if (id(weather_condition).has_state()) {
                       return id(weather_condition).state.c_str();
                     }
-                    return "Loading weather...";
+                    return "Loading...";
                   text_font: roboto24
                   text_color: yellow_color
                   #align: TOP_LEFT
-                  x: 20
-                  y: 10
+                  x: 40
+                  y: 70
                   border_width: 0
 
               # Row 2: Temperature with icon
               - image:
                   src: thermometer_icon
-                  x: 210
-                  y: 10
+                  x: 200
+                  y: 70
               - label:
                   id: temperature_label
                   text: !lambda |-
@@ -591,15 +591,15 @@ lvgl:
                   text_font: roboto24
                   text_color: yellow_color
                   #align: TOP_RIGHT
-                  x: 240
-                  y: 10
+                  x: 235
+                  y: 70
                   border_width: 0
 
               # Row 3: Humidity and Pressure with icons
               - image:
                   src: humidity_icon
                   x: 0
-                  y: 50
+                  y: 120
               - label:
                   id: humidity_label
                   text: !lambda |-
@@ -609,16 +609,16 @@ lvgl:
                       return hum_text;
                     }
                     return "--%";
-                  text_font: roboto
+                  text_font: roboto24
                   #align: LEFT_MID
                   text_color: yellow_color
-                  x: 20
-                  y: 50
+                  x: 30
+                  y: 120
 
               - image:
                   src: pressure
-                  x: 220
-                  y: 50
+                  x: 200
+                  y: 120
               - label:
                   id: pressure_label
                   text: !lambda |-
@@ -628,17 +628,17 @@ lvgl:
                       return press_text;
                     }
                     return "--hPa";
-                  text_font: roboto
+                  text_font: roboto24
                   #align: RIGHT_MID
                   text_color: yellow_color
-                  x: 250
-                  y: 50
+                  x: 230
+                  y: 120
 
               # Row 4: Wind and Visibility with icons
               - image:
                   src: wind_icon
                   x: 0
-                  y: 115
+                  y: 165
               - label:
                   id: wind_info_label
                   text: !lambda |-
@@ -653,16 +653,16 @@ lvgl:
                       return wind_text;
                     }
                     return "--m/s";
-                  text_font: roboto
+                  text_font: roboto24
                   #align: BOTTOM_LEFT
                   text_color: yellow_color
-                  x: 20
-                  y: 115
+                  x: 30
+                  y: 165
 
               - image:
                   src: visibility_icon
-                  x: 220
-                  y: 115
+                  x: 200
+                  y: 165
               - label:
                   id: visibility_label
                   text: !lambda |-
@@ -672,11 +672,11 @@ lvgl:
                       return vis_text;
                     }
                     return "--km";
-                  text_font: roboto
+                  text_font: roboto24
                   #align: BOTTOM_LEFT
                   text_color: yellow_color
-                  x: 250
-                  y: 115
+                  x: 230
+                  y: 165
 
               # Location name
               - label:
@@ -686,7 +686,7 @@ lvgl:
                   align: center
                   text_color: black_color
                   x: 0
-                  y: 115
+                  y: 110
                   border_width: 0
                   width: 440
 
@@ -724,9 +724,9 @@ lvgl:
         - button:
             id: controls_nav_button
             x: 10
-            y: 450
+            y: 430
             width: 100
-            height: 40
+            height: 45
             styles: nav_button_style
             widgets:
               - label:
@@ -864,9 +864,9 @@ lvgl:
         - button:
             id: home_nav_button
             x: 10
-            y: 450
-            width: 80
-            height: 40
+            y: 430
+            width: 100
+            height: 45
             styles: nav_button_style
             widgets:
               - label:
@@ -880,9 +880,9 @@ lvgl:
         - button:
             id: settings_nav_button2
             x: 100
-            y: 450
-            width: 80
-            height: 40
+            y: 430
+            width: 100
+            height: 45
             styles: nav_button_style
             widgets:
               - label:
@@ -1058,27 +1058,7 @@ lvgl:
               then:
                 - lvgl.page.previous:
 
-        # - button:
-        #     id: controls_button
-        #     x: 100
-        #     y: 450
-        #     width: 80
-        #     height: 25
-        #     styles: nav_button_style
-        #     widgets:
-        #       - label:
-        #           text: "Controls"
-        #           text_font: roboto
-        #           align: center
-        #     on_click:
-        #       then:
-        #         - lvgl.widget.update:
-        #             id: settings_page
-        #             hidden: true
-        #         - lvgl.widget.update:
-        #             id: controls_page
-        #             hidden: false
-
+        
         # OTA popup (moved outside pages to be global)
         - obj:
             id: popup_obj
@@ -1242,22 +1222,6 @@ script:
           id: settings_page
           hidden: false
       - lvgl.widget.redraw:
-  - id: fetch_weather_data
-    then:
-      - http_request.get:
-          url: !lambda |-
-            // Example using OpenWeatherMap API (you'll need an API key)
-            std::string lat = std::to_string(id(location_latitude).state);
-            std::string lon = std::to_string(id(location_longitude).state);
-            return "http://api.openweathermap.org/data/2.5/weather?lat=" + lat + "&lon=" + lon + "&appid=b0fed035f1b875bafaf66f85d33f4e71&units=metric";
-          headers:
-            Content-Type: application/json
-          on_response:
-            then:
-              - lambda: |-
-                  ESP_LOGD("weather", "HTTP Response: %s", body.c_str());
-                  // Parse JSON response and update sensors
-                  // You would need to implement JSON parsing here
 
   - id: notify_web_portal
     then:
@@ -1333,7 +1297,7 @@ script:
             if (id(weather_condition).has_state()) {
               return id(weather_condition).state.c_str();
             }
-            return "Loading weather...";
+            return "Loading ...";
       # ADD THIS - Update temperature label
       - lvgl.label.update:
           id: temperature_label
@@ -1609,12 +1573,12 @@ image:
 
   - file: "images/cloud.png"
     id: cloud_icon
-    resize: 32x32
+    resize: 24x24
     type: RGB565
 
   - file: "images/pressure.png"
     id: pressure
-    resize: 32x32
+    resize: 24x24
     type: RGB565
 
   - file: "images/temp.png"
@@ -1638,7 +1602,7 @@ image:
     type: RGB565
 
 interval:
-  - interval: 30s
+  - interval: 10s
     then:
       - lambda: |-
           auto now = id(time_comp).now();
@@ -1648,7 +1612,7 @@ interval:
           }
       - script.execute: time_display_update
 
-  - interval: 1min
+  - interval: 30s
     then:
       - if:
           condition:
@@ -1843,7 +1807,7 @@ interval:
                           if (id(weather_condition).has_state()) {
                             return id(weather_condition).state.c_str();
                           }
-                          return "Loading weather...";
+                          return "Loading...";
 
                     - lvgl.label.update:
                         id: temperature_label
@@ -1851,26 +1815,36 @@ interval:
                           if (id(owm_temperature).has_state()) {
                             static char temp_text[60];
                             if (id(owm_feels_like).has_state()) {
-                              snprintf(temp_text, sizeof(temp_text), "%.1f°C (feels %.1f°C)", 
+                              snprintf(temp_text, sizeof(temp_text), "%.1f°C feels %.1f°C", 
                                       id(owm_temperature).state, id(owm_feels_like).state);
                             } else {
                               snprintf(temp_text, sizeof(temp_text), "Temperature: %.1f°C", id(owm_temperature).state);
                             }
                             return temp_text;
                           }
-                          return "Temperature: --°C";
+                          return " --°C";
 
                     - lvgl.label.update:
                         id: humidity_label
                         text: !lambda |-
                           static char info_text[50];
-                          if (id(owm_humidity).has_state() && id(owm_pressure).has_state()) {
-                            snprintf(info_text, sizeof(info_text), "Hum %.0f%% | Pre %.0fhPa ", 
-                                    id(owm_humidity).state, id(owm_pressure).state);
-                          } else if (id(owm_humidity).has_state()) {
-                            snprintf(info_text, sizeof(info_text), "Hum: %.0f%%", id(owm_humidity).state);
+                          if (id(owm_humidity).has_state()) {
+                            snprintf(info_text, sizeof(info_text), " %.0f%% ", 
+                                    id(owm_humidity).state);
                           } else {
-                            snprintf(info_text, sizeof(info_text), "Hum: --%");
+                            snprintf(info_text, sizeof(info_text), " --%");
+                          }
+                          return info_text;
+
+                    - lvgl.label.update:
+                        id: pressure_label
+                        text: !lambda |-
+                          static char info_text[50];
+                          if ( id(owm_pressure).has_state()) {
+                            snprintf(info_text, sizeof(info_text), " %.0fhPa ", 
+                                     id(owm_pressure).state);
+                          }else {
+                            snprintf(info_text, sizeof(info_text), "pre: --%");
                           }
                           return info_text;
 
@@ -1880,10 +1854,10 @@ interval:
                           static char wind_text[50];
                           if (id(owm_wind_speed).has_state()) {
                             if (id(owm_wind_gust).has_state() && id(owm_wind_gust).state > id(owm_wind_speed).state) {
-                              snprintf(wind_text, sizeof(wind_text), "Wind %.1fm/s (gust %.1f)", 
+                              snprintf(wind_text, sizeof(wind_text), " %.1fm/s (gust %.1f)", 
                                       id(owm_wind_speed).state, id(owm_wind_gust).state);
                             } else {
-                              snprintf(wind_text, sizeof(wind_text), "wind:%.1fm/s", id(owm_wind_speed).state);
+                              snprintf(wind_text, sizeof(wind_text), ":%.1fm/s", id(owm_wind_speed).state);
                             }
                           } else {
                             snprintf(wind_text, sizeof(wind_text), "Wind: --m/s");
@@ -1895,10 +1869,10 @@ interval:
                         text: !lambda |-
                           static char vis_text[60];
                           if (id(owm_visibility).has_state() && id(owm_clouds).has_state()) {
-                            snprintf(vis_text, sizeof(vis_text), "Visibility: %.1fkm ", 
+                            snprintf(vis_text, sizeof(vis_text), ": %.1fkm ", 
                                     id(owm_visibility).state, id(owm_clouds).state);
                           } else if (id(owm_visibility).has_state()) {
-                            snprintf(vis_text, sizeof(vis_text), "Visibility: %.1fkm", id(owm_visibility).state);
+                            snprintf(vis_text, sizeof(vis_text), " %.1fkm", id(owm_visibility).state);
                           } else {
                             snprintf(vis_text, sizeof(vis_text), "Visibility: --km");
                           }
