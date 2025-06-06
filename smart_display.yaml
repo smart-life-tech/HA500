@@ -1,3 +1,4 @@
+# known value 'MIDDLE_LEFT', valid options are 'TOP_LEFT', 'TOP_MID', 'TOP_RIGHT', 'LEFT_MID', 'CENTER', 'RIGHT_MID', 'BOTTOM_LEFT', 'BOTTOM_MID', 'BOTTOM_RIGHT'.
 substitutions:
   name: "guition-esp32-s3-4848s040"
   friendly_name: "Guition Smart Light Control"
@@ -27,7 +28,6 @@ esphome:
     board_build.flash_mode: dio
     build_unflags: "-f"
     build_flags: "-shared"
-    
 
 esp32:
   board: esp32-s3-devkitc-1
@@ -78,66 +78,66 @@ ota:
         - lvgl.resume:
         - lvgl.widget.redraw:
     on_progress:
-        then:
-          - lvgl.bar.update:
-              id: popup_pb_percentage
-              value: !lambda "return (int)x;"
-          - lvgl.label.update:
-              id: popup_lbl_percentage
-              text:
-                format: "OTA progress %0.1f%%"
-                args: ["x"]
-          - lambda: "id(lvgl_comp).loop();"  
+      then:
+        - lvgl.bar.update:
+            id: popup_pb_percentage
+            value: !lambda "return (int)x;"
+        - lvgl.label.update:
+            id: popup_lbl_percentage
+            text:
+              format: "OTA progress %0.1f%%"
+              args: ["x"]
+        - lambda: "id(lvgl_comp).loop();"
 sensor:
   - platform: template
     name: "OWM Temperature"
     id: owm_temperature
     unit_of_measurement: "°C"
     accuracy_decimals: 1
-    
+
   - platform: template
     name: "OWM Humidity"
     id: owm_humidity
     unit_of_measurement: "%"
     accuracy_decimals: 0
-    
+
   - platform: template
     name: "OWM Pressure"
     id: owm_pressure
     unit_of_measurement: "hPa"
     accuracy_decimals: 0
-    
+
   - platform: template
     name: "OWM Wind Speed"
     id: owm_wind_speed
     unit_of_measurement: "m/s"
     accuracy_decimals: 1
-    
+
   - platform: template
     name: "OWM Feels Like"
     id: owm_feels_like
     unit_of_measurement: "°C"
     accuracy_decimals: 1
-  
+
   # ADDing NEW SENSORS
   - platform: template
     name: "OWM Visibility"
     id: owm_visibility
     unit_of_measurement: "km"
     accuracy_decimals: 1
-    
+
   - platform: template
     name: "OWM Cloud Coverage"
     id: owm_clouds
     unit_of_measurement: "%"
     accuracy_decimals: 0
-    
+
   - platform: template
     name: "OWM Wind Gust"
     id: owm_wind_gust
     unit_of_measurement: "m/s"
     accuracy_decimals: 1
-    
+
   - platform: template
     name: "OWM Wind Direction"
     id: owm_wind_direction
@@ -147,26 +147,25 @@ sensor:
 http_request:
   id: http_requests
   useragent: "ESPHome/1.0"
-  timeout: 30s  # Increase timeout
+  timeout: 30s # Increase timeout
   verify_ssl: false
   follow_redirects: true
-  buffer_size_rx: 1024  # Add buffer size
-
+  buffer_size_rx: 1024 # Add buffer size
 
 wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
-  
+
   # Add these parameters for better connection reliability
   power_save_mode: NONE
   fast_connect: true
   #reboot_timeout: 15min
-  
+
   # Existing fallback AP configuration
   ap:
     ssid: "PhiJo Smart Products Fallback"
     password: !secret wifi_fallback_password
-  
+
   # Existing event handlers
   on_connect:
     then:
@@ -185,20 +184,20 @@ time:
     on_time_sync:
       then:
         - logger.log: "TIME DEBUG: Time synchronized with Home Assistant"
-        - script.execute: time_display_update  # Changed from time_update
+        - script.execute: time_display_update # Changed from time_update
     on_time:
       # Update clock display every minute (display only)
-      - minutes: '*'
+      - minutes: "*"
         seconds: 0
         then:
-          - script.execute: time_display_update  # Changed from time_update
-      
+          - script.execute: time_display_update # Changed from time_update
+
       # Run automation checks less frequently (every 5 minutes)
-      - minutes: '/5'  # Changed from /1 to /5
+      - minutes: "/5" # Changed from /1 to /5
         seconds: 0
         then:
           - script.execute: check_light_schedules
-  
+
   # Add SNTP as fallback when Home Assistant is unavailable
   - platform: sntp
     id: sntp_time
@@ -215,18 +214,17 @@ time:
               not:
                 api.connected:
             then:
-              - script.execute: time_display_update    
+              - script.execute: time_display_update
 
 web_server:
   port: 80
 
 captive_portal:
 
-
 # For the sun component, we need to use fixed values initially
 sun:
-  latitude: 37.1  # Default value matching the initial_value in location_latitude
-  longitude: -8.0  # Default value matching the initial_value in location_longitude
+  latitude: 37.1 # Default value matching the initial_value in location_latitude
+  longitude: -8.0 # Default value matching the initial_value in location_longitude
   id: sun_comp
 
 # Add this to update the sun component when location changes
@@ -238,13 +236,13 @@ number:
     max_value: 90
     step: 0.01
     restore_value: true
-    initial_value: 37.1  # Default to a central location
+    initial_value: 37.1 # Default to a central location
     optimistic: true
     on_value:
       then:
         - lambda: |-
             id(sun_comp).set_latitude(id(location_latitude).state);
-    
+
   - platform: template
     id: location_longitude
     name: "Location Longitude"
@@ -252,7 +250,7 @@ number:
     max_value: 180
     step: 0.01
     restore_value: true
-    initial_value: -8.0  # Default to a central location
+    initial_value: -8.0 # Default to a central location
     optimistic: true
     on_value:
       then:
@@ -263,7 +261,7 @@ text_sensor:
   - platform: template
     id: weather_condition
     name: "Weather Condition"
-    
+
   - platform: template
     id: weather_description
     name: "Weather Description"
@@ -279,14 +277,14 @@ text_sensor:
               id: ip_address_label
               text:
                 format: "%s"
-                args: [ 'id(ip_address).get_state().c_str()' ]
+                args: ["id(ip_address).get_state().c_str()"]
     ssid:
       name: "Connected SSID"
       entity_category: diagnostic
     mac_address:
       name: "Mac Address"
       entity_category: diagnostic
-      
+
   - platform: template
     id: location_name
     name: "Weather Location"
@@ -349,7 +347,7 @@ globals:
     type: bool
     restore_value: yes
     initial_value: "false"
-    
+
   # Manual override tracking
   - id: sw1_manual_override_time
     type: int
@@ -363,18 +361,18 @@ globals:
     type: int
     restore_value: yes
     initial_value: "0"
-    
+
   # SW3 mode (winter/summer)
   - id: sw3_winter_mode
     type: bool
     restore_value: yes
-    initial_value: "false"  # Default to summer mode
-    
+    initial_value: "false" # Default to summer mode
+
   # Current page tracking
   - id: current_page
     type: int
     restore_value: no
-    initial_value: "0"  # 0 = main page, 1 = settings page
+    initial_value: "0" # 0 = main page, 1 = settings page
 
   # Add this missing global variable for touch tracking
   - id: touch_start_y
@@ -399,9 +397,9 @@ lvgl:
     - my_display
   touchscreens:
     - touchscreen_id: my_touchscreen
-  
+
   bg_color: 0x000000
-  
+
   on_idle:
     - timeout: 25s
       then:
@@ -480,11 +478,11 @@ lvgl:
             width: 480
             height: 480
             align: TOP_LEFT
-        
+
         # Title Bar
         - obj:
             width: 460
-            scrollable: false  # Add this
+            scrollable: false # Add this
             height: 60
             bg_color: 0x1E3A8A
             bg_opa: 0%
@@ -494,11 +492,11 @@ lvgl:
             border_width: 0
             widgets:
               - label:
-                  text: "PHIJO SMART "
+                  text: "PHIJO SMART"
                   text_font: roboto24
                   align: center
                   text_color: 0xFFFFFF
-                  x: 25
+                  x: 10
                   y: 8
                   border_width: 0
         - obj:
@@ -510,7 +508,7 @@ lvgl:
             x: 10
             y: 75
             border_width: 0
-            scrollable: false  # Add this
+            scrollable: false # Add this
             widgets:
               # Clock - positioned below title (fixed positioning)
               - label:
@@ -519,12 +517,13 @@ lvgl:
                   text_font: roboto_large
                   align: center
                   text_color: 0xFFFFFF
-                  x: 150
-                  y:   0
+                  x: 145
+                  y: 0
                   border_width: 0
-                  width: 480             
-              
+                  width: 480
+
               # Date - positioned below clock (fixed positioning)
+
               - label:
                   id: full_date_label
                   text: "Date will appear here"
@@ -535,22 +534,27 @@ lvgl:
                   y: 45
                   border_width: 0
                   width: 480
-                  scrollable: false  # Add this
+                  scrollable: false # Add this
 
             # Weather section - semi-transparent overlay
         - obj:
             width: 460
-            height: 250  # Increased height to fit more info
+            height: 250 # Increased height to fit more info
             bg_color: 0x000000
             bg_opa: 0%
             radius: 10
             #pad_all: 10
             x: 10
-            y: 180  # Adjusted position
+            y: 180 # Adjusted position
             border_width: 0
             scrollable: false
             widgets:
               # Main weather condition
+              # Row 1: Main weather condition
+              - image:
+                  src: cloud_icon
+                  x: 0
+                  y: 10
               - label:
                   id: weather_label
                   text: !lambda |-
@@ -560,17 +564,16 @@ lvgl:
                     return "Loading weather...";
                   text_font: roboto24
                   text_color: yellow_color
-                  align: center
-                  x: 0
-                  y: 0
+                  #align: TOP_LEFT
+                  x: 20
+                  y: 10
                   border_width: 0
-              
-              # Temperature and feels like
-              # Temperature with thermometer icon
+
+              # Row 2: Temperature with icon
               - image:
                   src: thermometer_icon
-                  x: 0
-                  y: 20
+                  x: 210
+                  y: 10
               - label:
                   id: temperature_label
                   text: !lambda |-
@@ -580,88 +583,105 @@ lvgl:
                         snprintf(temp_text, sizeof(temp_text), "%.1f°C (feels %.1f°C)", 
                                 id(owm_temperature).state, id(owm_feels_like).state);
                       } else {
-                        snprintf(temp_text, sizeof(temp_text), "Temperature: %.1f°C", id(owm_temperature).state);
+                        snprintf(temp_text, sizeof(temp_text), "%.1f°C", id(owm_temperature).state);
                       }
                       return temp_text;
                     }
-                    return "Temperature: --°C";
+                    return "--°C";
                   text_font: roboto24
                   text_color: yellow_color
-                  align: center
+                  #align: TOP_RIGHT
+                  x: 240
+                  y: 10
+                  border_width: 0
+
+              # Row 3: Humidity and Pressure with icons
+              - image:
+                  src: humidity_icon
                   x: 0
-                  y: 30
-                  border_width: 0
-              
-              # Humidity and Pressure (left side)
+                  y: 50
               - label:
-                  id: humidity_pressure_label
+                  id: humidity_label
                   text: !lambda |-
-                    static char info_text[50];
-                    if (id(owm_humidity).has_state() && id(owm_pressure).has_state()) {
-                      snprintf(info_text, sizeof(info_text), "Hum: %.0f%% | Pre: %.0fhPa ", 
-                              id(owm_humidity).state, id(owm_pressure).state);
-                    } else if (id(owm_humidity).has_state()) {
-                      snprintf(info_text, sizeof(info_text), "Hum: %.0f%%", id(owm_humidity).state);
-                    } else {
-                      snprintf(info_text, sizeof(info_text), "Hum: --%");
+                    if (id(owm_humidity).has_state()) {
+                      static char hum_text[20];
+                      snprintf(hum_text, sizeof(hum_text), "%.0f%%", id(owm_humidity).state);
+                      return hum_text;
                     }
-                    return info_text;
+                    return "--%";
                   text_font: roboto
+                  #align: LEFT_MID
                   text_color: yellow_color
-                  align: LEFT_MID
-                  x: 1
-                  y: 60
-                  border_width: 0
-              
-              # Wind info (right side)
+                  x: 20
+                  y: 50
+
+              - image:
+                  src: pressure
+                  x: 220
+                  y: 50
+              - label:
+                  id: pressure_label
+                  text: !lambda |-
+                    if (id(owm_pressure).has_state()) {
+                      static char press_text[20];
+                      snprintf(press_text, sizeof(press_text), "%.0fhPa", id(owm_pressure).state);
+                      return press_text;
+                    }
+                    return "--hPa";
+                  text_font: roboto
+                  #align: RIGHT_MID
+                  text_color: yellow_color
+                  x: 250
+                  y: 50
+
+              # Row 4: Wind and Visibility with icons
+              - image:
+                  src: wind_icon
+                  x: 0
+                  y: 115
               - label:
                   id: wind_info_label
                   text: !lambda |-
-                    static char wind_text[50];
                     if (id(owm_wind_speed).has_state()) {
+                      static char wind_text[30];
                       if (id(owm_wind_gust).has_state() && id(owm_wind_gust).state > id(owm_wind_speed).state) {
-                        snprintf(wind_text, sizeof(wind_text), "   wind: %.1fm/s (gust %.1f)", 
+                        snprintf(wind_text, sizeof(wind_text), "%.1fm/s (%.1f)", 
                                 id(owm_wind_speed).state, id(owm_wind_gust).state);
                       } else {
-                        snprintf(wind_text, sizeof(wind_text), "   wind: %.1fm/s", id(owm_wind_speed).state);
+                        snprintf(wind_text, sizeof(wind_text), "%.1fm/s", id(owm_wind_speed).state);
                       }
-                    } else {
-                      snprintf(wind_text, sizeof(wind_text), "Wind: --m/s");
+                      return wind_text;
                     }
-                    return wind_text;
+                    return "--m/s";
                   text_font: roboto
+                  #align: BOTTOM_LEFT
                   text_color: yellow_color
-                  align: RIGHT_MID
-                  x: -15
-                  y: 60
-                  border_width: 0
-              
-              # Visibility and Cloud coverage
+                  x: 20
+                  y: 115
+
+              - image:
+                  src: visibility_icon
+                  x: 220
+                  y: 115
               - label:
-                  id: visibility_clouds_label
+                  id: visibility_label
                   text: !lambda |-
-                    static char vis_text[60];
-                    if (id(owm_visibility).has_state() && id(owm_clouds).has_state()) {
-                      snprintf(vis_text, sizeof(vis_text), "visibility:%.1fkm | clouds:%.0f%%", 
-                              id(owm_visibility).state, id(owm_clouds).state);
-                    } else if (id(owm_visibility).has_state()) {
-                      snprintf(vis_text, sizeof(vis_text), "Visibility: %.1fkm", id(owm_visibility).state);
-                    } else {
-                      snprintf(vis_text, sizeof(vis_text), "Visibility: --km");
+                    if (id(owm_visibility).has_state()) {
+                      static char vis_text[20];
+                      snprintf(vis_text, sizeof(vis_text), "%.1fkm", id(owm_visibility).state);
+                      return vis_text;
                     }
-                    return vis_text;
-                  text_font: roboto24
+                    return "--km";
+                  text_font: roboto
+                  #align: BOTTOM_LEFT
                   text_color: yellow_color
-                  align: center
-                  x: 0
-                  y: 93
-                  border_width: 0
-              
-              
+                  x: 250
+                  y: 115
+
               # Location name
               - label:
                   id: location_display_label
-                  text: !lambda 'return id(location_name_str);'
+                  text: !lambda "return id(location_name_str);"
                   text_font: roboto24
                   align: center
                   text_color: black_color
@@ -670,11 +690,10 @@ lvgl:
                   border_width: 0
                   width: 440
 
-        
         # Status and IP section
         - obj:
             width: 460
-            scrollable: false  # Add this
+            scrollable: false # Add this
             height: 85
             bg_color: 0x000000
             bg_opa: 0%
@@ -695,12 +714,12 @@ lvgl:
               - label:
                   id: ip_address_label
                   align: center
-                  text: 'WiFi: Not connected'
+                  text: "WiFi: Not connected"
                   text_color: ha_blue
                   text_font: roboto
                   x: 0
                   y: 30
-        
+
         # Navigation buttons
         - button:
             id: controls_nav_button
@@ -717,8 +736,7 @@ lvgl:
             on_click:
               then:
                 - lvgl.page.next:
-        
-       
+
     # Controls Page - Light Control Buttons
     - id: controls_page
       skip: false
@@ -745,19 +763,19 @@ lvgl:
             radius: 10
             x: 10
             y: 10
-            scrollable: false  # Add this
+            scrollable: false # Add this
             widgets:
               - label:
                   text: "LIGHT CONTROLS"
                   text_font: roboto24
-                  width: 460 
+                  width: 460
                   align: center
                   text_color: 0xFFFFFF
                   x: 150
                   y: 5
                   border_width: 0
                   scrollable: false
-        
+
         # Switch 1 - Sunrise/Sunset Light
         - button:
             id: sw1_button
@@ -776,7 +794,7 @@ lvgl:
                 - switch.toggle: sw1
                 - lambda: |-
                     id(sw1_manual_override_time) = id(time_comp).now().timestamp;
-        
+
         # Switch 2 - Seasonal Daytime Light
         - button:
             id: sw2_button
@@ -795,7 +813,7 @@ lvgl:
                 - switch.toggle: sw2
                 - lambda: |-
                     id(sw2_manual_override_time) = id(time_comp).now().timestamp;
-        
+
         # Switch 3 - Weather-Based Light
         - button:
             id: sw3_button
@@ -820,11 +838,11 @@ lvgl:
                 - switch.toggle: sw3
                 - lambda: |-
                     id(sw3_manual_override_time) = id(time_comp).now().timestamp;
-        
+
         # Control status
         - obj:
             width: 460
-            scrollable: false  # Add this
+            scrollable: false # Add this
             height: 60
             bg_color: 0x000000
             bg_opa: 50%
@@ -841,7 +859,7 @@ lvgl:
                   align: center
                   x: 0
                   y: 5
-        
+
         # Navigation buttons
         - button:
             id: home_nav_button
@@ -858,7 +876,7 @@ lvgl:
             on_click:
               then:
                 - lvgl.page.previous:
-        
+
         - button:
             id: settings_nav_button2
             x: 100
@@ -874,7 +892,7 @@ lvgl:
             on_click:
               then:
                 - lvgl.page.next:
-    
+
     # Settings Page
     - id: settings_page
       bg_color: 0x000000
@@ -933,7 +951,7 @@ lvgl:
                   text_color: 0xCCCCCC
               - label:
                   id: location_name_label
-                  text: !lambda 'return id(location_name).state;'
+                  text: !lambda "return id(location_name).state;"
                   text_font: roboto
                   x: 100
                   y: 40
@@ -947,7 +965,7 @@ lvgl:
                   x: 10
                   y: 65
                   text_color: 0xCCCCCC
-        
+
         # SW3 Mode Toggle
         - button:
             id: sw3_mode_toggle
@@ -957,7 +975,7 @@ lvgl:
             y: 220
             checkable: true
             state:
-              checked: !lambda 'return id(sw3_winter_mode);'
+              checked: !lambda "return id(sw3_winter_mode);"
             widgets:
               - label:
                   id: sw3_mode_label
@@ -975,7 +993,7 @@ lvgl:
                     id(sw3_winter_mode) = !id(sw3_winter_mode);
                 - if:
                     condition:
-                      lambda: 'return id(sw3_winter_mode);'
+                      lambda: "return id(sw3_winter_mode);"
                     then:
                       - lvgl.label.update:
                           id: sw3_mode_label
@@ -1022,7 +1040,7 @@ lvgl:
                   x: 10
                   y: 65
                   text_color: 0xFFFFFF
-        
+
         # Navigation buttons
         - button:
             id: home_button
@@ -1039,7 +1057,7 @@ lvgl:
             on_click:
               then:
                 - lvgl.page.previous:
-        
+
         # - button:
         #     id: controls_button
         #     x: 100
@@ -1061,7 +1079,7 @@ lvgl:
         #             id: controls_page
         #             hidden: false
 
-# OTA popup (moved outside pages to be global)
+        # OTA popup (moved outside pages to be global)
         - obj:
             id: popup_obj
             hidden: true
@@ -1152,7 +1170,7 @@ switch:
             id: status_label
             text: "Sunrise/Sunset Light OFF"
             text_color: red_color
-            
+
   - platform: output
     id: sw2
     name: "Seasonal Daytime Light"
@@ -1177,7 +1195,7 @@ switch:
             id: status_label
             text: "Seasonal Daytime Light OFF"
             text_color: red_color
-            
+
   - platform: output
     id: sw3
     name: "Weather-Based Light"
@@ -1240,7 +1258,6 @@ script:
                   ESP_LOGD("weather", "HTTP Response: %s", body.c_str());
                   // Parse JSON response and update sensors
                   // You would need to implement JSON parsing here
-                  
 
   - id: notify_web_portal
     then:
@@ -1252,9 +1269,9 @@ script:
                 id: status_label
                 text: "Web portal active "
                 text_color: ha_blue
-            - logger.log: 
+            - logger.log:
                 format: "Web portal active at http://%s"
-                args: ['id(ip_address).state.c_str()']
+                args: ["id(ip_address).state.c_str()"]
             - lvgl.widget.update:
                 id: ip_address_label
                 hidden: true
@@ -1282,10 +1299,11 @@ script:
       - script.execute: notify_web_portal
       - logger.log:
           format: "TIME DEBUG: HA connected: %s, Time valid: %s"
-          args: [
-            'id(api_server).is_connected() ? "YES" : "NO"',
-            'id(time_comp).now().is_valid() ? "YES" : "NO"'
-          ]
+          args:
+            [
+              'id(api_server).is_connected() ? "YES" : "NO"',
+              'id(time_comp).now().is_valid() ? "YES" : "NO"',
+            ]
       - lvgl.label.update:
           id: digital_clock
           text: !lambda |-
@@ -1331,7 +1349,6 @@ script:
               return temp_text;
             }
             return "Temperature: --°C";
-      
 
   # Keep existing time_update but remove automation calls
   - id: time_update
@@ -1345,23 +1362,23 @@ script:
       - lambda: |-
           auto now = id(time_comp).now();
           if (!now.is_valid()) return; // Don't run if time is invalid
-          
+
           // Check for manual override timeouts (24 hours = 86400 seconds)
           if (id(sw1_manual_override_time) > 0 && 
               now.timestamp - id(sw1_manual_override_time) > 86400) {
             id(sw1_manual_override_time) = 0;
           }
-          
+
           if (id(sw2_manual_override_time) > 0 && 
               now.timestamp - id(sw2_manual_override_time) > 86400) {
             id(sw2_manual_override_time) = 0;
           }
-          
+
           if (id(sw3_manual_override_time) > 0 && 
               now.timestamp - id(sw3_manual_override_time) > 86400) {
             id(sw3_manual_override_time) = 0;
           }
-          
+
           // Only run automations if not in manual override mode
           // ---- SWITCH 1: SUNRISE/SUNSET CONTROL ----
           if (id(sw1_manual_override_time) == 0) {
@@ -1408,7 +1425,7 @@ script:
               ESP_LOGI("automation", "SW1 turned OFF - timer expired");
             }
           }
-          
+
           // Similar logic for SW2 and SW3 with state change prevention...
 
 #-------------------------------------------
@@ -1419,7 +1436,7 @@ font:
     id: roboto24
     size: 24
     bpp: 4
-    
+
   - file: "gfonts://Roboto"
     id: roboto
     size: 18
@@ -1486,18 +1503,18 @@ touchscreen:
         }
         // Always update end position while touching
         id(touch_end_y) = touch.y;
-        
+
   on_release:
     - lambda: |-
         // Calculate swipe distance
         int swipe_distance = id(touch_start_y) - id(touch_end_y);
         int min_swipe_distance = 80;
-        
+
         ESP_LOGD("swipe", "Start: %d, End: %d, Distance: %d", id(touch_start_y), id(touch_end_y), swipe_distance);
-        
+
         // Reset touch tracking
         id(touch_active) = false;
-        
+
         if (abs(swipe_distance) > min_swipe_distance) {
           if (swipe_distance > 0) {
             ESP_LOGD("swipe", "Swipe up detected - next page");
@@ -1507,12 +1524,12 @@ touchscreen:
         }
     - if:
         condition:
-          lambda: 'return (id(touch_start_y) - id(touch_end_y)) > 80;'
+          lambda: "return (id(touch_start_y) - id(touch_end_y)) > 80;"
         then:
           - lvgl.page.next:
     - if:
         condition:
-          lambda: 'return (id(touch_end_y) - id(touch_start_y)) > 80;'
+          lambda: "return (id(touch_end_y) - id(touch_start_y)) > 80;"
         then:
           - lvgl.page.previous:
     - if:
@@ -1589,32 +1606,32 @@ image:
   #   id: sunny_icon
   #   resize: 32x32
   #   type: RGB565
-  
+
   - file: "images/cloud.png"
-    id: cloudy_icon
+    id: cloud_icon
     resize: 32x32
     type: RGB565
-  
+
   - file: "images/pressure.png"
     id: pressure
     resize: 32x32
     type: RGB565
-  
+
   - file: "images/temp.png"
     id: thermometer_icon
     resize: 24x24
     type: RGB565
-  
+
   - file: "images/humidity.png"
     id: humidity_icon
     resize: 24x24
     type: RGB565
-  
+
   - file: "images/wind.png"
     id: wind_icon
     resize: 24x24
     type: RGB565
-  
+
   - file: "images/visibility.png"
     id: visibility_icon
     resize: 24x24
@@ -1630,7 +1647,7 @@ interval:
             id(time_comp).call_setup();
           }
       - script.execute: time_display_update
-      
+
   - interval: 1min
     then:
       - if:
@@ -1648,7 +1665,7 @@ interval:
                     - lambda: |-
                         ESP_LOGD("weather", "HTTP Status: %d", response);
                         ESP_LOGD("weather", "Response body: %s", body.c_str());
-                        
+
                         if (body.length() > 0) {
                           
                           // Parse temperature
@@ -1810,7 +1827,7 @@ interval:
                                 description[0] = std::toupper(description[0]);
                               }
                               id(weather_description).publish_state(description);
-                        
+
                             }
                           }
                           
@@ -1818,7 +1835,7 @@ interval:
                         } else {
                           ESP_LOGW("weather", "Empty response from weather API");
                         }
-                    
+
                     # UPDATE ALL WEATHER LABELS DIRECTLY HERE
                     - lvgl.label.update:
                         id: weather_label
@@ -1827,7 +1844,7 @@ interval:
                             return id(weather_condition).state.c_str();
                           }
                           return "Loading weather...";
-                    
+
                     - lvgl.label.update:
                         id: temperature_label
                         text: !lambda |-
@@ -1842,9 +1859,9 @@ interval:
                             return temp_text;
                           }
                           return "Temperature: --°C";
-                    
+
                     - lvgl.label.update:
-                        id: humidity_pressure_label
+                        id: humidity_label
                         text: !lambda |-
                           static char info_text[50];
                           if (id(owm_humidity).has_state() && id(owm_pressure).has_state()) {
@@ -1856,7 +1873,7 @@ interval:
                             snprintf(info_text, sizeof(info_text), "Hum: --%");
                           }
                           return info_text;
-                    
+
                     - lvgl.label.update:
                         id: wind_info_label
                         text: !lambda |-
@@ -1872,13 +1889,13 @@ interval:
                             snprintf(wind_text, sizeof(wind_text), "Wind: --m/s");
                           }
                           return wind_text;
-                    
+
                     - lvgl.label.update:
-                        id: visibility_clouds_label
+                        id: visibility_label
                         text: !lambda |-
                           static char vis_text[60];
                           if (id(owm_visibility).has_state() && id(owm_clouds).has_state()) {
-                            snprintf(vis_text, sizeof(vis_text), "Visibility: %.1fkm | Clouds : %.0f%% clouds", 
+                            snprintf(vis_text, sizeof(vis_text), "Visibility: %.1fkm ", 
                                     id(owm_visibility).state, id(owm_clouds).state);
                           } else if (id(owm_visibility).has_state()) {
                             snprintf(vis_text, sizeof(vis_text), "Visibility: %.1fkm", id(owm_visibility).state);
@@ -1886,10 +1903,9 @@ interval:
                             snprintf(vis_text, sizeof(vis_text), "Visibility: --km");
                           }
                           return vis_text;
-                    
-                    
+
                     - logger.log: "All weather display labels updated"
-                    
+
                 on_error:
                   then:
                     - logger.log: "Weather API request failed"
