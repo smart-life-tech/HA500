@@ -256,6 +256,106 @@ number:
       then:
         - lambda: |-
             id(sun_comp).set_longitude(id(location_longitude).state);
+  # NEW: Light automation number inputs
+  - platform: template
+    id: sunset_hours_input
+    name: "Sunset Duration Hours"
+    min_value: 1
+    max_value: 12
+    step: 1
+    restore_value: true
+    initial_value: 2
+    optimistic: true
+    on_value:
+      then:
+        - lambda: |-
+            id(sunset_duration_hours) = (int)x;
+        - lvgl.label.update:
+            id: sunset_hours_display
+            text: !lambda |-
+              static char text[20];
+              snprintf(text, sizeof(text), "%d hours", id(sunset_duration_hours));
+              return text;
+
+  - platform: template
+    id: sunrise_hours_input
+    name: "Sunrise Duration Hours"
+    min_value: 1
+    max_value: 6
+    step: 1
+    restore_value: true
+    initial_value: 1
+    optimistic: true
+    on_value:
+      then:
+        - lambda: |-
+            id(sunrise_duration_hours) = (int)x;
+        - lvgl.label.update:
+            id: sunrise_hours_display
+            text: !lambda |-
+              static char text[20];
+              snprintf(text, sizeof(text), "%d hours", id(sunrise_duration_hours));
+              return text;
+
+  - platform: template
+    id: manual_hours_input
+    name: "Manual Duration Hours"
+    min_value: 1
+    max_value: 24
+    step: 1
+    restore_value: true
+    initial_value: 4
+    optimistic: true
+    on_value:
+      then:
+        - lambda: |-
+            id(manual_duration_hours) = (int)x;
+        - lvgl.label.update:
+            id: manual_hours_display
+            text: !lambda |-
+              static char text[20];
+              snprintf(text, sizeof(text), "%d hours", id(manual_duration_hours));
+              return text;
+
+  - platform: template
+    id: until_time_hour_input
+    name: "Until Time Hour"
+    min_value: 0
+    max_value: 23
+    step: 1
+    restore_value: true
+    initial_value: 23
+    optimistic: true
+    on_value:
+      then:
+        - lambda: |-
+            id(sunset_until_time_hour) = (int)x;
+        - lvgl.label.update:
+            id: until_time_display
+            text: !lambda |-
+              static char text[20];
+              snprintf(text, sizeof(text), "%02d:%02d", id(sunset_until_time_hour), id(sunset_until_time_minute));
+              return text;
+
+  - platform: template
+    id: until_time_minute_input
+    name: "Until Time Minute"
+    min_value: 0
+    max_value: 59
+    step: 15
+    restore_value: true
+    initial_value: 0
+    optimistic: true
+    on_value:
+      then:
+        - lambda: |-
+            id(sunset_until_time_minute) = (int)x;
+        - lvgl.label.update:
+            id: until_time_display
+            text: !lambda |-
+              static char text[20];
+              snprintf(text, sizeof(text), "%02d:%02d", id(sunset_until_time_hour), id(sunset_until_time_minute));
+              return text;
 
 text_sensor:
   - platform: template
@@ -387,7 +487,46 @@ globals:
     type: bool
     restore_value: no
     initial_value: "false"
-
+  # NEW: Light automation settings
+  - id: sunset_duration_hours
+    type: int
+    restore_value: yes
+    initial_value: "2"  # Default 2 hours after sunset
+  
+  - id: sunrise_duration_hours
+    type: int
+    restore_value: yes
+    initial_value: "1"  # Default 1 hour before sunrise
+  
+  - id: manual_duration_hours
+    type: int
+    restore_value: yes
+    initial_value: "4"  # Default 4 hours for manual on
+  
+  - id: sunset_until_time_hour
+    type: int
+    restore_value: yes
+    initial_value: "23"  # Default until 23:00
+  
+  - id: sunset_until_time_minute
+    type: int
+    restore_value: yes
+    initial_value: "0"   # Default until 23:00
+  
+  - id: sunrise_from_time_hour
+    type: int
+    restore_value: yes
+    initial_value: "6"   # Default from 06:00
+  
+  - id: sunrise_from_time_minute
+    type: int
+    restore_value: yes
+    initial_value: "0"   # Default from 06:00
+  
+  - id: automation_mode
+    type: int
+    restore_value: yes
+    initial_value: "0"   # 0=duration, 1=until_time, 2=between_times, 3=manual
 #-------------------------------------------
 # LVGL Interface
 #-------------------------------------------
@@ -766,12 +905,12 @@ lvgl:
             scrollable: false # Add this
             widgets:
               - label:
-                  text: "LIGHT CONTROLS"
+                  text: "CONTROLS"
                   text_font: roboto24
                   width: 460
                   align: center
                   text_color: 0xFFFFFF
-                  x: 150
+                  x: 160
                   y: 5
                   border_width: 0
                   scrollable: false
@@ -786,7 +925,7 @@ lvgl:
             checkable: true
             widgets:
               - label:
-                  text: "${sun_icon} Sunrise/Sunset Light"
+                  text: "${sun_icon} Sunrise/Sunset"
                   text_font: roboto24
                   align: center
             on_click:
@@ -805,7 +944,7 @@ lvgl:
             checkable: true
             widgets:
               - label:
-                  text: "${thermometer_icon} Seasonal Light"
+                  text: " Seasonal meteologic SW"
                   text_font: roboto24
                   align: center
             on_click:
@@ -827,9 +966,9 @@ lvgl:
                   id: sw3_button_label
                   text: !lambda |-
                     if (id(sw3_winter_mode)) {
-                      return "${rain_icon} Weather Light (Winter)";
+                      return "Weather Meteologic SW (Winter)";
                     } else {
-                      return "${rain_icon} Weather Light (Summer)";
+                      return "Weather Meteologic SW (Summer)";
                     }
                   text_font: roboto24
                   align: center
@@ -839,23 +978,30 @@ lvgl:
                 - lambda: |-
                     id(sw3_manual_override_time) = id(time_comp).now().timestamp;
 
-        # Control status
+                # Add this to your controls page to show current automation status
         - obj:
             width: 460
-            scrollable: false # Add this
             height: 60
             bg_color: 0x000000
-            bg_opa: 50%
+            bg_opa: 30%
             radius: 10
-            hidden: true
             x: 10
-            y: 370
+            y: 360
             widgets:
               - label:
-                  id: control_status_label
-                  text: "Touch buttons to control lights"
-                  text_color: 0xFFFFFF
+                  id: automation_status_label
+                  text: !lambda |-
+                    static char status_text[100];
+                    const char* mode_names[] = {"Duration", "Until Time", "Between Times", "Manual"};
+                    snprintf(status_text, sizeof(status_text), 
+                            "Mode: %s | Sunset: %dh | Sunrise: %dh | Manual: %dh", 
+                            mode_names[id(automation_mode)],
+                            id(sunset_duration_hours),
+                            id(sunrise_duration_hours),
+                            id(manual_duration_hours));
+                    return status_text;
                   text_font: roboto
+                  text_color: 0xCCCCCC
                   align: center
                   x: 0
                   y: 5
@@ -879,7 +1025,7 @@ lvgl:
 
         - button:
             id: settings_nav_button2
-            x: 100
+            x: 110
             y: 430
             width: 100
             height: 45
@@ -1046,8 +1192,8 @@ lvgl:
             id: home_button
             x: 10
             y: 420
-            width: 80
-            height: 40
+            width: 100
+            height: 45
             styles: nav_button_style
             widgets:
               - label:
@@ -1057,6 +1203,22 @@ lvgl:
             on_click:
               then:
                 - lvgl.page.previous:
+                # In your existing settings page, add this button
+        - button:
+            id: light_automation_btn
+            x: 200
+            y: 420
+            width: 100
+            height: 45
+            styles: nav_button_style
+            widgets:
+              - label:
+                  text: "Light Auto"
+                  text_font: roboto
+                  align: center
+            on_click:
+              then:
+                - lvgl.page.next:
 
         
         # OTA popup (moved outside pages to be global)
@@ -1091,6 +1253,462 @@ lvgl:
                   max_value: 100
                   min_value: 0
                   value: 0
+        # Light Automation Settings Page
+    - id: light_settings_page
+      bg_color: 0x000000
+      bg_opa: cover
+      pad_all: 0
+      border_width: 0
+      scrollable: true
+      widgets:
+        # Background image
+        - image:
+            src: background_image
+            x: 0
+            y: 0
+            width: 480
+            height: 480
+            align: TOP_LEFT
+        
+        # Title bar
+        - obj:
+            width: 460
+            height: 50
+            bg_color: 0x1E3A8A
+            bg_opa: 80%
+            radius: 10
+            x: 10
+            y: 10
+            widgets:
+              - label:
+                  text: "LIGHT AUTOMATION SETTINGS"
+                  text_font: roboto24
+                  align: center
+                  text_color: 0xFFFFFF
+                  x: 0
+                  y: 5
+                  on_click: 
+                    then:
+                      - lvgl.page.previous:
+                      - lambda: |-
+                          id(current_page) = 1;  // Set current page to settings
+        
+        # Sunset Settings
+        - obj:
+            width: 460
+            height: 120
+            bg_color: 0x000000
+            bg_opa: 50%
+            radius: 10
+            x: 10
+            y: 70
+            widgets:
+              - label:
+                  text: "Sunset Settings"
+                  text_font: roboto24
+                  text_color: 0xFFFFFF
+                  x: 10
+                  y: 5
+              
+              # Sunset duration setting
+              - label:
+                  text: "Light on after sunset for:"
+                  text_font: roboto
+                  text_color: 0xCCCCCC
+                  x: 10
+                  y: 35
+              - button:
+                  id: sunset_hours_minus
+                  x: 250
+                  y: 30
+                  width: 40
+                  height: 30
+                  widgets:
+                    - label:
+                        text: "-"
+                        align: center
+                  on_click:
+                    then:
+                      - number.decrement: sunset_hours_input
+              - label:
+                  id: sunset_hours_display
+                  text: !lambda |-
+                    static char text[20];
+                    snprintf(text, sizeof(text), "%d hours", id(sunset_duration_hours));
+                    return text;
+                  text_font: roboto
+                  text_color: 0xFFFFFF
+                  x: 300
+                  y: 35
+              - button:
+                  id: sunset_hours_plus
+                  x: 380
+                  y: 30
+                  width: 40
+                  height: 30
+                  widgets:
+                    - label:
+                        text: "+"
+                        align: center
+                  on_click:
+                    then:
+                      - number.increment: sunset_hours_input
+              
+              # Until time setting
+              - label:
+                  text: "Or until time:"
+                  text_font: roboto
+                  text_color: 0xCCCCCC
+                  x: 10
+                  y: 70
+              - button:
+                  id: until_hour_minus
+                  x: 150
+                  y: 65
+                  width: 30
+                  height: 30
+                  widgets:
+                    - label:
+                        text: "-"
+                        align: center
+                  on_click:
+                    then:
+                      - number.decrement: until_time_hour_input
+              - label:
+                  id: until_time_display
+                  text: !lambda |-
+                    static char text[20];
+                    snprintf(text, sizeof(text), "%02d:%02d", id(sunset_until_time_hour), id(sunset_until_time_minute));
+                    return text;
+                  text_font: roboto
+                  text_color: 0xFFFFFF
+                  x: 190
+                  y: 70
+              - button:
+                  id: until_hour_plus
+                  x: 250
+                  y: 65
+                  width: 30
+                  height: 30
+                  widgets:
+                    - label:
+                        text: "+"
+                        align: center
+                  on_click:
+                    then:
+                      - number.increment: until_time_hour_input
+              - button:
+                  id: until_minute_minus
+                  x: 290
+                  y: 65
+                  width: 30
+                  height: 30
+                  widgets:
+                    - label:
+                        text: "-"
+                        align: center
+                  on_click:
+                    then:
+                      - number.decrement: until_time_minute_input
+              - button:
+                  id: until_minute_plus
+                  x: 330
+                  y: 65
+                  width: 30
+                  height: 30
+                  widgets:
+                    - label:
+                        text: "+"
+                        align: center
+                  on_click:
+                    then:
+                      - number.increment: until_time_minute_input
+
+        # Sunrise Settings
+        - obj:
+            width: 460
+            height: 80
+            bg_color: 0x000000
+            bg_opa: 50%
+            radius: 10
+            x: 10
+            y: 200
+            widgets:
+              - label:
+                  text: "Sunrise  Settings"
+                  text_font: roboto24
+                  text_color: 0xFFFFFF
+                  x: 10
+                  y: 5
+              
+              - label:
+                  text: "Light on before sunrise for:"
+                  text_font: roboto
+                  text_color: 0xCCCCCC
+                  x: 10
+                  y: 35
+              - button:
+                  id: sunrise_hours_minus
+                  x: 250
+                  y: 30
+                  width: 40
+                  height: 30
+                  widgets:
+                    - label:
+                        text: "-"
+                        align: center
+                  on_click:
+                    then:
+                      - number.decrement: sunrise_hours_input
+              - label:
+                  id: sunrise_hours_display
+                  text: !lambda |-
+                    static char text[20];
+                    snprintf(text, sizeof(text), "%d hours", id(sunrise_duration_hours));
+                    return text;
+                  text_font: roboto
+                  text_color: 0xFFFFFF
+                  x: 300
+                  y: 35
+              - button:
+                  id: sunrise_hours_plus
+                  x: 380
+                  y: 30
+                  width: 40
+                  height: 30
+                  widgets:
+                    - label:
+                        text: "+"
+                        align: center
+                  on_click:
+                    then:
+                      - number.increment: sunrise_hours_input
+
+        # Manual Settings
+        - obj:
+            width: 460
+            height: 80
+            bg_color: 0x000000
+            bg_opa: 50%
+            radius: 10
+            x: 10
+            y: 290
+            widgets:
+              - label:
+                  text: "Manual Control Settings"
+                  text_font: roboto24
+                  text_color: 0xFFFFFF
+                  x: 10
+                  y: 5
+              
+              - label:
+                  text: "Manual on duration:"
+                  text_font: roboto
+                  text_color: 0xCCCCCC
+                  x: 10
+                  y: 35
+              - button:
+                  id: manual_hours_minus
+                  x: 250
+                  y: 30
+                  width: 40
+                  height: 30
+                  widgets:
+                    - label:
+                        text: "-"
+                        align: center
+                  on_click:
+                    then:
+                      - number.decrement: manual_hours_input
+              - label:
+                  id: manual_hours_display
+                  text: !lambda |-
+                    static char text[20];
+                    snprintf(text, sizeof(text), "%d hours", id(manual_duration_hours));
+                    return text;
+                  text_font: roboto
+                  text_color: 0xFFFFFF
+                  x: 300
+                  y: 35
+              - button:
+                  id: manual_hours_plus
+                  x: 380
+                  y: 30
+                  width: 40
+                  height: 30
+                  widgets:
+                    - label:
+                        text: "+"
+                        align: center
+                  on_click:
+                    then:
+                      - number.increment: manual_hours_input
+
+        # Mode Selection
+        - obj:
+            width: 460
+            height: 100
+            bg_color: 0x000000
+            bg_opa: 50%
+            radius: 10
+            x: 10
+            y: 380
+            widgets:
+              - label:
+                  text: "Automation Mode"
+                  text_font: roboto24
+                  text_color: 0xFFFFFF
+                  x: 10
+                  y: 5
+              - button:
+                      id: mode_duration_btn
+                      x: 10
+                      y: 35
+                      width: 100
+                      height: 30
+                      checkable: true
+                      widgets:
+                        - label:
+                            text: "Duration"
+                            align: center
+                            text_font: roboto
+                      on_click:
+                        then:
+                          - lambda: |-
+                              id(automation_mode) = 0;
+                          - lvgl.widget.update:
+                              id: mode_duration_btn
+                              state:
+                                checked: true
+                          - lvgl.widget.update:
+                              id: mode_until_btn
+                              state:
+                                checked: false
+                          - lvgl.widget.update:
+                              id: mode_between_btn
+                              state:
+                                checked: false
+                          - lvgl.widget.update:
+                              id: mode_manual_btn
+                              state:
+                                checked: false
+                  
+              - button:
+                      id: mode_until_btn
+                      x: 120
+                      y: 35
+                      width: 100
+                      height: 30
+                      checkable: true
+                      widgets:
+                        - label:
+                            text: "Until Time"
+                            align: center
+                            text_font: roboto
+                      on_click:
+                        then:
+                          - lambda: |-
+                              id(automation_mode) = 1;
+                          - lvgl.widget.update:
+                              id: mode_duration_btn
+                              state:
+                                checked: false
+                          - lvgl.widget.update:
+                              id: mode_until_btn
+                              state:
+                                checked: true
+                          - lvgl.widget.update:
+                              id: mode_between_btn
+                              state:
+                                checked: false
+                          - lvgl.widget.update:
+                              id: mode_manual_btn
+                              state:
+                                checked: false
+                  
+              - button:
+                      id: mode_between_btn
+                      x: 230
+                      y: 35
+                      width: 100
+                      height: 30
+                      checkable: true
+                      widgets:
+                        - label:
+                            text: "Between"
+                            align: center
+                            text_font: roboto
+                      on_click:
+                        then:
+                          - lambda: |-
+                              id(automation_mode) = 2;
+                          - lvgl.widget.update:
+                              id: mode_duration_btn
+                              state:
+                                checked: false
+                          - lvgl.widget.update:
+                              id: mode_until_btn
+                              state:
+                                checked: false
+                          - lvgl.widget.update:
+                              id: mode_between_btn
+                              state:
+                                checked: true
+                          - lvgl.widget.update:
+                              id: mode_manual_btn
+                              state:
+                                checked: false
+                  
+              - button:
+                      id: mode_manual_btn
+                      x: 340
+                      y: 0
+                      width: 100
+                      height: 30
+                      checkable: true
+                      widgets:
+                        - label:
+                            text: "Manual"
+                            align: center
+                            text_font: roboto
+                      on_click:
+                        then:
+                          - lambda: |-
+                              id(automation_mode) = 3;
+                          - lvgl.widget.update:
+                              id: mode_duration_btn
+                              state:
+                                checked: false
+                          - lvgl.widget.update:
+                              id: mode_until_btn
+                              state:
+                                checked: false
+                          - lvgl.widget.update:
+                              id: mode_between_btn
+                              state:
+                                checked: false
+                          - lvgl.widget.update:
+                              id: mode_manual_btn
+                              state:
+                                checked: true
+
+              # Navigation buttons
+              - button:
+                  id: back_to_settings_btn
+                  x: 340
+                  y: 35
+                  width: 100
+                  height: 30
+                  styles: nav_button_style
+                  widgets:
+                    - label:
+                        text: "Back"
+                        text_font: roboto
+                        align: center
+                  on_click:
+                    then:
+                      - lvgl.page.previous:
+
 
 #-------------------------------------------
 # Internal outputs
@@ -1333,33 +1951,26 @@ script:
             id(sw1_manual_override_time) = 0;
           }
 
-          if (id(sw2_manual_override_time) > 0 && 
-              now.timestamp - id(sw2_manual_override_time) > 86400) {
-            id(sw2_manual_override_time) = 0;
-          }
-
-          if (id(sw3_manual_override_time) > 0 && 
-              now.timestamp - id(sw3_manual_override_time) > 86400) {
-            id(sw3_manual_override_time) = 0;
-          }
-
           // Only run automations if not in manual override mode
-          // ---- SWITCH 1: SUNRISE/SUNSET CONTROL ----
+          // ---- SWITCH 1: SUNRISE/SUNSET CONTROL WITH USER SETTINGS ----
           if (id(sw1_manual_override_time) == 0) {
             auto sunrise_opt = id(sun_comp).sunrise(0.0);
             if (sunrise_opt.has_value()) {
               auto sunrise = sunrise_opt.value();
               
-              // Check if it's 30 minutes before sunrise (only trigger once per day)
-              if (sunrise.timestamp - now.timestamp <= 1800 && 
-                  sunrise.timestamp - now.timestamp > 1740 && 
+              // Use user-defined sunrise duration
+              int sunrise_seconds = id(sunrise_duration_hours) * 3600;
+              
+              // Check if it's time to turn on before sunrise
+              if (sunrise.timestamp - now.timestamp <= sunrise_seconds && 
+                  sunrise.timestamp - now.timestamp > (sunrise_seconds - 60) && 
                   !id(sw1_before_sunrise) && !id(sw1).state) {
                 id(sw1).turn_on();
                 id(sw1_before_sunrise) = true;
-                ESP_LOGI("automation", "SW1 turned ON - 30min before sunrise");
+                ESP_LOGI("automation", "SW1 turned ON - %d hours before sunrise", id(sunrise_duration_hours));
               }
               
-              // Check if it's sunrise time (only if currently on due to pre-sunrise)
+              // Check if it's sunrise time
               if (abs(sunrise.timestamp - now.timestamp) < 60 && 
                   id(sw1_before_sunrise) && id(sw1).state) {
                 id(sw1).turn_off();
@@ -1368,7 +1979,7 @@ script:
               }
             }
             
-            // Sunset logic - only trigger once per day
+            // Sunset logic with user settings
             auto sunset_opt = id(sun_comp).sunset(0.0);
             if (sunset_opt.has_value()) {
               auto sunset = sunset_opt.value();
@@ -1376,12 +1987,35 @@ script:
               if (abs(sunset.timestamp - now.timestamp) < 60 && 
                   !id(sw1).state && id(sw1_off_time) == 0) {
                 id(sw1).turn_on();
-                id(sw1_off_time) = now.timestamp + 7200; // 2 hours
-                ESP_LOGI("automation", "SW1 turned ON - sunset");
+                
+                // Use automation mode to determine off time
+                if (id(automation_mode) == 0) {
+                  // Duration mode
+                  id(sw1_off_time) = now.timestamp + (id(sunset_duration_hours) * 3600);
+                } else if (id(automation_mode) == 1) {
+                  // Until time mode
+                  auto tomorrow = now;
+                  tomorrow.day_of_month += 1;
+                  tomorrow.hour = id(sunset_until_time_hour);
+                  tomorrow.minute = id(sunset_until_time_minute);
+                  tomorrow.second = 0;
+                  id(sw1_off_time) = tomorrow.timestamp;
+                } else if (id(automation_mode) == 2) {
+                  // Between times mode - turn off at sunrise
+                  auto next_sunrise = id(sun_comp).sunrise(1.0); // Next day
+                  if (next_sunrise.has_value()) {
+                    id(sw1_off_time) = next_sunrise.value().timestamp;
+                  }
+                } else {
+                  // Manual mode - use manual duration
+                  id(sw1_off_time) = now.timestamp + (id(manual_duration_hours) * 3600);
+                }
+                
+                ESP_LOGI("automation", "SW1 turned ON - sunset (mode: %d)", id(automation_mode));
               }
             }
             
-            // Check timer for post-sunset turn off
+            // Check timer for turn off
             if (id(sw1).state && !id(sw1_before_sunrise) && 
                 now.timestamp >= id(sw1_off_time) && id(sw1_off_time) > 0) {
               id(sw1).turn_off();
@@ -1390,7 +2024,8 @@ script:
             }
           }
 
-          // Similar logic for SW2 and SW3 with state change prevention...
+          // Similar logic for SW2 and SW3...
+
 
 #-------------------------------------------
 # Graphics and Fonts
