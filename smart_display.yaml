@@ -218,6 +218,9 @@ time:
 
 web_server:
   port: 80
+  version: 2
+  include_internal: true
+  local: true
 
 captive_portal:
 
@@ -652,7 +655,14 @@ lvgl:
               # Clock - positioned below title (fixed positioning)
               - label:
                   id: digital_clock
-                  text: "06:00"
+                  text: !lambda |-
+                    auto now = id(time_comp).now();
+                    if (!now.is_valid()) {
+                      now = id(sntp_time).now();
+                    }
+                    static char time_buf[6];
+                    sprintf(time_buf, "%02d:%02d", now.hour, now.minute);
+                    return time_buf;
                   text_font: roboto_large
                   align: center
                   text_color: 0xFFFFFF
@@ -1073,7 +1083,7 @@ lvgl:
                   x: 0
                   y: 5
                   scrollable: false
-        # Location settings container
+                # QR Code settings container (replaces location settings)
         - obj:
             width: 460
             height: 120
@@ -1084,33 +1094,38 @@ lvgl:
             y: 80
             widgets:
               - label:
-                  text: "Location Settings"
+                  text: "Device Settings"
                   text_font: roboto24
                   text_color: 0xFFFFFF
                   x: 10
                   y: 10
               - label:
-                  text: "Location:"
+                  text: "Scan QR code to configure device:"
                   text_font: roboto
                   x: 10
                   y: 40
                   text_color: 0xCCCCCC
-              - label:
-                  id: location_name_label
-                  text: !lambda "return id(location_name).state;"
-                  text_font: roboto
-                  x: 100
-                  y: 40
-                  text_color: 0xFFFFFF
-              - label:
-                  id: coordinates_label
+              - qrcode:
+                  id: settings_qr
+                  x: 350
+                  y: 15
+                  size: 90
                   text: !lambda |-
-                    return "Lat: " + std::to_string(id(location_latitude).state).substr(0,6) + 
-                           " Lng: " + std::to_string(id(location_longitude).state).substr(0,6);
+                    if (id(ip_address).has_state()) {
+                      return "http://" + id(ip_address).state + "/settings";
+                    }
+                    return "http://192.168.4.1/settings";
+              - label:
+                  text: !lambda |-
+                    if (id(ip_address).has_state()) {
+                      return ("http://" + id(ip_address).state + "/settings").c_str();
+                    }
+                    return "Waiting for IP address...";
                   text_font: roboto
                   x: 10
                   y: 65
-                  text_color: 0xCCCCCC
+                  text_color: 0xFFFFFF
+
 
         # SW3 Mode Toggle
         - button:
@@ -1860,6 +1875,10 @@ script:
             - lvgl.widget.update:
                 id: status_label
                 hidden: true
+            - lvgl.label.update:
+                id: settings_ip_display
+            - lvgl.qrcode.update:
+                id: settings_qr
           else:
             - lvgl.label.update:
                 id: status_label
@@ -2237,13 +2256,13 @@ image:
     type: RGB565
 
 interval:
-  - interval: 10s
+  - interval: 20s
     then:
       - lambda: |-
           auto now = id(time_comp).now();
           if (!now.is_valid() || now.year < 2020) {
             ESP_LOGW("time", "Time appears invalid, requesting resync");
-            //id(time_comp).call_setup();
+          
           }
       - script.execute: time_display_update
 
