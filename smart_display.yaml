@@ -1,7 +1,7 @@
 # known value 'MIDDLE_LEFT', valid options are 'TOP_LEFT', 'TOP_MID', 'TOP_RIGHT', 'LEFT_MID', 'CENTER', 'RIGHT_MID', 'BOTTOM_LEFT', 'BOTTOM_MID', 'BOTTOM_RIGHT'.
 substitutions:
   name: "guition-esp32-s3-4848s040"
-  friendly_name: "Guition Smart Light Control"
+  friendly_name: "Phijo Smart"
   device_description: "Guition ESP32-S3-4848S040 Smart Light Controller"
   project_name: "Guition.ESP32_S3_4848S040"
   project_version: "1.0.2"
@@ -170,13 +170,14 @@ wifi:
   on_connect:
     then:
       - logger.log: "WiFi connected, starting web server"
-      #- component.update: web_server  # Uncommented and corrected
+      - script.execute: update_qr_display  # Update QR code
       - delay: 1s
       - script.execute: notify_web_portal
   on_disconnect:
     then:
       - logger.log: "WiFi disconnected, attempting to reconnect"
       - script.execute: notify_web_portal
+      - script.execute: update_qr_display  # Update QR code
 time:
   - platform: homeassistant
     id: time_comp
@@ -376,11 +377,18 @@ text_sensor:
       entity_category: diagnostic
       on_value:
         then:
-          - lvgl.label.update:
-              id: ip_address_label
-              text:
-                format: "%s"
-                args: ["id(ip_address).get_state().c_str()"]
+          - logger.log:
+              format: "Raw IP string: '%s' (length: %d)"
+              args: ['x.c_str()', 'x.length()']
+          - lambda: |-
+              ESP_LOGI("ip_debug", "Hex dump of IP string:");
+              for (size_t i = 0; i < x.length() && i < 50; i++) {
+                ESP_LOGI("ip_debug", "  [%02d]: 0x%02X '%c'", i, (unsigned char)x[i], 
+                         std::isprint(x[i]) ? x[i] : '?');
+              }
+          - delay: 1s
+          - script.execute: update_qr_display
+
     ssid:
       name: "Connected SSID"
       entity_category: diagnostic
@@ -1111,20 +1119,63 @@ lvgl:
                   y: 15
                   size: 90
                   text: !lambda |-
-                    if (id(ip_address).has_state()) {
-                      return "http://" + id(ip_address).state + "/settings";
+                    if (id(ip_address).has_state() && !id(ip_address).state.empty()) {
+                      std::string raw = id(ip_address).state;
+                      std::string clean_ip = "";
+                      
+                      // Extract only digits and dots
+                      bool found_digit = false;
+                      for (char c : raw) {
+                        if (std::isdigit(c)) {
+                          clean_ip += c;
+                          found_digit = true;
+                        } else if (c == '.' && found_digit) {
+                          clean_ip += c;
+                        } else if (found_digit && !std::isdigit(c) && c != '.') {
+                          // Stop at first non-IP character after we started collecting
+                          break;
+                        }
+                      }
+                      
+                      // Validate IP format (should have 3 dots and be reasonable length)
+                      int dot_count = std::count(clean_ip.begin(), clean_ip.end(), '.');
+                      if (dot_count == 3 && clean_ip.length() >= 7 && clean_ip.length() <= 15) {
+                        return "http://" + clean_ip + "/";
+                      }
                     }
-                    return "http://192.168.4.1/settings";
+                    return "http://192.168.4.1/";
               - label:
+                  id: qr_url_label
                   text: !lambda |-
-                    if (id(ip_address).has_state()) {
-                      return ("http://" + id(ip_address).state + "/settings").c_str();
+                    if (id(ip_address).has_state() && !id(ip_address).state.empty()) {
+                      std::string raw = id(ip_address).state;
+                      std::string clean_ip = "";
+                      
+                      // Extract only digits and dots
+                      bool found_digit = false;
+                      for (char c : raw) {
+                        if (std::isdigit(c)) {
+                          clean_ip += c;
+                          found_digit = true;
+                        } else if (c == '.' && found_digit) {
+                          clean_ip += c;
+                        } else if (found_digit && !std::isdigit(c) && c != '.') {
+                          break;
+                        }
+                      }
+                      
+                      // Validate IP format
+                      int dot_count = std::count(clean_ip.begin(), clean_ip.end(), '.');
+                      if (dot_count == 3 && clean_ip.length() >= 7 && clean_ip.length() <= 15) {
+                        return "http://" + clean_ip + "/";
+                      }
                     }
                     return "Waiting for IP address...";
                   text_font: roboto
                   x: 10
                   y: 65
                   text_color: 0xFFFFFF
+                  width: 320
 
 
         # SW3 Mode Toggle
@@ -1856,45 +1907,79 @@ script:
           hidden: false
       - lvgl.widget.redraw:
 
+  - id: update_qr_display
+    then:
+      - component.update: ip_address  # Force update the IP sensor first
+      - delay: 500ms
+      - lvgl.qrcode.update:
+          id: settings_qr
+          text: !lambda |-
+            if (id(ip_address).has_state() && !id(ip_address).state.empty()) {
+              return "http://" + id(ip_address).state + "/";
+            }
+            return "http://192.168.4.1/";
+      
+      - lvgl.label.update:
+          id: qr_url_label
+          text: !lambda |-
+            if (id(ip_address).has_state() && !id(ip_address).state.empty()) {
+              return ("http://" + id(ip_address).state + "/").c_str();
+            }
+            return "Waiting for IP address...";
+
   - id: notify_web_portal
     then:
+      - component.update: ip_address  # Force update IP sensor
+      - delay: 500ms
       - if:
           condition:
             wifi.connected:
           then:
             - lvgl.label.update:
                 id: status_label
-                text: "Web portal active "
+                text: "Web portal active"
                 text_color: ha_blue
-            - logger.log:
+            - logger.log: 
                 format: "Web portal active at http://%s"
-                args: ["id(ip_address).state.c_str()"]
-            - lvgl.widget.update:
-                id: ip_address_label
-                hidden: true
-            - lvgl.widget.update:
-                id: status_label
-                hidden: true
-            - lvgl.label.update:
-                id: settings_ip_display
+                args: ['id(ip_address).has_state() ? id(ip_address).state.c_str() : "unknown"']
+            # Update QR code when WiFi is connected
             - lvgl.qrcode.update:
                 id: settings_qr
+                text: !lambda |-
+                  if (id(ip_address).has_state() && !id(ip_address).state.empty()) {
+                    return "http://" + id(ip_address).state + "/";
+                  }
+                  return "http://192.168.4.1/";
+            - lvgl.label.update:
+                id: qr_url_label
+                text: !lambda |-
+                  if (id(ip_address).has_state() && !id(ip_address).state.empty()) {
+                    return ("http://" + id(ip_address).state + "/").c_str();
+                  }
+                  return "Getting IP address...";
           else:
             - lvgl.label.update:
                 id: status_label
                 text: "No internet. Connect to AP: PhiJo Smart Products"
                 text_color: orange_color
             - logger.log: "No internet. Connect to AP: PhiJo Smart Products"
+            # Update QR code for AP mode
+            - lvgl.qrcode.update:
+                id: settings_qr
+                text: "http://192.168.4.1/"
+            - lvgl.label.update:
+                id: qr_url_label
+                text: "http://192.168.4.1/ (AP Mode)"
+      
       - lvgl.label.update:
           id: ip_address_label
           text: !lambda |-
-            if (id(ip_address).has_state()) {
-              return std::string("WiFi: ") + id(ip_address).state;
+            if (id(ip_address).has_state() && !id(ip_address).state.empty()) {
+              return "WiFi: " + id(ip_address).state;
             } else {
-              return "wifi Not connected";
+              return "WiFi: Not connected";
             }
 
-  # Separate script just for display updates (no automation logic)
   - id: time_display_update
     then:
       - script.execute: notify_web_portal
@@ -2265,6 +2350,11 @@ interval:
           
           }
       - script.execute: time_display_update
+      - script.execute: update_qr_display  
+  - interval: 10s
+    then:
+      - script.execute: notify_web_portal
+      - script.execute: check_light_schedules
 
   - interval: 30s
     then:
