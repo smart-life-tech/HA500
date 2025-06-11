@@ -170,14 +170,14 @@ wifi:
   ap:
     ssid: "PhiJo Smart Products Fallback"
     password: !secret wifi_fallback_password
-    channel: 6  # Try different channel
-    ap_timeout: 5min
-    manual_ip:
-      static_ip: 192.168.4.1
-      gateway: 192.168.4.1
-      subnet: 255.255.255.0
-      dns1: 192.168.4.1
-      dns2: 8.8.8.8
+    #channel: 6  # Try different channel
+    #ap_timeout: 5min
+    #manual_ip:
+      #static_ip: 192.168.4.1
+      #gateway: 192.168.4.1
+      #subnet: 255.255.255.0
+      #dns1: 192.168.4.1
+      #dns2: 8.8.8.8
 
   # Existing event handlers
   on_connect:
