@@ -7,8 +7,8 @@ esphome:
 
 esp32:
   #board: esp32-c3-devkitm-1
-  board: esp32dev
-  #board: seeed_xiao_esp32c3
+  #board: esp32dev
+  board: seeed_xiao_esp32c3
   framework:
     type: arduino
 
@@ -16,7 +16,7 @@ esp32:
 logger:
   #level: DEBUG
   level: VERBOSE #makes uart stream available in esphome logstream
-  baud_rate: 115200 #disable logging over uart
+  baud_rate: 115200 #enable logging over uart
 
 
 # Enable Home Assistant API
@@ -29,10 +29,10 @@ ota:
     password: "cf51b5565f8fc607aff12f6a2ab55d98"
 
 wifi:
-  ssid: "TECNO SPARK 5 Air"
-  password: "1234567890"
-  #ssid: "JEREMY"
-  #password: "605506Jdb"
+  #ssid: "TECNO SPARK 5 Air"
+  #password: "1234567890"
+  ssid: "JEREMY"
+  password: "605506Jdb"
 # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
     ssid: "Totalsense-C3-Ld2401"
@@ -46,11 +46,10 @@ web_server:
 
 uart:
   id: uart_bus
-  rx_pin: GPIO4        # Change this to your actual RX pin20 esp 4
-  tx_pin: GPIO17         # TX pin is optional if you only need to receive data21 esp 17 
-  #baud_rate: 256000
-  baud_rate: 115200
-  #port: "COM4"
+  rx_pin: GPIO20       # Change this to your actual RX pin20 esp 4
+  tx_pin: GPIO21         # TX pin is optional if you only need to receive data21 esp 17 
+  baud_rate: 256000
+  #baud_rate: 115200
   parity: NONE
   stop_bits: 1
   debug:

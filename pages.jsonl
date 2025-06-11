@@ -1,0 +1,49 @@
+{"page":0,"id":0,"obj":"obj","x":0,"y":0,"w":480,"h":400,"bg_color":"#000000"}
+{"page":0,"id":1,"obj":"label","x":0,"y":0,"w":480,"h":40,"text":"Smart Light Control","text_color":"#FFFFFF","bg_color":"#0066CC","text_font":20,"align":1}
+
+{"page":0,"id":10,"obj":"btn","x":40,"y":60,"w":400,"h":50,"text":"Sunrise/Sunset Light: OFF","text_color":"#FFFFFF","bg_color":"#555555","text_font":18,"toggle":true,"val":0,"mode":0,"action":{"on_release":"relay1.toggle"},"radius":10}
+{"page":0,"id":20,"obj":"label","x":40,"y":110,"w":400,"h":15,"text":"Next event: --:--","text_color":"#AAAAAA","text_font":12,"align":1}
+
+{"page":0,"id":11,"obj":"btn","x":40,"y":135,"w":400,"h":50,"text":"Seasonal Daytime Light: OFF","text_color":"#FFFFFF","bg_color":"#555555","text_font":18,"toggle":true,"val":0,"mode":0,"action":{"on_release":"relay2.toggle"},"radius":10}
+{"page":0,"id":21,"obj":"label","x":40,"y":185,"w":400,"h":15,"text":"Next event: --:--","text_color":"#AAAAAA","text_font":12,"align":1}
+
+{"page":0,"id":12,"obj":"btn","x":40,"y":210,"w":400,"h":50,"text":"Weather-Based Light: OFF","text_color":"#FFFFFF","bg_color":"#555555","text_font":18,"toggle":true,"val":0,"mode":0,"action":{"on_release":"relay3.toggle"},"radius":10}
+{"page":0,"id":22,"obj":"label","x":40,"y":260,"w":400,"h":15,"text":"Next event: --:--","text_color":"#AAAAAA","text_font":12,"align":1}
+
+{"page":0,"id":90,"obj":"btn","action":{"down": "page prev"},"x":0,"y":320,"w":160,"h":40,"bg_color":"#2C3E50","text":"Prev","text_color":"#FFFFFF","radius":10,"border_side":0,"text_font":16}
+{"page":0,"id":91,"obj":"btn","action":{"down": "page back"},"x":160,"y":320,"w":160,"h":40,"bg_color":"#2C3E50","text":"Home","text_color":"#FFFFFF","radius":10,"border_side":0,"text_font":16}
+{"page":0,"id":92,"obj":"btn","action":{"down": "page next"},"x":320,"y":320,"w":160,"h":40,"bg_color":"#2C3E50","text":"Next","text_color":"#FFFFFF","radius":10,"border_side":0,"text_font":16}
+
+{"page":1,"id":0,"obj":"obj","x":0,"y":0,"w":480,"h":400,"bg_color":"#000000"}
+{"page":1,"id":1,"obj":"label","x":0,"y":0,"w":480,"h":40,"text":"System Information","text_color":"#FFFFFF","bg_color":"#0066CC","text_font":20,"align":1}
+{"page":1,"id":2,"obj":"label","x":10,"y":50,"w":460,"h":20,"text":"Hostname: %hostname%","text_color":"#FFFFFF","text_font":16}
+{"page":1,"id":3,"obj":"label","x":10,"y":75,"w":460,"h":20,"text":"IP: %ip%","text_color":"#FFFFFF","text_font":16}
+{"page":1,"id":4,"obj":"label","x":10,"y":100,"w":460,"h":20,"text":"MAC: %mac%","text_color":"#FFFFFF","text_font":16}
+{"page":1,"id":5,"obj":"label","x":10,"y":125,"w":460,"h":20,"text":"RSSI: %rssi%","text_color":"#FFFFFF","text_font":16}
+{"page":1,"id":6,"obj":"label","x":10,"y":150,"w":460,"h":20,"text":"Uptime: %uptime%","text_color":"#FFFFFF","text_font":16}
+{"page":1,"id":7,"obj":"label","x":10,"y":175,"w":460,"h":20,"text":"Free Heap: %heap%","text_color":"#FFFFFF","text_font":16}
+{"page":1,"id":8,"obj":"label","x":10,"y":200,"w":460,"h":20,"text":"Version: %version%","text_color":"#FFFFFF","text_font":16}
+{"page":1,"id":9,"obj":"label","x":10,"y":225,"w":460,"h":20,"text":"Automation Status: Running","text_color":"#00FF00","text_font":16}
+{"page":1,"id":10,"obj":"label","x":10,"y":250,"w":460,"h":20,"text":"Last Check: --:--","text_color":"#FFFFFF","text_font":16,"id":"last_check"}
+
+{"page":1,"id":90,"obj":"btn","action":{"down": "page prev"},"x":0,"y":320,"w":160,"h":40,"bg_color":"#2C3E50","text":"Prev","text_color":"#FFFFFF","radius":10,"border_side":0,"text_font":16}
+{"page":1,"id":91,"obj":"btn","action":{"down": "page back"},"x":160,"y":320,"w":160,"h":40,"bg_color":"#2C3E50","text":"Home","text_color":"#FFFFFF","radius":10,"border_side":0,"text_font":16}
+{"page":1,"id":92,"obj":"btn","action":{"down": "page next"},"x":320,"y":320,"w":160,"h":40,"bg_color":"#2C3E50","text":"Next","text_color":"#FFFFFF","radius":10,"border_side":0,"text_font":16}
+
+{"page":2,"id":0,"obj":"obj","x":0,"y":0,"w":480,"h":400,"bg_color":"#000000"}
+{"page":2,"id":1,"obj":"label","x":0,"y":0,"w":480,"h":40,"text":"Timer Status","text_color":"#FFFFFF","bg_color":"#0066CC","text_font":20,"align":1}
+{"page":2,"id":2,"obj":"label","x":10,"y":50,"w":460,"h":18,"text":"Automation Check Timer:","text_color":"#FFFFFF","text_font":16}
+{"page":2,"id":3,"obj":"label","x":10,"y":68,"w":460,"h":18,"text":"Running","text_color":"#00FF00","text_font":16,"id":"automation_status"}
+{"page":2,"id":4,"obj":"label","x":10,"y":95,"w":460,"h":18,"text":"Sunrise/Sunset Timer:","text_color":"#FFFFFF","text_font":16}
+{"page":2,"id":5,"obj":"label","x":10,"y":113,"w":460,"h":18,"text":"Not Active","text_color":"#FF0000","text_font":16,"id":"sunset_status"}
+{"page":2,"id":6,"obj":"label","x":10,"y":140,"w":460,"h":18,"text":"Seasonal Timer:","text_color":"#FFFFFF","text_font":16}
+{"page":2,"id":7,"obj":"label","x":10,"y":158,"w":460,"h":18,"text":"Not Active","text_color":"#FF0000","text_font":16,"id":"seasonal_status"}
+{"page":2,"id":8,"obj":"label","x":10,"y":185,"w":460,"h":18,"text":"Weather Timer:","text_color":"#FFFFFF","text_font":16}
+{"page":2,"id":9,"obj":"label","x":10,"y":203,"w":460,"h":18,"text":"Not Active","text_color":"#FF0000","text_font":16,"id":"weather_status"}
+{"page":2,"id":10,"obj":"label","x":10,"y":230,"w":460,"h":18,"text":"Next Check:","text_color":"#FFFFFF","text_font":16}
+{"page":2,"id":11,"obj":"label","x":10,"y":248,"w":460,"h":18,"text":"--:--","text_color":"#FFFFFF","text_font":16,"id":"next_check"}
+{"page":2,"id":12,"obj":"btn","x":10,"y":275,"w":460,"h":40,"text":"Run Check Now","text_color":"#FFFFFF","bg_color":"#0066CC","text_font":16,"action":{"on_release":"run_check"},"radius":10}
+
+{"page":2,"id":90,"obj":"btn","action":{"down": "page prev"},"x":0,"y":320,"w":160,"h":40,"bg_color":"#2C3E50","text":"Prev","text_color":"#FFFFFF","radius":10,"border_side":0,"text_font":16}
+{"page":2,"id":91,"obj":"btn","action":{"down": "page back"},"x":160,"y":320,"w":160,"h":40,"bg_color":"#2C3E50","text":"Home","text_color":"#FFFFFF","radius":10,"border_side":0,"text_font":16}
+{"page":2,"id":92,"obj":"btn","action":{"down": "page next"},"x":320,"y":320,"w":160,"h":40,"bg_color":"#2C3E50","text":"Next","text_color":"#FFFFFF","radius":10,"border_side":0,"text_font":16}

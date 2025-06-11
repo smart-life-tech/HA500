@@ -1,0 +1,268 @@
+esphome:
+  name: esp32display
+  friendly_name: ESP32 Door Intercom
+
+esp32:
+  board: esp32-s3-devkitc-1
+  framework:
+    type: esp-idf
+
+logger:
+
+api:
+  encryption:
+    key: "9HLR1P/vVsbBBautrFIB6B2M/YzNR2av+Qn5NnkTI4g="
+
+ota:
+  - platform: esphome
+    password: "YOUR_OTA_PASSWORD"
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "Esp32 Intercom Fallback"
+    password: "YOUR_FALLBACK_PASSWORD"
+
+captive_portal:
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO14
+      mode: INPUT_PULLUP
+      inverted: true
+    name: "Doorbell Button"
+    id: doorbell_button
+    on_press:
+      then:
+        - script.execute: doorbell_ring
+        - homeassistant.event:
+            event: esphome.doorbell_pressed
+            data:
+              device: esp32display
+
+switch:
+  - platform: gpio
+    name: "Door Lock"
+    id: door_lock
+    pin: GPIO12
+    restore_mode: ALWAYS_OFF
+  - platform: template
+    name: "Intercom Active"
+    id: intercom_active
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+  - platform: template
+    name: "Doorbell State"
+    id: doorbell_state
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+  - platform: gpio
+    name: "Living Room Light"
+    id: light_state
+    pin: GPIO15
+
+spi:
+  clk_pin: GPIO18  # SPI clock pin
+  mosi_pin: GPIO19 # SPI data pin (Master Out Slave In)
+
+output:
+  - platform: ledc
+    pin: GPIO8
+    id: backlight_output
+    frequency: 1000 Hz
+
+light:
+  - platform: monochromatic
+    output: backlight_output
+    name: "Display Backlight"
+    id: display_backlight
+    restore_mode: ALWAYS_ON
+
+time:
+  - platform: homeassistant
+    id: esptime
+    timezone: America/New_York
+
+i2c:
+  sda: GPIO16  # Verify with board documentation
+  scl: GPIO17  # Verify with board documentation
+  scan: true
+
+display:
+  - platform: st7701s
+    id: my_display
+    dimensions:
+      width: 480
+      height: 480
+    # backlight_pin removed from here
+    data_pins:
+      - GPIO2
+      - GPIO3
+      - GPIO5
+      - GPIO6
+      - GPIO7
+      - GPIO9
+      - GPIO10
+      - GPIO13
+      - GPIO18
+      - GPIO19
+      - GPIO20
+      - GPIO21
+      - GPIO38
+      - GPIO39
+      - GPIO40
+      - GPIO41
+    hsync_pin: GPIO42
+    vsync_pin: GPIO43
+    pclk_pin: GPIO44
+    de_pin: GPIO45  # Include only if your display requires it
+    reset_pin: GPIO4  # Assuming this is correct from your board; verify
+    rotation: 0
+    invert_colors: true
+    update_interval: 1s
+    lambda: |-
+      it.fill(Color::BLACK);
+      auto color_navy = Color(0, 0, 128);
+      auto color_gray = Color(128, 128, 128);
+      auto color_darkblue = Color(0, 0, 139);
+      auto color_darkgreen = Color(0, 100, 0);
+      auto color_darkorange = Color(255, 140, 0);
+      auto color_red = Color(255, 0, 0);
+      it.rectangle(0, 0, 480, 60, color_navy);
+      it.printf(240, 30, id(roboto_medium_20), Color::WHITE, TextAlign::CENTER, "Door Intercom");
+      it.printf(240, 80, id(roboto_medium_36), Color::WHITE, TextAlign::CENTER, "%s", id(esptime).now().strftime("%H:%M").c_str());
+      it.printf(240, 120, id(roboto_regular_20), color_gray, TextAlign::CENTER, "%s", id(esptime).now().strftime("%A, %b %d").c_str());
+      if (id(doorbell_state).state) {
+        it.rectangle(40, 160, 400, 120, color_red);
+        it.printf(240, 190, id(roboto_medium_24), Color::WHITE, TextAlign::CENTER, "DOORBELL RINGING!");
+        it.rectangle(100, 240, 120, 60, color_darkgreen);
+        it.printf(160, 270, id(roboto_medium_20), Color::WHITE, TextAlign::CENTER, "ANSWER");
+        it.rectangle(260, 240, 120, 60, color_red);
+        it.printf(320, 270, id(roboto_medium_20), Color::WHITE, TextAlign::CENTER, "REJECT");
+      } else if (id(intercom_active).state) {
+        it.rectangle(40, 160, 400, 120, color_darkgreen);
+        it.printf(240, 190, id(roboto_medium_24), Color::WHITE, TextAlign::CENTER, "CALL ACTIVE");
+        it.rectangle(160, 240, 160, 60, color_red);
+        it.printf(240, 270, id(roboto_medium_20), Color::WHITE, TextAlign::CENTER, "END CALL");
+      } else {
+        it.rectangle(40, 160, 200, 120, color_darkblue);
+        it.printf(140, 190, id(roboto_medium_24), Color::WHITE, TextAlign::CENTER, "Temperature");
+        if (id(temperature_sensor).has_state()) {
+          it.printf(140, 230, id(roboto_medium_36), Color::WHITE, TextAlign::CENTER, "%.1f°C", id(temperature_sensor).state);
+        } else {
+          it.printf(140, 230, id(roboto_medium_36), Color::WHITE, TextAlign::CENTER, "--.-°C");
+        }
+        it.rectangle(240, 160, 200, 120, color_darkgreen);
+        it.printf(340, 190, id(roboto_medium_24), Color::WHITE, TextAlign::CENTER, "Humidity");
+        if (id(humidity_sensor).has_state()) {
+          it.printf(340, 230, id(roboto_medium_36), Color::WHITE, TextAlign::CENTER, "%.1f%%", id(humidity_sensor).state);
+        } else {
+          it.printf(340, 230, id(roboto_medium_36), Color::WHITE, TextAlign::CENTER, "--.-%%");
+        }
+      }
+      if (id(intercom_active).state) {
+        it.rectangle(40, 300, 400, 80, id(door_lock).state ? color_red : color_darkgreen);
+        it.printf(240, 330, id(roboto_medium_24), Color::WHITE, TextAlign::CENTER, "Door: %s", id(door_lock).state ? "UNLOCKED" : "LOCKED");
+        it.rectangle(160, 400, 160, 60, color_darkorange);
+        it.printf(240, 430, id(roboto_medium_20), Color::WHITE, TextAlign::CENTER, "UNLOCK DOOR");
+      } else {
+        it.rectangle(40, 300, 400, 80, color_darkorange);
+        it.printf(240, 330, id(roboto_medium_24), Color::WHITE, TextAlign::CENTER, "Living Room Light: %s", id(light_state).state ? "ON" : "OFF");
+      }
+      int rssi = WiFi.RSSI();
+      int quality = 0;
+      if (rssi <= -100) quality = 0;
+      else if (rssi >= -50) quality = 100;
+      else quality = 2 * (rssi + 100);
+      it.printf(440, 30, id(roboto_regular_16), Color::WHITE, TextAlign::RIGHT, "WiFi: %d%%", quality);
+      if (id(battery_level).has_state()) {
+        it.printf(440, 50, id(roboto_regular_16), Color::WHITE, TextAlign::RIGHT, "Batt: %.0f%%", id(battery_level).state);
+      }
+
+touchscreen:
+  - platform: gt911
+    id: my_touchscreen
+    address: 0x5D  # Common GT911 address, verify with board docs
+    display: my_display
+    update_interval: 50ms
+    on_touch:
+      - lambda: |-
+          ESP_LOGI("touch", "Touch at (%d, %d)", touch.x, touch.y);
+          if (id(doorbell_state).state) {
+            if (touch.x >= 100 && touch.x <= 220 && touch.y >= 240 && touch.y <= 300) {
+              id(doorbell_state).turn_off();
+              id(intercom_active).turn_on();
+            }
+            else if (touch.x >= 260 && touch.x <= 380 && touch.y >= 240 && touch.y <= 300) {
+              id(doorbell_state).turn_off();
+            }
+          }
+          else if (id(intercom_active).state) {
+            if (touch.x >= 160 && touch.x <= 320 && touch.y >= 240 && touch.y <= 300) {
+              id(intercom_active).turn_off();
+            }
+            else if (touch.x >= 160 && touch.x <= 320 && touch.y >= 400 && touch.y <= 460) {
+              id(unlock_door_script).execute();
+            }
+          }
+          else if (touch.x >= 40 && touch.x <= 440 && touch.y >= 300 && touch.y <= 380) {
+            id(light_state).toggle();
+          }
+
+font:
+  - file: "fonts/Roboto-Regular.ttf"
+    id: roboto_regular_16
+    size: 16
+  - file: "fonts/Roboto-Regular.ttf"
+    id: roboto_regular_20
+    size: 20
+  - file: "fonts/Roboto-Medium.ttf"
+    id: roboto_medium_20
+    size: 20
+  - file: "fonts/Roboto-Medium.ttf"
+    id: roboto_medium_24
+    size: 24
+  - file: "fonts/Roboto-Medium.ttf"
+    id: roboto_medium_36
+    size: 36
+
+script:
+  - id: unlock_door_script
+    then:
+      - switch.turn_on: door_lock
+      - delay: 5s
+      - switch.turn_off: door_lock
+  - id: doorbell_ring
+    then:
+      - switch.turn_on: doorbell_state
+      - delay: 30s
+      - if:
+          condition:
+            switch.is_on: doorbell_state
+          then:
+            - switch.turn_off: doorbell_state
+
+sensor:
+  - platform: dht
+    pin: GPIO11
+    model: DHT22
+    temperature:
+      name: "ESP32 Temperature"
+      id: temperature_sensor
+    humidity:
+      name: "ESP32 Humidity"
+      id: humidity_sensor
+    update_interval: 60s
+  - platform: wifi_signal
+    name: "ESP32 WiFi Signal"
+    update_interval: 60s
+  - platform: adc
+    pin: GPIO1
+    name: "Battery Level"
+    id: battery_level
+    update_interval: 60s
+    attenuation: 12db
+    filters:
+      - lambda: return x / 4095.0 * 100.0;

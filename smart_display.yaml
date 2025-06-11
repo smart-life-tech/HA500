@@ -1,0 +1,2649 @@
+# known value 'MIDDLE_LEFT', valid options are 'TOP_LEFT', 'TOP_MID', 'TOP_RIGHT', 'LEFT_MID', 'CENTER', 'RIGHT_MID', 'BOTTOM_LEFT', 'BOTTOM_MID', 'BOTTOM_RIGHT'.
+substitutions:
+  name: "guition-esp32-s3-4848s040"
+  friendly_name: "Phijo Smart"
+  device_description: "Guition ESP32-S3-4848S040 Smart Light Controller"
+  project_name: "Guition.ESP32_S3_4848S040"
+  project_version: "1.0.2"
+
+  lightbulb: "\U000F0335"
+  ceiling_light: "\U000F0769"
+  lamp: "\U000F06B5"
+  floor_lamp: "\U000F08DD"
+  string_lights: "\U000F12BA"
+  settings_icon: "\U000F0493"
+  home_icon: "\U000F02DC"
+  sun_icon: "\U000F0599"
+  moon_icon: "\U000F0F64"
+  rain_icon: "\U000F0596"
+  thermometer_icon: "\U000F050F"
+
+esphome:
+  name: "${name}"
+  friendly_name: "${friendly_name}"
+  project:
+    name: "${project_name}"
+    version: "${project_version}"
+  platformio_options:
+    board_build.flash_mode: dio
+    build_unflags: "-f"
+    build_flags: "-shared"
+
+esp32:
+  board: esp32-s3-devkitc-1
+  variant: esp32s3
+  flash_size: 16MB
+  framework:
+    type: esp-idf
+    sdkconfig_options:
+      COMPILER_OPTIMIZATION_SIZE: y
+      CONFIG_ESP32S3_DEFAULT_CPU_FREQ_240: "y"
+      CONFIG_ESP32S3_DATA_CACHE_64KB: "y"
+      CONFIG_ESP32S3_DATA_CACHE_LINE_64B: "y"
+      CONFIG_SPIRAM_FETCH_INSTRUCTIONS: y
+      CONFIG_SPIRAM_RODATA: y
+
+psram:
+  mode: octal
+  speed: 80MHz
+
+# Enable logging
+logger:
+  level: DEBUG
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: !secret encryption_key
+  id: api_server
+  on_client_connected:
+    then:
+      - logger.log: "API DEBUG: Home Assistant connected"
+      - delay: 2s
+      - script.execute: time_display_update
+  on_client_disconnected:
+    then:
+      - logger.log: "API DEBUG: Home Assistant disconnected"
+      - script.execute: time_display_update
+ota:
+  - platform: esphome
+    id: my_ota
+    password: !secret ota_password
+    on_begin:
+      then:
+        - logger.log: "OTA start"
+        - light.turn_on: backlight
+        - lvgl.resume:
+        - lvgl.widget.show: popup_obj
+        - lvgl.resume:
+        - lvgl.widget.redraw:
+    on_progress:
+      then:
+        - lvgl.bar.update:
+            id: popup_pb_percentage
+            value: !lambda "return (int)x;"
+        - lvgl.label.update:
+            id: popup_lbl_percentage
+            text:
+              format: "OTA progress %0.1f%%"
+              args: ["x"]
+        - lambda: "id(lvgl_comp).loop();"
+sensor:
+  - platform: template
+    name: "OWM Temperature"
+    id: owm_temperature
+    unit_of_measurement: "°C"
+    accuracy_decimals: 1
+
+  - platform: template
+    name: "OWM Humidity"
+    id: owm_humidity
+    unit_of_measurement: "%"
+    accuracy_decimals: 0
+
+  - platform: template
+    name: "OWM Pressure"
+    id: owm_pressure
+    unit_of_measurement: "hPa"
+    accuracy_decimals: 0
+
+  - platform: template
+    name: "OWM Wind Speed"
+    id: owm_wind_speed
+    unit_of_measurement: "m/s"
+    accuracy_decimals: 1
+
+  - platform: template
+    name: "OWM Feels Like"
+    id: owm_feels_like
+    unit_of_measurement: "°C"
+    accuracy_decimals: 1
+
+  # ADDing NEW SENSORS
+  - platform: template
+    name: "OWM Visibility"
+    id: owm_visibility
+    unit_of_measurement: "km"
+    accuracy_decimals: 1
+
+  - platform: template
+    name: "OWM Cloud Coverage"
+    id: owm_clouds
+    unit_of_measurement: "%"
+    accuracy_decimals: 0
+
+  - platform: template
+    name: "OWM Wind Gust"
+    id: owm_wind_gust
+    unit_of_measurement: "m/s"
+    accuracy_decimals: 1
+
+  - platform: template
+    name: "OWM Wind Direction"
+    id: owm_wind_direction
+    unit_of_measurement: "°"
+    accuracy_decimals: 0
+
+http_request:
+  id: http_requests
+  useragent: "ESPHome/1.0"
+  timeout: 30s # Increase timeout
+  verify_ssl: false
+  follow_redirects: true
+  buffer_size_rx: 1024 # Add buffer size
+
+wifi:
+  networks:
+  - ssid: !secret wifi_ssid
+    password: !secret wifi_password
+  - ssid: !secret wifi_ssid2
+    password: !secret wifi_password2
+    
+
+
+  # Add these parameters for better connection reliability
+  power_save_mode: NONE
+  #fast_connect: true
+  #reboot_timeout: 15min
+
+  # Existing fallback AP configuration
+  ap:
+    ssid: "PhiJo Smart Products Fallback"
+    password: !secret wifi_fallback_password
+    channel: 6  # Try different channel
+    ap_timeout: 5min
+    manual_ip:
+      static_ip: 192.168.4.1
+      gateway: 192.168.4.1
+      subnet: 255.255.255.0
+      dns1: 192.168.4.1
+      dns2: 8.8.8.8
+
+  # Existing event handlers
+  on_connect:
+    then:
+      - logger.log: "WiFi connected, starting web server"
+      - script.execute: update_qr_display  # Update QR code
+      - delay: 1s
+      - script.execute: notify_web_portal
+  on_disconnect:
+    then:
+      - logger.log: "WiFi disconnected, attempting to reconnect"
+      - script.execute: notify_web_portal
+      - script.execute: update_qr_display  # Update QR code
+time:
+  - platform: homeassistant
+    id: time_comp
+    timezone: "Europe/Lisbon"
+    on_time_sync:
+      then:
+        - logger.log: "TIME DEBUG: Time synchronized with Home Assistant"
+        - script.execute: time_display_update # Changed from time_update
+    on_time:
+      # Update clock display every minute (display only)
+      - minutes: "*"
+        seconds: 0
+        then:
+          - script.execute: time_display_update # Changed from time_update
+
+      # Run automation checks less frequently (every 5 minutes)
+      - minutes: "/5" # Changed from /1 to /5
+        seconds: 0
+        then:
+          - script.execute: check_light_schedules
+
+  # Add SNTP as fallback when Home Assistant is unavailable
+  - platform: sntp
+    id: sntp_time
+    timezone: "Europe/Lisbon"
+    servers:
+      - "pool.ntp.org"
+      - "time.nist.gov"
+      - "time.google.com"
+    on_time_sync:
+      then:
+        - logger.log: "TIME DEBUG: Time synchronized with SNTP server"
+        - if:
+            condition:
+              not:
+                api.connected:
+            then:
+              - script.execute: time_display_update
+
+web_server:
+  port: 80
+  version: 2
+  include_internal: true
+  local: true
+
+captive_portal:
+
+# For the sun component, we need to use fixed values initially
+sun:
+  latitude: 37.1 # Default value matching the initial_value in location_latitude
+  longitude: -8.0 # Default value matching the initial_value in location_longitude
+  id: sun_comp
+
+# Add this to update the sun component when location changes
+number:
+  - platform: template
+    id: location_latitude
+    name: "Location Latitude"
+    min_value: -90
+    max_value: 90
+    step: 0.01
+    restore_value: true
+    initial_value: 37.1 # Default to a central location
+    optimistic: true
+    on_value:
+      then:
+        - lambda: |-
+            id(sun_comp).set_latitude(id(location_latitude).state);
+
+  - platform: template
+    id: location_longitude
+    name: "Location Longitude"
+    min_value: -180
+    max_value: 180
+    step: 0.01
+    restore_value: true
+    initial_value: -8.0 # Default to a central location
+    optimistic: true
+    on_value:
+      then:
+        - lambda: |-
+            id(sun_comp).set_longitude(id(location_longitude).state);
+  # NEW: Light automation number inputs
+  - platform: template
+    id: sunset_hours_input
+    name: "Sunset Duration Hours"
+    min_value: 1
+    max_value: 12
+    step: 1
+    restore_value: true
+    initial_value: 2
+    optimistic: true
+    on_value:
+      then:
+        - lambda: |-
+            id(sunset_duration_hours) = (int)x;
+        - lvgl.label.update:
+            id: sunset_hours_display
+            text: !lambda |-
+              static char text[20];
+              snprintf(text, sizeof(text), "%d hours", id(sunset_duration_hours));
+              return text;
+
+  - platform: template
+    id: sunrise_hours_input
+    name: "Sunrise Duration Hours"
+    min_value: 1
+    max_value: 6
+    step: 1
+    restore_value: true
+    initial_value: 1
+    optimistic: true
+    on_value:
+      then:
+        - lambda: |-
+            id(sunrise_duration_hours) = (int)x;
+        - lvgl.label.update:
+            id: sunrise_hours_display
+            text: !lambda |-
+              static char text[20];
+              snprintf(text, sizeof(text), "%d hours", id(sunrise_duration_hours));
+              return text;
+
+  - platform: template
+    id: manual_hours_input
+    name: "Manual Duration Hours"
+    min_value: 1
+    max_value: 24
+    step: 1
+    restore_value: true
+    initial_value: 4
+    optimistic: true
+    on_value:
+      then:
+        - lambda: |-
+            id(manual_duration_hours) = (int)x;
+        - lvgl.label.update:
+            id: manual_hours_display
+            text: !lambda |-
+              static char text[20];
+              snprintf(text, sizeof(text), "%d hours", id(manual_duration_hours));
+              return text;
+
+  - platform: template
+    id: until_time_hour_input
+    name: "Until Time Hour"
+    min_value: 0
+    max_value: 23
+    step: 1
+    restore_value: true
+    initial_value: 23
+    optimistic: true
+    on_value:
+      then:
+        - lambda: |-
+            id(sunset_until_time_hour) = (int)x;
+        - lvgl.label.update:
+            id: until_time_display
+            text: !lambda |-
+              static char text[20];
+              snprintf(text, sizeof(text), "%02d:%02d", id(sunset_until_time_hour), id(sunset_until_time_minute));
+              return text;
+
+  - platform: template
+    id: until_time_minute_input
+    name: "Until Time Minute"
+    min_value: 0
+    max_value: 59
+    step: 15
+    restore_value: true
+    initial_value: 0
+    optimistic: true
+    on_value:
+      then:
+        - lambda: |-
+            id(sunset_until_time_minute) = (int)x;
+        - lvgl.label.update:
+            id: until_time_display
+            text: !lambda |-
+              static char text[20];
+              snprintf(text, sizeof(text), "%02d:%02d", id(sunset_until_time_hour), id(sunset_until_time_minute));
+              return text;
+
+text_sensor:
+  - platform: template
+    id: weather_condition
+    name: "Weather Condition"
+
+  - platform: template
+    id: weather_description
+    name: "Weather Description"
+
+  - platform: wifi_info
+    ip_address:
+      name: "IP Address"
+      id: ip_address
+      entity_category: diagnostic
+      on_value:
+        then:
+          - logger.log:
+              format: "Raw IP string: '%s' (length: %d)"
+              args: ['x.c_str()', 'x.length()']
+          - lambda: |-
+              ESP_LOGI("ip_debug", "Hex dump of IP string:");
+              for (size_t i = 0; i < x.length() && i < 50; i++) {
+                ESP_LOGI("ip_debug", "  [%02d]: 0x%02X '%c'", i, (unsigned char)x[i], 
+                         std::isprint(x[i]) ? x[i] : '?');
+              }
+          - delay: 1s
+          - script.execute: update_qr_display
+
+    ssid:
+      name: "Connected SSID"
+      entity_category: diagnostic
+    mac_address:
+      name: "Mac Address"
+      entity_category: diagnostic
+
+  - platform: template
+    id: location_name
+    name: "Weather Location"
+    lambda: |-
+      return {id(location_name_str)};
+
+color:
+  # Create a Home Assistant blue color
+  - id: ha_blue
+    hex: 51c0f2
+  - id: green_color
+    red: 0%
+    green: 60%
+    blue: 0%
+  - id: red_color
+    red: 80%
+    green: 0%
+    blue: 0%
+  - id: orange_color
+    red: 100%
+    green: 60%
+    blue: 0%
+  - id: blue_color
+    red: 0%
+    green: 40%
+    blue: 100%
+  - id: black_color
+    red: 0%
+    green: 0%
+    blue: 0%
+  - id: white_color
+    red: 100%
+    green: 100%
+    blue: 100%
+  - id: yellow_color
+    red: 100%
+    green: 100%
+    blue: 0%
+
+# Global variables for timer tracking and settings
+globals:
+  - id: location_name_str
+    type: std::string
+    restore_value: yes
+    initial_value: '"Sao Bartolomeu de Messines, Portugal"'
+  # Timer tracking
+  - id: sw1_off_time
+    type: int
+    restore_value: yes
+    initial_value: "0"
+  - id: sw2_off_time
+    type: int
+    restore_value: yes
+    initial_value: "0"
+  - id: sw3_off_time
+    type: int
+    restore_value: yes
+    initial_value: "0"
+  - id: sw1_before_sunrise
+    type: bool
+    restore_value: yes
+    initial_value: "false"
+
+  # Manual override tracking
+  - id: sw1_manual_override_time
+    type: int
+    restore_value: yes
+    initial_value: "0"
+  - id: sw2_manual_override_time
+    type: int
+    restore_value: yes
+    initial_value: "0"
+  - id: sw3_manual_override_time
+    type: int
+    restore_value: yes
+    initial_value: "0"
+
+  # SW3 mode (winter/summer)
+  - id: sw3_winter_mode
+    type: bool
+    restore_value: yes
+    initial_value: "false" # Default to summer mode
+
+  # Current page tracking
+  - id: current_page
+    type: int
+    restore_value: no
+    initial_value: "0" # 0 = main page, 1 = settings page
+
+  # Add this missing global variable for touch tracking
+  - id: touch_start_y
+    type: int
+    restore_value: no
+    initial_value: "0"
+  - id: touch_end_y
+    type: int
+    restore_value: no
+    initial_value: "0"
+  - id: touch_active
+    type: bool
+    restore_value: no
+    initial_value: "false"
+  # NEW: Light automation settings
+  - id: sunset_duration_hours
+    type: int
+    restore_value: yes
+    initial_value: "2"  # Default 2 hours after sunset
+  
+  - id: sunrise_duration_hours
+    type: int
+    restore_value: yes
+    initial_value: "1"  # Default 1 hour before sunrise
+  
+  - id: manual_duration_hours
+    type: int
+    restore_value: yes
+    initial_value: "4"  # Default 4 hours for manual on
+  
+  - id: sunset_until_time_hour
+    type: int
+    restore_value: yes
+    initial_value: "23"  # Default until 23:00
+  
+  - id: sunset_until_time_minute
+    type: int
+    restore_value: yes
+    initial_value: "0"   # Default until 23:00
+  
+  - id: sunrise_from_time_hour
+    type: int
+    restore_value: yes
+    initial_value: "6"   # Default from 06:00
+  
+  - id: sunrise_from_time_minute
+    type: int
+    restore_value: yes
+    initial_value: "0"   # Default from 06:00
+  
+  - id: automation_mode
+    type: int
+    restore_value: yes
+    initial_value: "0"   # 0=duration, 1=until_time, 2=between_times, 3=manual
+
+#-------------------------------------------
+# LVGL Interface
+#-------------------------------------------
+lvgl:
+  id: lvgl_comp
+  displays:
+    - my_display
+  touchscreens:
+    - touchscreen_id: my_touchscreen
+
+  bg_color: 0x000000
+
+  on_idle:
+    - timeout: 30s
+      then:
+        - logger.log: idle 30s timeout
+        - light.turn_off:
+            id: backlight
+            transition_length: 5s
+        - lvgl.pause:
+            show_snow: true
+
+  style_definitions:
+    - id: style_line
+      line_color: 0x0000FF
+      line_width: 8
+      line_rounded: true
+    - id: date_style
+      text_font: roboto24
+      align: center
+      text_color: 0x333333
+      bg_opa: cover
+      radius: 4
+      #pad_all: 2
+    - id: switch_style_on
+      bg_color: 0x00AA00
+      text_color: 0xFFFFFF
+    - id: switch_style_off
+      bg_color: 0x555555
+      text_color: 0xCCCCCC
+    - id: nav_button_style
+      bg_color: 0x444444
+      text_color: 0xFFFFFF
+      radius: 15
+      pad_all: 5
+    - id: title_style
+      bg_color: 0x1E3A8A
+      text_color: 0xFFFFFF
+      text_font: roboto24
+      radius: 10
+      pad_all: 8
+
+  theme:
+    button:
+      text_font: roboto24
+      scroll_on_focus: false
+      radius: 25
+      width: 150
+      height: 60
+      pad_left: 10px
+      pad_top: 10px
+      pad_bottom: 10px
+      pad_right: 10px
+      shadow_width: 0
+      border_width: 0
+      bg_color: 0x313131
+      text_color: 0xB6B6B6
+      checked:
+        bg_color: 0xCC5E14
+        text_color: 0xB6B6B6
+
+  page_wrap: true
+  pages:
+    # Main Page - Dashboard with Clock, Date, Weather
+    - id: main_page
+      skip: false
+      bg_color: 0x000000
+      bg_opa: cover
+      #pad_all: 0
+      border_width: 0
+      scrollable: false
+      widgets:
+        # Background image - fixed position
+        - image:
+            src: background_image
+            x: 0
+            y: 0
+            width: 480
+            height: 480
+            align: TOP_LEFT
+
+        # Title Bar
+        - obj:
+            width: 460
+            scrollable: false # Add this
+            height: 60
+            bg_color: 0x1E3A8A
+            bg_opa: 0%
+            radius: 10
+            x: 10
+            y: 10
+            border_width: 0
+            widgets:
+              - label:
+                  text: "PHIJO SMART"
+                  text_font: roboto24
+                  align: center
+                  text_color: 0xFFFFFF
+                  x: 10
+                  y: 8
+                  border_width: 0
+        - obj:
+            width: 460
+            height: 140
+            bg_color: 0x1E3A8A
+            bg_opa: 0%
+            radius: 10
+            x: 10
+            y: 75
+            border_width: 0
+            scrollable: false # Add this
+            widgets:
+              # Clock - positioned below title (fixed positioning)
+              - label:
+                  id: digital_clock
+                  text: !lambda |-
+                    auto now = id(time_comp).now();
+                    if (!now.is_valid()) {
+                      now = id(sntp_time).now();
+                    }
+                    static char time_buf[6];
+                    sprintf(time_buf, "%02d:%02d", now.hour, now.minute);
+                    return time_buf;
+                  text_font: roboto_large
+                  align: center
+                  text_color: 0xFFFFFF
+                  x: 145
+                  y: 0
+                  border_width: 0
+                  width: 480
+
+              # Date - positioned below clock (fixed positioning)
+
+              - label:
+                  id: full_date_label
+                  text: "Date will appear here"
+                  text_font: roboto24
+                  align: center
+                  text_color: 0xFFFFFF
+                  x: 120
+                  y: 45
+                  border_width: 0
+                  width: 480
+                  scrollable: false # Add this
+
+            # Weather section - semi-transparent overlay
+        - obj:
+            width: 460
+            height: 250 # Increased height to fit more info
+            bg_color: 0x000000
+            bg_opa: 0%
+            radius: 10
+            #pad_all: 10
+            x: 10
+            y: 180 # Adjusted position
+            border_width: 0
+            scrollable: false
+            widgets:
+              # Main weather condition
+              # Row 1: Main weather condition
+              - image:
+                  src: cloud_icon
+                  x: 0
+                  y: 70
+              - label:
+                  id: weather_label
+                  text: !lambda |-
+                    if (id(weather_condition).has_state()) {
+                      return id(weather_condition).state.c_str();
+                    }
+                    return "Loading...";
+                  text_font: roboto24
+                  text_color: yellow_color
+                  #align: TOP_LEFT
+                  x: 40
+                  y: 70
+                  border_width: 0
+
+              # Row 2: Temperature with icon
+              - image:
+                  src: thermometer_icon
+                  x: 200
+                  y: 70
+              - label:
+                  id: temperature_label
+                  text: !lambda |-
+                    if (id(owm_temperature).has_state()) {
+                      static char temp_text[60];
+                      if (id(owm_feels_like).has_state()) {
+                        snprintf(temp_text, sizeof(temp_text), "%.1f°C (feels %.1f°C)", 
+                                id(owm_temperature).state, id(owm_feels_like).state);
+                      } else {
+                        snprintf(temp_text, sizeof(temp_text), "%.1f°C", id(owm_temperature).state);
+                      }
+                      return temp_text;
+                    }
+                    return "--°C";
+                  text_font: roboto24
+                  text_color: yellow_color
+                  #align: TOP_RIGHT
+                  x: 235
+                  y: 70
+                  border_width: 0
+
+              # Row 3: Humidity and Pressure with icons
+              - image:
+                  src: humidity_icon
+                  x: 0
+                  y: 120
+              - label:
+                  id: humidity_label
+                  text: !lambda |-
+                    if (id(owm_humidity).has_state()) {
+                      static char hum_text[20];
+                      snprintf(hum_text, sizeof(hum_text), "%.0f%%", id(owm_humidity).state);
+                      return hum_text;
+                    }
+                    return "--%";
+                  text_font: roboto24
+                  #align: LEFT_MID
+                  text_color: yellow_color
+                  x: 30
+                  y: 120
+
+              - image:
+                  src: pressure
+                  x: 200
+                  y: 120
+              - label:
+                  id: pressure_label
+                  text: !lambda |-
+                    if (id(owm_pressure).has_state()) {
+                      static char press_text[20];
+                      snprintf(press_text, sizeof(press_text), "%.0fhPa", id(owm_pressure).state);
+                      return press_text;
+                    }
+                    return "--hPa";
+                  text_font: roboto24
+                  #align: RIGHT_MID
+                  text_color: yellow_color
+                  x: 230
+                  y: 120
+
+              # Row 4: Wind and Visibility with icons
+              - image:
+                  src: wind_icon
+                  x: 0
+                  y: 165
+              - label:
+                  id: wind_info_label
+                  text: !lambda |-
+                    if (id(owm_wind_speed).has_state()) {
+                      static char wind_text[30];
+                      if (id(owm_wind_gust).has_state() && id(owm_wind_gust).state > id(owm_wind_speed).state) {
+                        snprintf(wind_text, sizeof(wind_text), "%.1fm/s (%.1f)", 
+                                id(owm_wind_speed).state, id(owm_wind_gust).state);
+                      } else {
+                        snprintf(wind_text, sizeof(wind_text), "%.1fm/s", id(owm_wind_speed).state);
+                      }
+                      return wind_text;
+                    }
+                    return "--m/s";
+                  text_font: roboto24
+                  #align: BOTTOM_LEFT
+                  text_color: yellow_color
+                  x: 30
+                  y: 165
+
+              - image:
+                  src: visibility_icon
+                  x: 200
+                  y: 165
+              - label:
+                  id: visibility_label
+                  text: !lambda |-
+                    if (id(owm_visibility).has_state()) {
+                      static char vis_text[20];
+                      snprintf(vis_text, sizeof(vis_text), "%.1fkm", id(owm_visibility).state);
+                      return vis_text;
+                    }
+                    return "--km";
+                  text_font: roboto24
+                  #align: BOTTOM_LEFT
+                  text_color: yellow_color
+                  x: 230
+                  y: 165
+
+              # Location name
+              - label:
+                  id: location_display_label
+                  text: !lambda "return id(location_name_str);"
+                  text_font: roboto24
+                  align: center
+                  text_color: black_color
+                  x: 0
+                  y: 110
+                  border_width: 0
+                  width: 440
+
+        # Status and IP section
+        - obj:
+            width: 460
+            scrollable: false # Add this
+            height: 85
+            bg_color: 0x000000
+            bg_opa: 0%
+            radius: 10
+            x: 10
+            y: 430
+            border_width: 0
+            widgets:
+              - label:
+                  id: status_label
+                  text: "Ready"
+                  text_color: 0xFFFFFF
+                  text_font: roboto
+                  align: center
+                  x: 0
+                  y: 5
+                  border_width: 0
+              - label:
+                  id: ip_address_label
+                  align: center
+                  text: "WiFi: Not connected"
+                  text_color: ha_blue
+                  text_font: roboto
+                  x: 0
+                  y: 30
+
+        # Navigation buttons
+        - button:
+            id: controls_nav_button
+            x: 10
+            y: 430
+            width: 100
+            height: 45
+            styles: nav_button_style
+            widgets:
+              - label:
+                  text: "Controls"
+                  text_font: roboto
+                  align: center
+            on_click:
+              then:
+                - lvgl.page.next:
+
+    # Controls Page - Light Control Buttons
+    - id: controls_page
+      skip: false
+      bg_color: 0x000000
+      bg_opa: cover
+      pad_all: 0
+      border_width: 0
+      scrollable: false
+      widgets:
+        # Background image for controls page
+        - image:
+            src: background_image
+            x: 0
+            y: 0
+            width: 480
+            height: 480
+            align: TOP_LEFT
+        # Title Bar
+        - obj:
+            width: 460
+            height: 50
+            bg_color: 0x1E3A8A
+            bg_opa: 0%
+            radius: 10
+            x: 10
+            y: 10
+            scrollable: false # Add this
+            widgets:
+              - label:
+                  text: "CONTROLS"
+                  text_font: roboto24
+                  width: 460
+                  align: center
+                  text_color: 0xFFFFFF
+                  x: 160
+                  y: 5
+                  border_width: 0
+                  scrollable: false
+
+        # Switch 1 - Sunrise/Sunset Light
+        - button:
+            id: sw1_button
+            width: 400
+            height: 70
+            x: 40
+            y: 100
+            checkable: true
+            widgets:
+              - label:
+                  text: "Sunrise/Sunset"
+                  text_font: roboto24
+                  align: center
+            on_click:
+              then:
+                - switch.toggle: sw1
+                - lambda: |-
+                    id(sw1_manual_override_time) = id(time_comp).now().timestamp;
+
+        # Switch 2 - Seasonal Daytime Light
+        - button:
+            id: sw2_button
+            width: 400
+            height: 70
+            x: 40
+            y: 190
+            checkable: true
+            widgets:
+              - label:
+                  text: " Seasonal meteologic SW"
+                  text_font: roboto24
+                  align: center
+            on_click:
+              then:
+                - switch.toggle: sw2
+                - lambda: |-
+                    id(sw2_manual_override_time) = id(time_comp).now().timestamp;
+
+        # Switch 3 - Weather-Based Light
+        - button:
+            id: sw3_button
+            width: 400
+            height: 70
+            x: 40
+            y: 280
+            checkable: true
+            widgets:
+              - label:
+                  id: sw3_button_label
+                  text: !lambda |-
+                    if (id(sw3_winter_mode)) {
+                      return "Weather Meteologic SW (Winter)";
+                    } else {
+                      return "Weather Meteologic SW (Summer)";
+                    }
+                  text_font: roboto24
+                  align: center
+            on_click:
+              then:
+                - switch.toggle: sw3
+                - lambda: |-
+                    id(sw3_manual_override_time) = id(time_comp).now().timestamp;
+
+                # Add this to your controls page to show current automation status
+        - obj:
+            width: 460
+            height: 60
+            bg_color: 0x000000
+            bg_opa: 30%
+            radius: 10
+            x: 10
+            y: 360
+            widgets:
+              - label:
+                  id: automation_status_label
+                  text: !lambda |-
+                    static char status_text[100];
+                    const char* mode_names[] = {"Duration", "Until Time", "Between Times", "Manual"};
+                    snprintf(status_text, sizeof(status_text), 
+                            "Mode: %s | Sunset: %dh | Sunrise: %dh | Manual: %dh", 
+                            mode_names[id(automation_mode)],
+                            id(sunset_duration_hours),
+                            id(sunrise_duration_hours),
+                            id(manual_duration_hours));
+                    return status_text;
+                  text_font: roboto
+                  text_color: 0xCCCCCC
+                  align: center
+                  x: 0
+                  y: 5
+
+        # Navigation buttons
+        - button:
+            id: home_nav_button
+            x: 10
+            y: 430
+            width: 100
+            height: 45
+            styles: nav_button_style
+            widgets:
+              - label:
+                  text: "Home"
+                  text_font: roboto
+                  align: center
+            on_click:
+              then:
+                - lvgl.page.previous:
+
+        - button:
+            id: settings_nav_button2
+            x: 110
+            y: 430
+            width: 100
+            height: 45
+            styles: nav_button_style
+            widgets:
+              - label:
+                  text: "Settings"
+                  text_font: roboto
+                  align: center
+            on_click:
+              then:
+                - lvgl.page.next:
+
+    # Settings Page
+    - id: settings_page
+      bg_color: 0x000000
+      bg_opa: cover
+      pad_all: 0
+      border_width: 0
+      scrollable: false
+      widgets:
+        # Background image for settings page
+        - image:
+            src: background_image
+            x: 0
+            y: 0
+            width: 480
+            height: 480
+            align: TOP_LEFT
+        # Title bar
+        - obj:
+            width: 460
+            height: 50
+            bg_color: 0x1E3A8A
+            bg_opa: 80%
+            radius: 10
+            x: 10
+            y: 10
+            widgets:
+              - label:
+                  text: "SETTINGS"
+                  text_font: roboto24
+                  align: center
+                  text_color: 0xFFFFFF
+                  x: 0
+                  y: 5
+                  scrollable: false
+                # QR Code settings container (replaces location settings)
+        - obj:
+            width: 460
+            height: 120
+            bg_color: 0x000000
+            bg_opa: 50%
+            radius: 10
+            x: 10
+            y: 80
+            widgets:
+              - label:
+                  text: "Device Settings"
+                  text_font: roboto24
+                  text_color: 0xFFFFFF
+                  x: 10
+                  y: 10
+              - label:
+                  text: "Scan QR code to configure device:"
+                  text_font: roboto
+                  x: 10
+                  y: 40
+                  text_color: 0xCCCCCC
+              - qrcode:
+                  id: settings_qr
+                  x: 350
+                  y: 15
+                  light_color: whitesmoke
+                  dark_color: steelblue
+                  size: 90
+                  text: !lambda |-
+                    if (id(ip_address).has_state() && !id(ip_address).state.empty()) {
+                      std::string raw = id(ip_address).state;
+                      std::string clean_ip = "";
+                      
+                      // Extract only digits and dots
+                      bool found_digit = false;
+                      for (char c : raw) {
+                        if (std::isdigit(c)) {
+                          clean_ip += c;
+                          found_digit = true;
+                        } else if (c == '.' && found_digit) {
+                          clean_ip += c;
+                        } else if (found_digit && !std::isdigit(c) && c != '.') {
+                          // Stop at first non-IP character after we started collecting
+                          break;
+                        }
+                      }
+                      
+                      // Validate IP format (should have 3 dots and be reasonable length)
+                      int dot_count = std::count(clean_ip.begin(), clean_ip.end(), '.');
+                      if (dot_count == 3 && clean_ip.length() >= 7 && clean_ip.length() <= 15) {
+                        ESP_LOGI("qr_debug", "Generated QR code for IP: %s", clean_ip.c_str());
+                        return "http://" + clean_ip + "/";
+                      }
+                    }
+                    return "http://192.168.4.1/";
+              - label:
+                  id: qr_url_label
+                  text: !lambda |-
+                    if (id(ip_address).has_state() && !id(ip_address).state.empty()) {
+                      std::string raw = id(ip_address).state;
+                      std::string clean_ip = "";
+                      
+                      // Extract only digits and dots
+                      bool found_digit = false;
+                      for (char c : raw) {
+                        if (std::isdigit(c)) {
+                          clean_ip += c;
+                          found_digit = true;
+                        } else if (c == '.' && found_digit) {
+                          clean_ip += c;
+                        } else if (found_digit && !std::isdigit(c) && c != '.') {
+                          break;
+                        }
+                      }
+                      
+                      // Validate IP format
+                      int dot_count = std::count(clean_ip.begin(), clean_ip.end(), '.');
+                      if (dot_count == 3 && clean_ip.length() >= 7 && clean_ip.length() <= 15) {
+                        return "http://" + clean_ip + "/";
+                      }
+                    }
+                    return "Waiting for IP address...";
+                  text_font: roboto
+                  x: 10
+                  y: 65
+                  text_color: 0xFFFFFF
+                  width: 320
+
+
+
+        # SW3 Mode Toggle
+        - button:
+            id: sw3_mode_toggle
+            width: 460
+            height: 60
+            x: 10
+            y: 220
+            checkable: true
+            state:
+              checked: !lambda "return id(sw3_winter_mode);"
+            widgets:
+              - label:
+                  id: sw3_mode_label
+                  text: !lambda |-
+                    if (id(sw3_winter_mode)) {
+                      return "SW3 Mode: Winter (Rain-based)";
+                    } else {
+                      return "SW3 Mode: Summer (Temperature-based)";
+                    }
+                  text_font: roboto
+                  align: center
+            on_click:
+              then:
+                - lambda: |-
+                    id(sw3_winter_mode) = !id(sw3_winter_mode);
+                - if:
+                    condition:
+                      lambda: "return id(sw3_winter_mode);"
+                    then:
+                      - lvgl.label.update:
+                          id: sw3_mode_label
+                          text: "SW3 Mode: Winter (Rain-based)"
+                      - lvgl.label.update:
+                          id: sw3_button_label
+                          text: "${rain_icon} Weather Light (Winter)"
+                    else:
+                      - lvgl.label.update:
+                          id: sw3_mode_label
+                          text: "SW3 Mode: Summer (Temperature-based)"
+                      - lvgl.label.update:
+                          id: sw3_button_label
+                          text: "${rain_icon} Weather Light (Summer)"
+
+        # System Info container
+        - obj:
+            width: 460
+            height: 120
+            bg_color: 0x000000
+            bg_opa: 50%
+            radius: 10
+            scrollable: false
+            x: 10
+            y: 300
+            widgets:
+              - label:
+                  text: "System Information"
+                  text_font: roboto24
+                  text_color: 0xFFFFFF
+                  x: 10
+                  y: 10
+              - label:
+                  id: settings_ip_display
+                  text: !lambda |-
+                    return "IP: " + id(ip_address).state;
+                  text_font: roboto
+                  x: 10
+                  y: 40
+                  text_color: 0xCCCCCC
+              - label:
+                  text: "Version: ${project_version}"
+                  text_font: roboto
+                  x: 10
+                  y: 65
+                  text_color: 0xFFFFFF
+
+        # Navigation buttons
+        - button:
+            id: home_button
+            x: 10
+            y: 420
+            width: 100
+            height: 45
+            styles: nav_button_style
+            widgets:
+              - label:
+                  text: "Controls"
+                  text_font: roboto
+                  align: center
+            on_click:
+              then:
+                - lvgl.page.previous:
+                # In your existing settings page, add this button
+        - button:
+            id: light_automation_btn
+            x: 120
+            y: 420
+            width: 100
+            height: 45
+            styles: nav_button_style
+            widgets:
+              - label:
+                  text: "Light Auto"
+                  text_font: roboto
+                  align: center
+            on_click:
+              then:
+                - lvgl.page.next:
+
+        
+        # OTA popup (moved outside pages to be global)
+        - obj:
+            id: popup_obj
+            hidden: true
+            clickable: false
+            x: 0
+            y: 0
+            width: 100%
+            height: 100%
+            pad_all: 10
+            bg_opa: cover
+            widgets:
+              - label:
+                  id: lbl_popup_title
+                  x: 2
+                  y: 2
+                  text: "OTA in progress"
+              - label:
+                  id: popup_lbl_percentage
+                  x: 2
+                  y: 30
+                  width: 100%
+                  text: "0 %"
+              - bar:
+                  id: popup_pb_percentage
+                  x: 2
+                  y: 60
+                  width: 100%
+                  height: 10
+                  max_value: 100
+                  min_value: 0
+                  value: 0
+        # Light Automation Settings Page
+    - id: light_settings_page
+      bg_color: 0x000000
+      bg_opa: cover
+      pad_all: 0
+      border_width: 0
+      scrollable: true
+      widgets:
+        # Background image
+        - image:
+            src: background_image
+            x: 0
+            y: 0
+            width: 480
+            height: 480
+            align: TOP_LEFT
+        
+        # Title bar
+        - obj:
+            width: 460
+            height: 50
+            bg_color: 0x1E3A8A
+            bg_opa: 80%
+            radius: 10
+            x: 10
+            y: 10
+            widgets:
+              - label:
+                  text: "LIGHT AUTOMATION SETTINGS"
+                  text_font: roboto24
+                  align: center
+                  text_color: 0xFFFFFF
+                  x: 0
+                  y: 5
+                  on_click: 
+                    then:
+                      - lvgl.page.previous:
+                      - lambda: |-
+                          id(current_page) = 1;  // Set current page to settings
+        
+        # Sunset Settings
+        - obj:
+            width: 460
+            height: 120
+            bg_color: 0x000000
+            bg_opa: 50%
+            radius: 10
+            x: 10
+            y: 70
+            widgets:
+              - label:
+                  text: "Sunset Settings"
+                  text_font: roboto24
+                  text_color: 0xFFFFFF
+                  x: 10
+                  y: 5
+              
+              # Sunset duration setting
+              - label:
+                  text: "Light on after sunset for:"
+                  text_font: roboto
+                  text_color: 0xCCCCCC
+                  x: 10
+                  y: 35
+              - button:
+                  id: sunset_hours_minus
+                  x: 250
+                  y: 30
+                  width: 40
+                  height: 30
+                  widgets:
+                    - label:
+                        text: "-"
+                        align: center
+                  on_click:
+                    then:
+                      - number.decrement: sunset_hours_input
+              - label:
+                  id: sunset_hours_display
+                  text: !lambda |-
+                    static char text[20];
+                    snprintf(text, sizeof(text), "%d hours", id(sunset_duration_hours));
+                    return text;
+                  text_font: roboto
+                  text_color: 0xFFFFFF
+                  x: 300
+                  y: 35
+              - button:
+                  id: sunset_hours_plus
+                  x: 380
+                  y: 30
+                  width: 40
+                  height: 30
+                  widgets:
+                    - label:
+                        text: "+"
+                        align: center
+                  on_click:
+                    then:
+                      - number.increment: sunset_hours_input
+              
+              # Until time setting
+              - label:
+                  text: "Or until time:"
+                  text_font: roboto
+                  text_color: 0xCCCCCC
+                  x: 10
+                  y: 70
+              - button:
+                  id: until_hour_minus
+                  x: 150
+                  y: 65
+                  width: 30
+                  height: 30
+                  widgets:
+                    - label:
+                        text: "-"
+                        align: center
+                  on_click:
+                    then:
+                      - number.decrement: until_time_hour_input
+              - label:
+                  id: until_time_display
+                  text: !lambda |-
+                    static char text[20];
+                    snprintf(text, sizeof(text), "%02d:%02d", id(sunset_until_time_hour), id(sunset_until_time_minute));
+                    return text;
+                  text_font: roboto
+                  text_color: 0xFFFFFF
+                  x: 190
+                  y: 70
+              - button:
+                  id: until_hour_plus
+                  x: 250
+                  y: 65
+                  width: 30
+                  height: 30
+                  widgets:
+                    - label:
+                        text: "+"
+                        align: center
+                  on_click:
+                    then:
+                      - number.increment: until_time_hour_input
+              - button:
+                  id: until_minute_minus
+                  x: 290
+                  y: 65
+                  width: 30
+                  height: 30
+                  widgets:
+                    - label:
+                        text: "-"
+                        align: center
+                  on_click:
+                    then:
+                      - number.decrement: until_time_minute_input
+              - button:
+                  id: until_minute_plus
+                  x: 330
+                  y: 65
+                  width: 30
+                  height: 30
+                  widgets:
+                    - label:
+                        text: "+"
+                        align: center
+                  on_click:
+                    then:
+                      - number.increment: until_time_minute_input
+
+        # Sunrise Settings
+        - obj:
+            width: 460
+            height: 80
+            bg_color: 0x000000
+            bg_opa: 50%
+            radius: 10
+            x: 10
+            y: 200
+            widgets:
+              - label:
+                  text: "Sunrise  Settings"
+                  text_font: roboto24
+                  text_color: 0xFFFFFF
+                  x: 10
+                  y: 5
+              
+              - label:
+                  text: "Light on before sunrise for:"
+                  text_font: roboto
+                  text_color: 0xCCCCCC
+                  x: 10
+                  y: 35
+              - button:
+                  id: sunrise_hours_minus
+                  x: 250
+                  y: 30
+                  width: 40
+                  height: 30
+                  widgets:
+                    - label:
+                        text: "-"
+                        align: center
+                  on_click:
+                    then:
+                      - number.decrement: sunrise_hours_input
+              - label:
+                  id: sunrise_hours_display
+                  text: !lambda |-
+                    static char text[20];
+                    snprintf(text, sizeof(text), "%d hours", id(sunrise_duration_hours));
+                    return text;
+                  text_font: roboto
+                  text_color: 0xFFFFFF
+                  x: 300
+                  y: 35
+              - button:
+                  id: sunrise_hours_plus
+                  x: 380
+                  y: 30
+                  width: 40
+                  height: 30
+                  widgets:
+                    - label:
+                        text: "+"
+                        align: center
+                  on_click:
+                    then:
+                      - number.increment: sunrise_hours_input
+
+        # Manual Settings
+        - obj:
+            width: 460
+            height: 80
+            bg_color: 0x000000
+            bg_opa: 50%
+            radius: 10
+            x: 10
+            y: 290
+            widgets:
+              - label:
+                  text: "Manual Control Settings"
+                  text_font: roboto24
+                  text_color: 0xFFFFFF
+                  x: 10
+                  y: 5
+              
+              - label:
+                  text: "Manual on duration:"
+                  text_font: roboto
+                  text_color: 0xCCCCCC
+                  x: 10
+                  y: 35
+              - button:
+                  id: manual_hours_minus
+                  x: 250
+                  y: 30
+                  width: 40
+                  height: 30
+                  widgets:
+                    - label:
+                        text: "-"
+                        align: center
+                  on_click:
+                    then:
+                      - number.decrement: manual_hours_input
+              - label:
+                  id: manual_hours_display
+                  text: !lambda |-
+                    static char text[20];
+                    snprintf(text, sizeof(text), "%d hours", id(manual_duration_hours));
+                    return text;
+                  text_font: roboto
+                  text_color: 0xFFFFFF
+                  x: 300
+                  y: 35
+              - button:
+                  id: manual_hours_plus
+                  x: 380
+                  y: 30
+                  width: 40
+                  height: 30
+                  widgets:
+                    - label:
+                        text: "+"
+                        align: center
+                  on_click:
+                    then:
+                      - number.increment: manual_hours_input
+
+        # Mode Selection
+        - obj:
+            width: 460
+            height: 100
+            bg_color: 0x000000
+            bg_opa: 50%
+            radius: 10
+            x: 10
+            y: 380
+            widgets:
+              - label:
+                  text: "Automation Mode"
+                  text_font: roboto24
+                  text_color: 0xFFFFFF
+                  x: 10
+                  y: 5
+              - button:
+                      id: mode_duration_btn
+                      x: 10
+                      y: 35
+                      width: 100
+                      height: 30
+                      checkable: true
+                      widgets:
+                        - label:
+                            text: "Duration"
+                            align: center
+                            text_font: roboto
+                      on_click:
+                        then:
+                          - lambda: |-
+                              id(automation_mode) = 0;
+                          - lvgl.widget.update:
+                              id: mode_duration_btn
+                              state:
+                                checked: true
+                          - lvgl.widget.update:
+                              id: mode_until_btn
+                              state:
+                                checked: false
+                          - lvgl.widget.update:
+                              id: mode_between_btn
+                              state:
+                                checked: false
+                          - lvgl.widget.update:
+                              id: mode_manual_btn
+                              state:
+                                checked: false
+                  
+              - button:
+                      id: mode_until_btn
+                      x: 120
+                      y: 35
+                      width: 100
+                      height: 30
+                      checkable: true
+                      widgets:
+                        - label:
+                            text: "Until Time"
+                            align: center
+                            text_font: roboto
+                      on_click:
+                        then:
+                          - lambda: |-
+                              id(automation_mode) = 1;
+                          - lvgl.widget.update:
+                              id: mode_duration_btn
+                              state:
+                                checked: false
+                          - lvgl.widget.update:
+                              id: mode_until_btn
+                              state:
+                                checked: true
+                          - lvgl.widget.update:
+                              id: mode_between_btn
+                              state:
+                                checked: false
+                          - lvgl.widget.update:
+                              id: mode_manual_btn
+                              state:
+                                checked: false
+                  
+              - button:
+                      id: mode_between_btn
+                      x: 230
+                      y: 35
+                      width: 100
+                      height: 30
+                      checkable: true
+                      widgets:
+                        - label:
+                            text: "Between"
+                            align: center
+                            text_font: roboto
+                      on_click:
+                        then:
+                          - lambda: |-
+                              id(automation_mode) = 2;
+                          - lvgl.widget.update:
+                              id: mode_duration_btn
+                              state:
+                                checked: false
+                          - lvgl.widget.update:
+                              id: mode_until_btn
+                              state:
+                                checked: false
+                          - lvgl.widget.update:
+                              id: mode_between_btn
+                              state:
+                                checked: true
+                          - lvgl.widget.update:
+                              id: mode_manual_btn
+                              state:
+                                checked: false
+                  
+              - button:
+                      id: mode_manual_btn
+                      x: 340
+                      y: 0
+                      width: 100
+                      height: 30
+                      checkable: true
+                      widgets:
+                        - label:
+                            text: "Manual"
+                            align: center
+                            text_font: roboto
+                      on_click:
+                        then:
+                          - lambda: |-
+                              id(automation_mode) = 3;
+                          - lvgl.widget.update:
+                              id: mode_duration_btn
+                              state:
+                                checked: false
+                          - lvgl.widget.update:
+                              id: mode_until_btn
+                              state:
+                                checked: false
+                          - lvgl.widget.update:
+                              id: mode_between_btn
+                              state:
+                                checked: false
+                          - lvgl.widget.update:
+                              id: mode_manual_btn
+                              state:
+                                checked: true
+
+              # Navigation buttons
+              - button:
+                  id: back_to_settings_btn
+                  x: 340
+                  y: 35
+                  width: 100
+                  height: 30
+                  styles: nav_button_style
+                  widgets:
+                    - label:
+                        text: "Back"
+                        text_font: roboto
+                        align: center
+                  on_click:
+                    then:
+                      - lvgl.page.previous:
+
+
+#-------------------------------------------
+# Internal outputs
+#-------------------------------------------
+output:
+  # Backlight LED
+  - platform: ledc
+    pin: GPIO38
+    id: GPIO38
+    frequency: 100Hz
+
+  # Built in 240v relay
+  - id: internal_relay_1
+    platform: gpio
+    pin: 40
+
+  # Additional relays (3 relay model)
+  - id: internal_relay_2
+    platform: gpio
+    pin: 2
+  - id: internal_relay_3
+    platform: gpio
+    pin: 1
+
+#-------------------------------------------
+# Internal lights and switches
+#-------------------------------------------
+light:
+  - platform: monochromatic
+    output: GPIO38
+    name: Backlight
+    id: backlight
+    restore_mode: ALWAYS_ON
+
+switch:
+  - platform: output
+    id: sw1
+    name: "Sunrise/Sunset Light"
+    output: internal_relay_1
+    on_turn_on:
+      then:
+        - lvgl.widget.update:
+            id: sw1_button
+            state:
+              checked: true
+        - lvgl.label.update:
+            id: status_label
+            text: "Sunrise/Sunset Light ON"
+            text_color: green_color
+    on_turn_off:
+      then:
+        - lvgl.widget.update:
+            id: sw1_button
+            state:
+              checked: false
+        - lvgl.label.update:
+            id: status_label
+            text: "Sunrise/Sunset Light OFF"
+            text_color: red_color
+
+  - platform: output
+    id: sw2
+    name: "Seasonal Daytime Light"
+    output: internal_relay_2
+    on_turn_on:
+      then:
+        - lvgl.widget.update:
+            id: sw2_button
+            state:
+              checked: true
+        - lvgl.label.update:
+            id: status_label
+            text: "Seasonal Daytime Light ON"
+            text_color: green_color
+    on_turn_off:
+      then:
+        - lvgl.widget.update:
+            id: sw2_button
+            state:
+              checked: false
+        - lvgl.label.update:
+            id: status_label
+            text: "Seasonal Daytime Light OFF"
+            text_color: red_color
+
+  - platform: output
+    id: sw3
+    name: "Weather-Based Light"
+    output: internal_relay_3
+    on_turn_on:
+      then:
+        - lvgl.widget.update:
+            id: sw3_button
+            state:
+              checked: true
+        - lvgl.label.update:
+            id: status_label
+            text: !lambda |-
+              if (id(sw3_winter_mode)) {
+                return "Weather-Based Light ON (Winter)";
+              } else {
+                return "Weather-Based Light ON (Summer)";
+              }
+            text_color: green_color
+    on_turn_off:
+      then:
+        - lvgl.widget.update:
+            id: sw3_button
+            state:
+              checked: false
+        - lvgl.label.update:
+            id: status_label
+            text: !lambda |-
+              if (id(sw3_winter_mode)) {
+                return "Weather-Based Light OFF (Winter)";
+              } else {
+                return "Weather-Based Light OFF (Summer)";
+              }
+            text_color: red_color
+
+#-------------------------------------------
+# Scripts for automation logic
+#-------------------------------------------
+script:
+  - id: goto_settings
+    then:
+      - delay: 1000ms
+      - lvgl.widget.update:
+          id: settings_page
+          hidden: false
+      - lvgl.widget.redraw:
+
+  - id: update_qr_display
+    then:
+      - component.update: ip_address  # Force update the IP sensor first
+      - delay: 500ms
+      - lvgl.qrcode.update:
+          id: settings_qr
+          text: !lambda |-
+            if (id(ip_address).has_state() && !id(ip_address).state.empty()) {
+              return "http://" + id(ip_address).state + "/";
+            }
+            return "http://192.168.4.1/";
+      
+      - lvgl.label.update:
+          id: qr_url_label
+          text: !lambda |-
+            if (id(ip_address).has_state() && !id(ip_address).state.empty()) {
+              return ("http://" + id(ip_address).state + "/").c_str();
+            }
+            return "Waiting for IP address...";
+
+  - id: notify_web_portal
+    then:
+      - component.update: ip_address  # Force update IP sensor
+      - delay: 500ms
+      - if:
+          condition:
+            wifi.connected:
+          then:
+            - lvgl.label.update:
+                id: status_label
+                text: "Web portal active"
+                text_color: ha_blue
+            - logger.log: 
+                format: "Web portal active at http://%s"
+                args: ['id(ip_address).has_state() ? id(ip_address).state.c_str() : "unknown"']
+            # Update QR code when WiFi is connected
+            - lvgl.qrcode.update:
+                id: settings_qr
+                text: !lambda |-
+                  if (id(ip_address).has_state() && !id(ip_address).state.empty()) {
+                    return "http://" + id(ip_address).state + "/";
+                  }
+                  return "http://192.168.4.1/";
+            - lvgl.label.update:
+                id: qr_url_label
+                text: !lambda |-
+                  if (id(ip_address).has_state() && !id(ip_address).state.empty()) {
+                    return ("http://" + id(ip_address).state + "/").c_str();
+                  }
+                  return "Getting IP address...";
+          else:
+            - lvgl.label.update:
+                id: status_label
+                text: "No internet. Connect to AP: PhiJo Smart Products"
+                text_color: orange_color
+            - logger.log: "No internet. Connect to AP: PhiJo Smart Products"
+            # Update QR code for AP mode
+            - lvgl.qrcode.update:
+                id: settings_qr
+                text: "http://192.168.4.1/"
+            - lvgl.label.update:
+                id: qr_url_label
+                text: "http://192.168.4.1/ (AP Mode)"
+      
+      - lvgl.label.update:
+          id: ip_address_label
+          text: !lambda |-
+            if (id(ip_address).has_state() && !id(ip_address).state.empty()) {
+              return "WiFi: " + id(ip_address).state;
+            } else {
+              return "WiFi: Not connected";
+            }
+
+  - id: time_display_update
+    then:
+      - script.execute: notify_web_portal
+      - logger.log:
+          format: "TIME DEBUG: HA connected: %s, Time valid: %s"
+          args:
+            [
+              'id(api_server).is_connected() ? "YES" : "NO"',
+              'id(time_comp).now().is_valid() ? "YES" : "NO"',
+            ]
+      - lvgl.label.update:
+          id: digital_clock
+          text: !lambda |-
+            auto now = id(time_comp).now();
+            if (!now.is_valid()) {
+              now = id(sntp_time).now();
+            }
+            static char time_buf[6];
+            sprintf(time_buf, "%02d:%02d", now.hour, now.minute);
+            return time_buf;
+      - lvgl.label.update:
+          id: full_date_label
+          text: !lambda |-
+            auto now = id(time_comp).now();
+            if (!now.is_valid()) {
+              now = id(sntp_time).now();
+            }
+            static const char * const day_names[] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
+            static const char * const mon_names[] = {"January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"};
+            static char date_buf[32];
+            sprintf(date_buf, "%s, %s %d, %d", day_names[now.day_of_week - 1], mon_names[now.month-1], now.day_of_month, now.year);
+            return date_buf;
+      # Weather display updates (no automation logic)
+      - lvgl.label.update:
+          id: weather_label
+          text: !lambda |-
+            if (id(weather_condition).has_state()) {
+              return id(weather_condition).state.c_str();
+            }
+            return "Loading ...";
+      # ADD THIS - Update temperature label
+      - lvgl.label.update:
+          id: temperature_label
+          text: !lambda |-
+            if (id(owm_temperature).has_state()) {
+              static char temp_text[50];
+              if (id(owm_feels_like).has_state()) {
+                snprintf(temp_text, sizeof(temp_text), "%.1f°C (feels %.1f°C)", 
+                        id(owm_temperature).state, id(owm_feels_like).state);
+              } else {
+                snprintf(temp_text, sizeof(temp_text), "Temperature: %.1f°C", id(owm_temperature).state);
+              }
+              return temp_text;
+            }
+            return "Temperature: --°C";
+
+  # Keep existing time_update but remove automation calls
+  - id: time_update
+    then:
+      - script.execute: time_display_update
+      # Remove the automation logic from here
+
+  # Modified check_light_schedules with state change prevention
+  - id: check_light_schedules
+    then:
+      - lambda: |-
+          auto now = id(time_comp).now();
+          if (!now.is_valid()) return; // Don't run if time is invalid
+
+          // Check for manual override timeouts (24 hours = 86400 seconds)
+          if (id(sw1_manual_override_time) > 0 && 
+              now.timestamp - id(sw1_manual_override_time) > 86400) {
+            id(sw1_manual_override_time) = 0;
+          }
+
+          // Only run automations if not in manual override mode
+          // ---- SWITCH 1: SUNRISE/SUNSET CONTROL WITH USER SETTINGS ----
+          if (id(sw1_manual_override_time) == 0) {
+            auto sunrise_opt = id(sun_comp).sunrise(0.0);
+            if (sunrise_opt.has_value()) {
+              auto sunrise = sunrise_opt.value();
+              
+              // Use user-defined sunrise duration
+              int sunrise_seconds = id(sunrise_duration_hours) * 3600;
+              
+              // Check if it's time to turn on before sunrise
+              if (sunrise.timestamp - now.timestamp <= sunrise_seconds && 
+                  sunrise.timestamp - now.timestamp > (sunrise_seconds - 60) && 
+                  !id(sw1_before_sunrise) && !id(sw1).state) {
+                id(sw1).turn_on();
+                id(sw1_before_sunrise) = true;
+                ESP_LOGI("automation", "SW1 turned ON - %d hours before sunrise", id(sunrise_duration_hours));
+              }
+              
+              // Check if it's sunrise time
+              if (abs(sunrise.timestamp - now.timestamp) < 60 && 
+                  id(sw1_before_sunrise) && id(sw1).state) {
+                id(sw1).turn_off();
+                id(sw1_before_sunrise) = false;
+                ESP_LOGI("automation", "SW1 turned OFF - sunrise");
+              }
+            }
+            
+            // Sunset logic with user settings
+            auto sunset_opt = id(sun_comp).sunset(0.0);
+            if (sunset_opt.has_value()) {
+              auto sunset = sunset_opt.value();
+              
+              if (abs(sunset.timestamp - now.timestamp) < 60 && 
+                  !id(sw1).state && id(sw1_off_time) == 0) {
+                id(sw1).turn_on();
+                
+                // Use automation mode to determine off time
+                if (id(automation_mode) == 0) {
+                  // Duration mode
+                  id(sw1_off_time) = now.timestamp + (id(sunset_duration_hours) * 3600);
+                } else if (id(automation_mode) == 1) {
+                  // Until time mode
+                  auto tomorrow = now;
+                  tomorrow.day_of_month += 1;
+                  tomorrow.hour = id(sunset_until_time_hour);
+                  tomorrow.minute = id(sunset_until_time_minute);
+                  tomorrow.second = 0;
+                  id(sw1_off_time) = tomorrow.timestamp;
+                } else if (id(automation_mode) == 2) {
+                  // Between times mode - turn off at sunrise
+                  auto next_sunrise = id(sun_comp).sunrise(1.0); // Next day
+                  if (next_sunrise.has_value()) {
+                    id(sw1_off_time) = next_sunrise.value().timestamp;
+                  }
+                } else {
+                  // Manual mode - use manual duration
+                  id(sw1_off_time) = now.timestamp + (id(manual_duration_hours) * 3600);
+                }
+                
+                ESP_LOGI("automation", "SW1 turned ON - sunset (mode: %d)", id(automation_mode));
+              }
+            }
+            
+            // Check timer for turn off
+            if (id(sw1).state && !id(sw1_before_sunrise) && 
+                now.timestamp >= id(sw1_off_time) && id(sw1_off_time) > 0) {
+              id(sw1).turn_off();
+              id(sw1_off_time) = 0;
+              ESP_LOGI("automation", "SW1 turned OFF - timer expired");
+            }
+          }
+
+          // Similar logic for SW2 and SW3...
+
+
+#-------------------------------------------
+# Graphics and Fonts
+#-------------------------------------------
+font:
+  - file: "gfonts://Roboto"
+    id: roboto24
+    size: 24
+    bpp: 4
+
+  - file: "gfonts://Roboto"
+    id: roboto
+    size: 18
+    bpp: 4
+
+  - file: "fonts/materialdesignicons-webfont.ttf"
+    id: icons24
+    size: 24
+    bpp: 4
+    glyphs: [
+        "\U000F0335", # mdi-lightbulb
+        "\U000F0769", # mdi-ceiling-light
+        "\U000F06B5", # mdi-lamp
+        "\U000F08DD", # mdi-floor-lamp
+        "\U000F12BA", # mdi-string-lights
+        "\U000F0493", # mdi-settings
+        "\U000F02DC", # mdi-home
+        "\U000F0599", # mdi-weather-sunny
+        "\U000F0F64", # mdi-weather-night
+        "\U000F0596", # mdi-weather-pouring
+        "\U000F050F", # mdi-thermometer
+      ]
+
+  - file: "fonts/materialdesignicons-webfont.ttf"
+    id: light40
+    size: 40
+    bpp: 4
+    glyphs: [
+        "\U000F0335", # mdi-lightbulb
+        "\U000F0769", # mdi-ceiling-light
+        "\U000F06B5", # mdi-lamp
+        "\U000F08DD", # mdi-floor-lamp
+        "\U000F12BA", # mdi-string-lights
+      ]
+
+  - file: "gfonts://Roboto"
+    id: roboto_large
+    size: 72
+    bpp: 4
+
+#-------------------------------------------
+# Touchscreen gt911 i2c
+#-------------------------------------------
+i2c:
+  - id: bus_a
+    sda: GPIO19
+    scl: GPIO45
+
+touchscreen:
+  platform: gt911
+  transform:
+    mirror_x: false
+    mirror_y: false
+  id: my_touchscreen
+  display: my_display
+
+  on_touch:
+    - lambda: |-
+        ESP_LOGD("touch", "Touch at (%d, %d)", touch.x, touch.y);
+        if (!id(touch_active)) {
+          // Store initial touch position
+          id(touch_start_y) = touch.y;
+          id(touch_active) = true;
+        }
+        // Always update end position while touching
+        id(touch_end_y) = touch.y;
+
+  on_release:
+    - lambda: |-
+        // Calculate swipe distance
+        int swipe_distance = id(touch_start_y) - id(touch_end_y);
+        int min_swipe_distance = 80;
+
+        ESP_LOGD("swipe", "Start: %d, End: %d, Distance: %d", id(touch_start_y), id(touch_end_y), swipe_distance);
+
+        // Reset touch tracking
+        id(touch_active) = false;
+
+        if (abs(swipe_distance) > min_swipe_distance) {
+          if (swipe_distance > 0) {
+            ESP_LOGD("swipe", "Swipe up detected - next page");
+          } else {
+            ESP_LOGD("swipe", "Swipe down detected - previous page");
+          }
+        }
+    - if:
+        condition:
+          lambda: "return (id(touch_start_y) - id(touch_end_y)) > 80;"
+        then:
+          - lvgl.page.next:
+    - if:
+        condition:
+          lambda: "return (id(touch_end_y) - id(touch_start_y)) > 80;"
+        then:
+          - lvgl.page.previous:
+    - if:
+        condition: lvgl.is_paused
+        then:
+          - light.turn_on: backlight
+          - lvgl.resume:
+          - lvgl.widget.redraw:
+
+#-------------------------------------------
+# Display st7701s spi
+#-------------------------------------------
+spi:
+  - id: lcd_spi
+    clk_pin: GPIO48
+    mosi_pin: GPIO47
+
+display:
+  - platform: st7701s
+    id: my_display
+    update_interval: never
+    auto_clear_enabled: False
+    spi_mode: MODE3
+    color_order: RGB
+    invert_colors: False
+    dimensions:
+      width: 480
+      height: 480
+    cs_pin: 39
+    de_pin: 18
+    hsync_pin: 16
+    vsync_pin: 17
+    pclk_pin: 21
+    pclk_frequency: 12MHz
+    pclk_inverted: False
+    hsync_pulse_width: 8
+    hsync_front_porch: 10
+    hsync_back_porch: 20
+    vsync_pulse_width: 8
+    vsync_front_porch: 10
+    vsync_back_porch: 10
+    init_sequence:
+      - 1
+      # Custom sequences are an array, first byte is command, the rest are data.
+      - [0xFF, 0x77, 0x01, 0x00, 0x00, 0x10] # CMD2_BKSEL_BK0
+      - [0xCD, 0x00] # disable MDT flag
+    data_pins:
+      red:
+        - 11 #r1
+        - 12 #r2
+        - 13 #r3
+        - 14 #r4
+        - 0 #r5
+      green:
+        - 8 #g0
+        - 20 #g1
+        - 3 #g2
+        - 46 #g3
+        - 9 #g4
+        - 10 #g5
+      blue:
+        - 4 #b1
+        - 5 #b2
+        - 6 #b3
+        - 7 #b4
+        - 15 #b5
+image:
+  - file: "images/background.jpg"
+    id: background_image
+    resize: 480x480
+    type: RGB565
+
+  # - file: "images/weather-sunny.png"
+  #   id: sunny_icon
+  #   resize: 32x32
+  #   type: RGB565
+
+  - file: "images/cloud.png"
+    id: cloud_icon
+    resize: 24x24
+    type: RGB565
+
+  - file: "images/pressure.png"
+    id: pressure
+    resize: 24x24
+    type: RGB565
+
+  - file: "images/temp.png"
+    id: thermometer_icon
+    resize: 24x24
+    type: RGB565
+
+  - file: "images/humidity.png"
+    id: humidity_icon
+    resize: 24x24
+    type: RGB565
+
+  - file: "images/wind.png"
+    id: wind_icon
+    resize: 24x24
+    type: RGB565
+
+  - file: "images/visibility.png"
+    id: visibility_icon
+    resize: 24x24
+    type: RGB565
+
+interval:
+  - interval: 20s
+    then:
+      - lambda: |-
+          auto now = id(time_comp).now();
+          if (!now.is_valid() || now.year < 2020) {
+            ESP_LOGW("time", "Time appears invalid, requesting resync");
+          
+          }
+      - script.execute: time_display_update
+      - script.execute: update_qr_display  
+  - interval: 10s
+    then:
+      - script.execute: notify_web_portal
+      - script.execute: check_light_schedules
+
+  - interval: 30s
+    then:
+      - if:
+          condition:
+            wifi.connected:
+          then:
+            - logger.log: "Making weather API request..."
+            - http_request.get:
+                url: "http://api.openweathermap.org/data/2.5/weather?q=Sao%20Bartolomeu%20de%20messines&appid=b0fed035f1b875bafaf66f85d33f4e71&units=metric"
+                headers:
+                  User-Agent: "ESPHome/1.0"
+                capture_response: true
+                on_response:
+                  then:
+                    - lambda: |-
+                        ESP_LOGD("weather", "HTTP Status: %d", response);
+                        ESP_LOGD("weather", "Response body: %s", body.c_str());
+
+                        if (body.length() > 0) {
+                          
+                          // Parse temperature
+                          size_t temp_pos = body.find("\"temp\":");
+                          if (temp_pos != std::string::npos) {
+                            size_t start = temp_pos + 7;
+                            size_t end = body.find(",", start);
+                            if (end == std::string::npos) end = body.find("}", start);
+                            
+                            if (end != std::string::npos) {
+                              std::string temp_str = body.substr(start, end - start);
+                              float temperature = std::stof(temp_str);
+                              id(owm_temperature).publish_state(temperature);
+                              ESP_LOGD("weather", "Temperature: %.1f°C", temperature);
+                            }
+                          }
+                          
+                          // Parse feels like temperature
+                          size_t feels_pos = body.find("\"feels_like\":");
+                          if (feels_pos != std::string::npos) {
+                            size_t start = feels_pos + 13;
+                            size_t end = body.find(",", start);
+                            if (end == std::string::npos) end = body.find("}", start);
+                            
+                            if (end != std::string::npos) {
+                              std::string feels_str = body.substr(start, end - start);
+                              float feels_like = std::stof(feels_str);
+                              id(owm_feels_like).publish_state(feels_like);
+                            }
+                          }
+                          
+                          // Parse humidity
+                          size_t humidity_pos = body.find("\"humidity\":");
+                          if (humidity_pos != std::string::npos) {
+                            size_t start = humidity_pos + 11;
+                            size_t end = body.find(",", start);
+                            if (end == std::string::npos) end = body.find("}", start);
+                            
+                            if (end != std::string::npos) {
+                              std::string humidity_str = body.substr(start, end - start);
+                              float humidity = std::stof(humidity_str);
+                              id(owm_humidity).publish_state(humidity);
+                              
+                            }
+                          }
+                          
+                          // Parse pressure
+                          size_t pressure_pos = body.find("\"pressure\":");
+                          if (pressure_pos != std::string::npos) {
+                            size_t start = pressure_pos + 11;
+                            size_t end = body.find(",", start);
+                            if (end == std::string::npos) end = body.find("}", start);
+                            
+                            if (end != std::string::npos) {
+                              std::string pressure_str = body.substr(start, end - start);
+                              float pressure = std::stof(pressure_str);
+                              id(owm_pressure).publish_state(pressure);
+                            }
+                          }
+                          
+                          // Parse wind speed
+                          size_t wind_pos = body.find("\"speed\":");
+                          if (wind_pos != std::string::npos) {
+                            size_t start = wind_pos + 8;
+                            size_t end = body.find(",", start);
+                            if (end == std::string::npos) end = body.find("}", start);
+                            
+                            if (end != std::string::npos) {
+                              std::string wind_str = body.substr(start, end - start);
+                              float wind_speed = std::stof(wind_str);
+                              id(owm_wind_speed).publish_state(wind_speed);
+                             
+                            }
+                          }
+                          
+                          // ADD NEW PARSING - Wind gust
+                          size_t gust_pos = body.find("\"gust\":");
+                          if (gust_pos != std::string::npos) {
+                            size_t start = gust_pos + 7;
+                            size_t end = body.find(",", start);
+                            if (end == std::string::npos) end = body.find("}", start);
+                            
+                            if (end != std::string::npos) {
+                              std::string gust_str = body.substr(start, end - start);
+                              float wind_gust = std::stof(gust_str);
+                              id(owm_wind_gust).publish_state(wind_gust);
+                              
+                            }
+                          }
+                          
+                          // ADD NEW PARSING - Wind direction
+                          size_t deg_pos = body.find("\"deg\":");
+                          if (deg_pos != std::string::npos) {
+                            size_t start = deg_pos + 6;
+                            size_t end = body.find(",", start);
+                            if (end == std::string::npos) end = body.find("}", start);
+                            
+                            if (end != std::string::npos) {
+                              std::string deg_str = body.substr(start, end - start);
+                              float wind_direction = std::stof(deg_str);
+                              id(owm_wind_direction).publish_state(wind_direction);
+                              
+                              }
+                          }
+                          
+                          // ADD NEW PARSING - Visibility
+                          size_t vis_pos = body.find("\"visibility\":");
+                          if (vis_pos != std::string::npos) {
+                            size_t start = vis_pos + 13;
+                            size_t end = body.find(",", start);
+                            if (end == std::string::npos) end = body.find("}", start);
+                            
+                            if (end != std::string::npos) {
+                              std::string vis_str = body.substr(start, end - start);
+                              float visibility = std::stof(vis_str) / 1000.0; // Convert meters to kilometers
+                              id(owm_visibility).publish_state(visibility);
+                              
+                            }
+                          }
+                          
+                          // ADD NEW PARSING - Cloud coverage
+                          size_t clouds_pos = body.find("\"all\":");
+                          if (clouds_pos != std::string::npos) {
+                            size_t start = clouds_pos + 6;
+                            size_t end = body.find(",", start);
+                            if (end == std::string::npos) end = body.find("}", start);
+                            
+                            if (end != std::string::npos) {
+                              std::string clouds_str = body.substr(start, end - start);
+                              float cloud_coverage = std::stof(clouds_str);
+                              id(owm_clouds).publish_state(cloud_coverage);
+                            
+                            }
+                          }
+                          
+                          // Parse weather main condition (e.g., "Clear", "Clouds", "Rain")
+                          size_t main_pos = body.find("\"main\":\"");
+                          if (main_pos != std::string::npos) {
+                            size_t start = main_pos + 8;
+                            size_t end = body.find("\"", start);
+                            
+                            if (end != std::string::npos) {
+                              std::string main_weather = body.substr(start, end - start);
+                              id(weather_condition).publish_state(main_weather);
+                             
+                            }
+                          }
+                          
+                          // Parse weather description (e.g., "clear sky", "few clouds")
+                          size_t desc_pos = body.find("\"description\":\"");
+                          if (desc_pos != std::string::npos) {
+                            size_t start = desc_pos + 15;
+                            size_t end = body.find("\"", start);
+                            
+                            if (end != std::string::npos) {
+                              std::string description = body.substr(start, end - start);
+                              // Capitalize first letter
+                              if (!description.empty()) {
+                                description[0] = std::toupper(description[0]);
+                              }
+                              id(weather_description).publish_state(description);
+
+                            }
+                          }
+                          
+                          ESP_LOGD("weather", "Weather data parsing complete - updating display");
+                        } else {
+                          ESP_LOGW("weather", "Empty response from weather API");
+                        }
+
+                    # UPDATE ALL WEATHER LABELS DIRECTLY HERE
+                    - lvgl.label.update:
+                        id: weather_label
+                        text: !lambda |-
+                          if (id(weather_condition).has_state()) {
+                            return id(weather_condition).state.c_str();
+                          }
+                          return "Loading...";
+
+                    - lvgl.label.update:
+                        id: temperature_label
+                        text: !lambda |-
+                          if (id(owm_temperature).has_state()) {
+                            static char temp_text[60];
+                            if (id(owm_feels_like).has_state()) {
+                              snprintf(temp_text, sizeof(temp_text), "%.1f°C feels %.1f°C", 
+                                      id(owm_temperature).state, id(owm_feels_like).state);
+                            } else {
+                              snprintf(temp_text, sizeof(temp_text), "Temperature: %.1f°C", id(owm_temperature).state);
+                            }
+                            return temp_text;
+                          }
+                          return " --°C";
+
+                    - lvgl.label.update:
+                        id: humidity_label
+                        text: !lambda |-
+                          static char info_text[50];
+                          if (id(owm_humidity).has_state()) {
+                            snprintf(info_text, sizeof(info_text), " %.0f%% ", 
+                                    id(owm_humidity).state);
+                          } else {
+                            snprintf(info_text, sizeof(info_text), " --%");
+                          }
+                          return info_text;
+
+                    - lvgl.label.update:
+                        id: pressure_label
+                        text: !lambda |-
+                          static char info_text[50];
+                          if ( id(owm_pressure).has_state()) {
+                            snprintf(info_text, sizeof(info_text), " %.0fhPa ", 
+                                     id(owm_pressure).state);
+                          }else {
+                            snprintf(info_text, sizeof(info_text), "pre: --%");
+                          }
+                          return info_text;
+
+                    - lvgl.label.update:
+                        id: wind_info_label
+                        text: !lambda |-
+                          static char wind_text[50];
+                          if (id(owm_wind_speed).has_state()) {
+                            if (id(owm_wind_gust).has_state() && id(owm_wind_gust).state > id(owm_wind_speed).state) {
+                              snprintf(wind_text, sizeof(wind_text), " %.1fm/s (gust %.1f)", 
+                                      id(owm_wind_speed).state, id(owm_wind_gust).state);
+                            } else {
+                              snprintf(wind_text, sizeof(wind_text), ":%.1fm/s", id(owm_wind_speed).state);
+                            }
+                          } else {
+                            snprintf(wind_text, sizeof(wind_text), "Wind: --m/s");
+                          }
+                          return wind_text;
+
+                    - lvgl.label.update:
+                        id: visibility_label
+                        text: !lambda |-
+                          static char vis_text[60];
+                          if (id(owm_visibility).has_state() && id(owm_clouds).has_state()) {
+                            snprintf(vis_text, sizeof(vis_text), ": %.1fkm ", 
+                                    id(owm_visibility).state, id(owm_clouds).state);
+                          } else if (id(owm_visibility).has_state()) {
+                            snprintf(vis_text, sizeof(vis_text), " %.1fkm", id(owm_visibility).state);
+                          } else {
+                            snprintf(vis_text, sizeof(vis_text), "Visibility: --km");
+                          }
+                          return vis_text;
+
+                    - logger.log: "All weather display labels updated"
+
+                on_error:
+                  then:
+                    - logger.log: "Weather API request failed"
+          else:
+            - logger.log: "WiFi not connected, skipping weather update"
