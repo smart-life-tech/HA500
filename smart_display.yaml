@@ -1130,8 +1130,8 @@ lvgl:
                   id: settings_qr
                   x: 350
                   y: 15
-                  #light_color: whitesmoke
-                  #dark_color: steelblue
+                  light_color: whitesmoke
+                  dark_color: steelblue
                   size: 90
                   text: !lambda |-
                     if (id(ip_address).has_state() && !id(ip_address).state.empty()) {
@@ -1906,13 +1906,13 @@ script:
     then:
       - component.update: ip_address  # Force update the IP sensor first
       - delay: 500ms
-      - lvgl.qrcode.update:
-          id: settings_qr
-          text: !lambda |-
-            if (id(ip_address).has_state() && !id(ip_address).state.empty()) {
-              return "phijo-smart-device.local/";
-            }
-            return "http://192.168.4.1/";
+      # - lvgl.qrcode.update:
+      #     id: settings_qr
+      #     text: !lambda |-
+      #       if (id(ip_address).has_state() && !id(ip_address).state.empty()) {
+      #         return "phijo-smart-device.local/";
+      #       }
+      #       return "http://192.168.4.1/";
       
       - lvgl.label.update:
           id: qr_url_label
