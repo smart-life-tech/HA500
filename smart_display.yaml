@@ -1156,10 +1156,10 @@ lvgl:
                       if (dot_count == 3 && clean_ip.length() >= 7 && clean_ip.length() <= 15) {
                         ESP_LOGI("qr_debug", "Generated QR code for IP: %s", clean_ip.c_str());
                        // return  clean_ip + "/";
-                        return "esphome.io";
+                        return "guition-esp32-s3-4848s040.local";
                       }
                     }
-                    return "http://192.168.4.1/";
+                    return "http://guition-esp32-s3-4848s040.local/";
               - label:
                   id: qr_url_label
                   text: !lambda |-
