@@ -1135,7 +1135,7 @@ lvgl:
                   size: 90
                   text: !lambda |-
                     if (id(ip_address).has_state() && !id(ip_address).state.empty()) {
-                     return "http://phijo-smart-device.local/";
+                     return "phijo-smart-device.local/";
                     }
                     return "http://192.168.4.1/";
               - label:
@@ -1910,7 +1910,7 @@ script:
           id: settings_qr
           text: !lambda |-
             if (id(ip_address).has_state() && !id(ip_address).state.empty()) {
-              return "http://phijo-smart-device.local/";
+              return "phijo-smart-device.local/";
             }
             return "http://192.168.4.1/";
       
@@ -1942,7 +1942,7 @@ script:
                 id: settings_qr
                 text: !lambda |-
                   if (id(ip_address).has_state() && !id(ip_address).state.empty()) {
-                    return "http://phijo-smart-device.local/";
+                    return "phijo-smart-device.local/";
                   }
                   return "http://192.168.4.1/";
             - lvgl.label.update:
