@@ -177,14 +177,14 @@ wifi:
   on_connect:
     then:
       - logger.log: "WiFi connected, starting web server"
-      - script.execute: update_qr_display  # Update QR code
+      #- script.execute: update_qr_display  # Update QR code
       - delay: 1s
-      - script.execute: notify_web_portal
+      #- script.execute: notify_web_portal
   on_disconnect:
     then:
       - logger.log: "WiFi disconnected, attempting to reconnect"
       - script.execute: notify_web_portal
-      - script.execute: update_qr_display  # Update QR code
+      #- script.execute: update_qr_display  # Update QR code
 time:
   - platform: homeassistant
     id: time_comp
@@ -394,7 +394,7 @@ text_sensor:
                          std::isprint(x[i]) ? x[i] : '?');
               }
           - delay: 1s
-          - script.execute: update_qr_display
+          #- script.execute: update_qr_display
 
     ssid:
       name: "Connected SSID"
@@ -1977,7 +1977,7 @@ script:
 
   - id: time_display_update
     then:
-      - script.execute: notify_web_portal
+      #- script.execute: notify_web_portal
       - logger.log:
           format: "TIME DEBUG: HA connected: %s, Time valid: %s"
           args:
@@ -2345,7 +2345,7 @@ interval:
           
           }
       - script.execute: time_display_update
-      - script.execute: update_qr_display  
+      #- script.execute: update_qr_display  
   - interval: 10s
     then:
       - script.execute: notify_web_portal
