@@ -446,7 +446,7 @@ globals:
   - id: qr_text_value
     type: std::string
     restore_value: no
-    initial_value: '"http://192.168.0.212/"'
+    initial_value: '"192.168.0.212/"'
 
   - id: location_name_str
     type: std::string
