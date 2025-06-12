@@ -1940,11 +1940,7 @@ script:
                #Update QR code when WiFi is connected
             - lvgl.qrcode.update:
                 id: settings_qr
-                text: !lambda |-
-                  if (id(ip_address).has_state() && !id(ip_address).state.empty()) {
-                    return "phijo-smart-device.local/";
-                  }
-                  return "http://192.168.4.1/";
+                text: "phijo-smart-device.local/"
             - lvgl.label.update:
                 id: qr_url_label
                 text: !lambda |-
