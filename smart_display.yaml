@@ -1120,7 +1120,7 @@ lvgl:
                   x: 10
                   y: 10
               - label:
-                  text: "Scan QR code to configure device:"
+                  text: "Scan QR code to configure device via web:"
                   text_font: roboto
                   x: 10
                   y: 40
@@ -1129,8 +1129,8 @@ lvgl:
                   id: settings_qr
                   x: 350
                   y: 15
-                  light_color: whitesmoke
-                  dark_color: steelblue
+                  #light_color: whitesmoke
+                  #dark_color: steelblue
                   size: 90
                   text: !lambda |-
                     if (id(ip_address).has_state() && !id(ip_address).state.empty()) {
