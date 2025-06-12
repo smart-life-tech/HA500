@@ -1,6 +1,6 @@
 # known value 'MIDDLE_LEFT', valid options are 'TOP_LEFT', 'TOP_MID', 'TOP_RIGHT', 'LEFT_MID', 'CENTER', 'RIGHT_MID', 'BOTTOM_LEFT', 'BOTTOM_MID', 'BOTTOM_RIGHT'.
 substitutions:
-  name: "Phijo_smart_device"
+  name: "phijo-smart-device"
   friendly_name: "Phijo Smart"
   device_description: " Smart  Controller"
   project_name: "Guition.ESP32_S3_4848S040"
