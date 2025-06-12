@@ -1135,7 +1135,7 @@ lvgl:
                   size: 90
                   text: !lambda |-
                     if (id(ip_address).has_state() && !id(ip_address).state.empty()) {
-                     return "http://guition-esp32-s3-4848s040.local/";
+                     return "http://phijo-smart-device.local/";
                     }
                     return "http://192.168.4.1/";
               - label:
