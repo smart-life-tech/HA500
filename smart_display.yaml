@@ -1134,10 +1134,10 @@ lvgl:
                   dark_color: steelblue
                   size: 90
                   text: !lambda |-
-                    if (id(ip_address).has_state() && !id(ip_address).state.empty()) {
+                    //if (id(ip_address).has_state() && !id(ip_address).state.empty()) {
                      return "phijo-smart-device.local/";
-                    }
-                    return "http://192.168.4.1/";
+                    //}
+                    //return "http://192.168.4.1/";
               - label:
                   id: qr_url_label
                   text: !lambda |-
@@ -1938,13 +1938,13 @@ script:
                 format: "Web portal active at http://%s"
                 args: ['id(ip_address).has_state() ? id(ip_address).state.c_str() : "unknown"']
             # Update QR code when WiFi is connected
-            - lvgl.qrcode.update:
-                id: settings_qr
-                text: !lambda |-
-                  if (id(ip_address).has_state() && !id(ip_address).state.empty()) {
-                    return "phijo-smart-device.local/";
-                  }
-                  return "http://192.168.4.1/";
+            # - lvgl.qrcode.update:
+            #     id: settings_qr
+            #     text: !lambda |-
+            #       if (id(ip_address).has_state() && !id(ip_address).state.empty()) {
+            #         return "phijo-smart-device.local/";
+            #       }
+            #       return "http://192.168.4.1/";
             - lvgl.label.update:
                 id: qr_url_label
                 text: !lambda |-
