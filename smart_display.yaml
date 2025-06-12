@@ -161,10 +161,10 @@ wifi:
     
 
 
-  # Add these parameters for better connection reliability
+  # Added parameters for better connection reliability
   power_save_mode: NONE
-  #fast_connect: true
-  #reboot_timeout: 15min
+  fast_connect: true
+  reboot_timeout: 15min
 
   # Existing fallback AP configuration
   ap:
