@@ -1134,32 +1134,9 @@ lvgl:
                   size: 90
                   text: !lambda |-
                     if (id(ip_address).has_state() && !id(ip_address).state.empty()) {
-                      std::string raw = id(ip_address).state;
-                      std::string clean_ip = "";
-                      
-                      // Extract only digits and dots
-                      bool found_digit = false;
-                      for (char c : raw) {
-                        if (std::isdigit(c)) {
-                          clean_ip += c;
-                          found_digit = true;
-                        } else if (c == '.' && found_digit) {
-                          clean_ip += c;
-                        } else if (found_digit && !std::isdigit(c) && c != '.') {
-                          // Stop at first non-IP character after we started collecting
-                          break;
-                        }
-                      }
-                      
-                      // Validate IP format (should have 3 dots and be reasonable length)
-                      int dot_count = std::count(clean_ip.begin(), clean_ip.end(), '.');
-                      if (dot_count == 3 && clean_ip.length() >= 7 && clean_ip.length() <= 15) {
-                        ESP_LOGI("qr_debug", "Generated QR code for IP: %s", clean_ip.c_str());
-                       // return  clean_ip + "/";
-                        return "guition-esp32-s3-4848s040.local";
-                      }
+                     return "http://guition-esp32-s3-4848s040.local/";
                     }
-                    return "http://guition-esp32-s3-4848s040.local/";
+                    return "http://192.168.4.1/";
               - label:
                   id: qr_url_label
                   text: !lambda |-
