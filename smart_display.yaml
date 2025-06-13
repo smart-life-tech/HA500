@@ -241,6 +241,35 @@ sun:
 # Add this to update the sun component when location changes
 number:
   - platform: template
+    id: field_area_input
+    name: "Field Area (m²)"
+    min_value: 1
+    max_value: 1000
+    step: 1
+    restore_value: yes
+    initial_value: 48
+    optimistic: true
+    on_value:
+      then:
+        - lambda: |-
+            id(field_area_m2) = x;
+        - script.execute: calculate_irrigation_needs
+
+  - platform: template
+    id: valve_flow_rate_input
+    name: "Valve Flow Rate (L/min)"
+    min_value: 1
+    max_value: 100
+    step: 0.5
+    restore_value: yes
+    initial_value: 20
+    optimistic: true
+    on_value:
+      then:
+        - lambda: |-
+            id(valve_liters_per_minute) = x;
+
+  - platform: template
     id: location_latitude
     name: "Location Latitude"
     min_value: -90
@@ -444,6 +473,42 @@ color:
 
 # Global variables for timer tracking and settings
 globals:
+  # Irrigation system globals
+  - id: field_area_m2
+    type: float
+    restore_value: yes
+    initial_value: "48.0"  # Default 48 m² field area
+  
+  - id: valve_training_mode
+    type: bool
+    restore_value: yes
+    initial_value: "false"
+  
+  - id: valve_training_start_time
+    type: int
+    restore_value: no
+    initial_value: "0"
+  
+  - id: valve_liters_per_minute
+    type: float
+    restore_value: yes
+    initial_value: "20.0"  # Default 20 L/min flow rate
+  
+  - id: daily_rainfall_mm
+    type: float
+    restore_value: no
+    initial_value: "0.0"
+  
+  - id: calculated_evaporation_liters
+    type: float
+    restore_value: no
+    initial_value: "0.0"
+  
+  - id: irrigation_needed_liters
+    type: float
+    restore_value: no
+    initial_value: "0.0"
+
   - id: qr_text_value
     type: std::string
     restore_value: no
@@ -946,7 +1011,7 @@ lvgl:
                   border_width: 0
                   scrollable: false
 
-        # Switch 1 - Sunrise/Sunset Light
+        # Update Switch 1 - Light Control
         - button:
             id: sw1_button
             width: 400
@@ -956,7 +1021,7 @@ lvgl:
             checkable: true
             widgets:
               - label:
-                  text: "Sunrise/Sunset"
+                  text: "${lightbulb} Light Control"
                   text_font: roboto24
                   align: center
             on_click:
@@ -965,7 +1030,7 @@ lvgl:
                 - lambda: |-
                     id(sw1_manual_override_time) = id(time_comp).now().timestamp;
 
-        # Switch 2 - Seasonal Daytime Light
+        # Update Switch 2 - Water Pump
         - button:
             id: sw2_button
             width: 400
@@ -975,7 +1040,7 @@ lvgl:
             checkable: true
             widgets:
               - label:
-                  text: " Seasonal meteologic SW"
+                  text: "💧 Water Pump"
                   text_font: roboto24
                   align: center
             on_click:
@@ -984,7 +1049,7 @@ lvgl:
                 - lambda: |-
                     id(sw2_manual_override_time) = id(time_comp).now().timestamp;
 
-        # Switch 3 - Weather-Based Light
+        # Update Switch 3 - Irrigation Valve
         - button:
             id: sw3_button
             width: 400
@@ -996,10 +1061,12 @@ lvgl:
               - label:
                   id: sw3_button_label
                   text: !lambda |-
-                    if (id(sw3_winter_mode)) {
-                      return "Weather Meteologic SW (Winter)";
+                    if (id(valve_training_mode)) {
+                      return "🚰 Valve (TRAINING MODE)";
+                    } else if (id(sw3_winter_mode)) {
+                      return "🚰 Irrigation Valve (Winter)";
                     } else {
-                      return "Weather Meteologic SW (Summer)";
+                      return "🚰 Irrigation Valve (Summer)";
                     }
                   text_font: roboto24
                   align: center
@@ -1009,10 +1076,10 @@ lvgl:
                 - lambda: |-
                     id(sw3_manual_override_time) = id(time_comp).now().timestamp;
 
-                # Add this to your controls page to show current automation status
+        # Add irrigation status display
         - obj:
             width: 460
-            height: 60
+            height: 80
             bg_color: 0x000000
             bg_opa: 30%
             radius: 10
@@ -1020,16 +1087,15 @@ lvgl:
             y: 360
             widgets:
               - label:
-                  id: automation_status_label
+                  id: irrigation_status_label
                   text: !lambda |-
-                    static char status_text[100];
-                    const char* mode_names[] = {"Duration", "Until Time", "Between Times", "Manual"};
+                    static char status_text[150];
                     snprintf(status_text, sizeof(status_text), 
-                            "Mode: %s | Sunset: %dh | Sunrise: %dh | Manual: %dh", 
-                            mode_names[id(automation_mode)],
-                            id(sunset_duration_hours),
-                            id(sunrise_duration_hours),
-                            id(manual_duration_hours));
+                            "Field: %.0fm² | Flow: %.1fL/min | Evap: %.1fL/day | Need: %.1fL", 
+                            id(field_area_m2),
+                            id(valve_liters_per_minute),
+                            id(calculated_evaporation_liters),
+                            id(irrigation_needed_liters));
                     return status_text;
                   text_font: roboto
                   text_color: 0xCCCCCC
@@ -1171,6 +1237,21 @@ lvgl:
                   text_color: 0xFFFFFF
                   width: 320
 
+        - button:
+            id: valve_training_btn
+            x: 230
+            y: 420
+            width: 120
+            height: 45
+            styles: nav_button_style
+            widgets:
+              - label:
+                  text: "Train Valve"
+                  text_font: roboto
+                  align: center
+            on_click:
+              then:
+                - script.execute: start_valve_training
 
 
         # SW3 Mode Toggle
@@ -1807,7 +1888,7 @@ light:
 switch:
   - platform: output
     id: sw1
-    name: "Sunrise/Sunset Light"
+    name: "Light Control"
     output: internal_relay_1
     on_turn_on:
       then:
@@ -1817,7 +1898,7 @@ switch:
               checked: true
         - lvgl.label.update:
             id: status_label
-            text: "Sunrise/Sunset Light ON"
+            text: "Light ON"
             text_color: green_color
     on_turn_off:
       then:
@@ -1827,12 +1908,12 @@ switch:
               checked: false
         - lvgl.label.update:
             id: status_label
-            text: "Sunrise/Sunset Light OFF"
+            text: "Light OFF"
             text_color: red_color
 
   - platform: output
     id: sw2
-    name: "Seasonal Daytime Light"
+    name: "Water Pump"
     output: internal_relay_2
     on_turn_on:
       then:
@@ -1842,7 +1923,7 @@ switch:
               checked: true
         - lvgl.label.update:
             id: status_label
-            text: "Seasonal Daytime Light ON"
+            text: "Water Pump ON"
             text_color: green_color
     on_turn_off:
       then:
@@ -1852,43 +1933,73 @@ switch:
               checked: false
         - lvgl.label.update:
             id: status_label
-            text: "Seasonal Daytime Light OFF"
+            text: "Water Pump OFF"
             text_color: red_color
 
   - platform: output
     id: sw3
-    name: "Weather-Based Light"
+    name: "Irrigation Valve"
     output: internal_relay_3
     on_turn_on:
       then:
+        - if:
+            condition:
+              lambda: 'return id(valve_training_mode);'
+            then:
+              - lambda: |-
+                  id(valve_training_start_time) = id(time_comp).now().timestamp;
+                  ESP_LOGI("irrigation", "Training mode: Valve opened, timer started");
+              - lvgl.label.update:
+                  id: status_label
+                  text: "TRAINING: Valve ON - Timer started"
+                  text_color: orange_color
+            else:
+              - lvgl.label.update:
+                  id: status_label
+                  text: "Irrigation Valve ON"
+                  text_color: green_color
         - lvgl.widget.update:
             id: sw3_button
             state:
               checked: true
-        - lvgl.label.update:
-            id: status_label
-            text: !lambda |-
-              if (id(sw3_winter_mode)) {
-                return "Weather-Based Light ON (Winter)";
-              } else {
-                return "Weather-Based Light ON (Summer)";
-              }
-            text_color: green_color
     on_turn_off:
       then:
+        - if:
+            condition:
+              lambda: 'return id(valve_training_mode) && id(valve_training_start_time) > 0;'
+            then:
+              - lambda: |-
+                  int training_duration = id(time_comp).now().timestamp - id(valve_training_start_time);
+                  float training_minutes = training_duration / 60.0;
+                  
+                  // Calculate flow rate based on today's rainfall
+                  if (id(daily_rainfall_mm) > 0) {
+                    float total_liters = id(daily_rainfall_mm) * id(field_area_m2);
+                    id(valve_liters_per_minute) = total_liters / training_minutes;
+                    
+                    ESP_LOGI("irrigation", "Training complete: %.1f minutes = %.1f L/min flow rate", 
+                            training_minutes, id(valve_liters_per_minute));
+                  }
+                  
+                  id(valve_training_start_time) = 0;
+                  id(valve_training_mode) = false;
+              - lvgl.label.update:
+                  id: status_label
+                  text: !lambda |-
+                    static char msg[100];
+                    snprintf(msg, sizeof(msg), "Training complete: %.1f L/min", id(valve_liters_per_minute));
+                    return msg;
+                  text_color: green_color
+            else:
+              - lvgl.label.update:
+                  id: status_label
+                  text: "Irrigation Valve OFF"
+                  text_color: red_color
         - lvgl.widget.update:
             id: sw3_button
             state:
               checked: false
-        - lvgl.label.update:
-            id: status_label
-            text: !lambda |-
-              if (id(sw3_winter_mode)) {
-                return "Weather-Based Light OFF (Winter)";
-              } else {
-                return "Weather-Based Light OFF (Summer)";
-              }
-            text_color: red_color
+
 
 #-------------------------------------------
 # Scripts for automation logic
@@ -1901,7 +2012,53 @@ script:
           id: settings_page
           hidden: false
       - lvgl.widget.redraw:
+#  irrigation calculation script
+  - id: calculate_irrigation_needs
+    then:
+      - lambda: |-
+          // Calculate daily evaporation based on temperature and humidity
+          float temp = 25.0; // Default, will be updated from weather
+          float humidity = 50.0; // Default, will be updated from weather
+          
+          if (id(owm_temperature).has_state()) {
+            temp = id(owm_temperature).state;
+          }
+          if (id(owm_humidity).has_state()) {
+            humidity = id(owm_humidity).state;
+          }
+          
+          // Simplified evaporation calculation
+          // Based on temperature and humidity for the given area
+          float evap_rate_per_m2 = 0.0;
+          
+          if (id(sw3_winter_mode)) {
+            // Winter mode - lower evaporation
+            evap_rate_per_m2 = (temp - 10) * 0.1 * (1 - humidity/100.0);
+          } else {
+            // Summer mode - higher evaporation
+            evap_rate_per_m2 = (temp - 15) * 0.2 * (1 - humidity/100.0);
+          }
+          
+          if (evap_rate_per_m2 < 0) evap_rate_per_m2 = 0;
+          
+          id(calculated_evaporation_liters) = evap_rate_per_m2 * id(field_area_m2);
+          
+          // Calculate irrigation needs (evaporation - rainfall)
+          id(irrigation_needed_liters) = id(calculated_evaporation_liters) - (id(daily_rainfall_mm) * id(field_area_m2) / 1000.0);
+          if (id(irrigation_needed_liters) < 0) id(irrigation_needed_liters) = 0;
+          
+          ESP_LOGI("irrigation", "Calculated evaporation: %.1fL, irrigation needed: %.1fL", 
+                  id(calculated_evaporation_liters), id(irrigation_needed_liters));
 
+  - id: start_valve_training
+    then:
+      - lambda: |-
+          id(valve_training_mode) = true;
+          ESP_LOGI("irrigation", "Training mode activated");
+      - lvgl.label.update:
+          id: status_label
+          text: "Training mode: Turn ON valve manually"
+          text_color: orange_color
   - id: update_qr_display
     then:
       - component.update: ip_address  # Force update the IP sensor first
@@ -2011,7 +2168,7 @@ script:
               return id(weather_condition).state.c_str();
             }
             return "Loading ...";
-      # ADD THIS - Update temperature label
+      #  Update temperature label
       - lvgl.label.update:
           id: temperature_label
           text: !lambda |-
@@ -2332,6 +2489,9 @@ image:
     type: RGB565
 
 interval:
+  - interval: 300s  # Every 5 minutes
+    then:
+      - script.execute: calculate_irrigation_needs
   - interval: 20s
     then:
       - lambda: |-
@@ -2440,7 +2600,7 @@ interval:
                             }
                           }
                           
-                          // ADD NEW PARSING - Wind gust
+                          
                           size_t gust_pos = body.find("\"gust\":");
                           if (gust_pos != std::string::npos) {
                             size_t start = gust_pos + 7;
