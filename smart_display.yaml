@@ -2099,9 +2099,9 @@ lvgl:
                         align: center
                         text_color: !lambda |-
                           if (id(valve_training_mode)) {
-                            return 0xFFA500;  // Orange
+                            return lv_color_hex(0xFFA500);  // Orange
                           }
-                          return 0xFFFFFF;  // White
+                          return lv_color_hex(0xFFFFFF);  // White
                   on_click:
                     then:
                       - script.execute: start_valve_training
@@ -2178,9 +2178,9 @@ lvgl:
                   y: 85
                   text_color: !lambda |-
                     if (id(irrigation_needed_liters) > 0) {
-                      return 0xFFA500;  // Orange
+                      return lv_color_hex(0xFFA500);  // Orange
                     }
-                    return 0x00FF00;  // Green - no irrigation needed
+                    return lv_color_hex(0x00FF00);  // Green - no irrigation needed
               - label:
                   text: "Mode:"
                   text_font: roboto
