@@ -91,6 +91,46 @@ ota:
         - lambda: "id(lvgl_comp).loop();"
 sensor:
   - platform: template
+    name: "Daily Evaporation"
+    id: daily_evaporation_sensor
+    unit_of_measurement: "L"
+    accuracy_decimals: 1
+    lambda: 'return id(calculated_evaporation_liters);'
+    update_interval: 300s
+
+  - platform: template
+    name: "Irrigation Needed"
+    id: irrigation_needed_sensor
+    unit_of_measurement: "L"
+    accuracy_decimals: 1
+    lambda: 'return id(irrigation_needed_liters);'
+    update_interval: 300s
+
+  - platform: template
+    name: "Daily Rainfall"
+    id: daily_rainfall_sensor
+    unit_of_measurement: "mm"
+    accuracy_decimals: 1
+    lambda: 'return id(daily_rainfall_mm);'
+    update_interval: 300s
+
+  - platform: template
+    name: "Field Area"
+    id: field_area_sensor
+    unit_of_measurement: "m²"
+    accuracy_decimals: 0
+    lambda: 'return id(field_area_m2);'
+    update_interval: never
+
+  - platform: template
+    name: "Valve Flow Rate"
+    id: valve_flow_rate_sensor
+    unit_of_measurement: "L/min"
+    accuracy_decimals: 1
+    lambda: 'return id(valve_liters_per_minute);'
+    update_interval: never
+
+  - platform: template
     name: "OWM Temperature"
     id: owm_temperature
     unit_of_measurement: "°C"
@@ -240,6 +280,7 @@ sun:
 
 # Add this to update the sun component when location changes
 number:
+
   - platform: template
     id: field_area_input
     name: "Field Area (m²)"
@@ -253,6 +294,7 @@ number:
       then:
         - lambda: |-
             id(field_area_m2) = x;
+            ESP_LOGI("irrigation", "Field area updated to %.0f m²", x);
         - script.execute: calculate_irrigation_needs
 
   - platform: template
@@ -268,6 +310,8 @@ number:
       then:
         - lambda: |-
             id(valve_liters_per_minute) = x;
+            ESP_LOGI("irrigation", "Valve flow rate updated to %.1f L/min", x);
+ 
 
   - platform: template
     id: location_latitude
@@ -396,6 +440,17 @@ number:
               static char text[20];
               snprintf(text, sizeof(text), "%02d:%02d", id(sunset_until_time_hour), id(sunset_until_time_minute));
               return text;
+# binary sensors for irrigation status
+binary_sensor:
+  - platform: template
+    name: "Irrigation Required"
+    id: irrigation_required
+    lambda: 'return id(irrigation_needed_liters) > 5.0;'
+    
+  - platform: template
+    name: "Training Mode Active"
+    id: training_mode_active
+    lambda: 'return id(valve_training_mode);'
 
 text_sensor:
   - platform: template
@@ -437,7 +492,50 @@ text_sensor:
     name: "Weather Location"
     lambda: |-
       return {id(location_name_str)};
+  - platform: template
+    name: "Irrigation Status"
+    id: irrigation_status
+    lambda: |-
+      if (id(valve_training_mode)) {
+        return {"Training Mode Active"};
+      } else if (id(sw3).state) {
+        return {"Irrigating"};
+      } else if (id(irrigation_needed_liters) > 10) {
+        return {"Irrigation Needed"};
+      } else if (id(daily_rainfall_mm) > 5) {
+        return {"Recently Watered by Rain"};
+      } else {
+        return {"Optimal"};
+      }
+    update_interval: 60s
 
+  - platform: template
+    name: "Next Irrigation Time"
+    id: next_irrigation_time
+    lambda: |-
+      auto now = id(time_comp).now();
+      if (!now.is_valid()) return {"Time not available"};
+      
+      // Calculate next appropriate irrigation time
+      int current_hour = now.hour;
+      std::string next_time = "";
+      
+      if (id(irrigation_needed_liters) > 10) {
+        if (current_hour < 5) {
+          next_time = "05:00 (Morning)";
+        } else if (current_hour < 18) {
+          next_time = "18:00 (Evening)";
+        } else if (current_hour < 20) {
+          next_time = "Now (Evening window)";
+        } else {
+          next_time = "Tomorrow 05:00";
+        }
+      } else {
+        next_time = "Not needed";
+      }
+      
+      return {next_time};
+    update_interval: 300s
 color:
   # Create a Home Assistant blue color
   - id: ha_blue
@@ -615,6 +713,52 @@ globals:
     type: int
     restore_value: yes
     initial_value: "0"   # 0=duration, 1=until_time, 2=between_times, 3=manual
+
+button:
+  - platform: template
+    name: "Start Valve Training"
+    id: start_training_button
+    on_press:
+      then:
+        - script.execute: start_valve_training
+
+  - platform: template
+    name: "Calculate Irrigation Needs"
+    id: calc_irrigation_button
+    on_press:
+      then:
+        - script.execute: calculate_irrigation_needs
+
+  - platform: template
+    name: "Reset Daily Rainfall"
+    id: reset_rainfall_button
+    on_press:
+      then:
+        - lambda: |-
+            id(daily_rainfall_mm) = 0.0f;
+            ESP_LOGI("irrigation", "Daily rainfall reset to 0mm");
+
+# Add select for irrigation mode
+select:
+  - platform: template
+    name: "Irrigation Mode"
+    id: irrigation_mode_select
+    optimistic: true  # Add this line
+    options:
+      - "Summer (High Evaporation)"
+      - "Winter (Low Evaporation)"
+    initial_option: "Summer (High Evaporation)"
+    restore_value: true
+    on_value:
+      then:
+        - lambda: |-
+            if (x == "Winter (Low Evaporation)") {
+              id(sw3_winter_mode) = true;
+            } else {
+              id(sw3_winter_mode) = false;
+            }
+            ESP_LOGI("irrigation", "Mode changed to: %s", x.c_str());
+        - script.execute: calculate_irrigation_needs
 
 #-------------------------------------------
 # LVGL Interface
@@ -1021,7 +1165,7 @@ lvgl:
             checkable: true
             widgets:
               - label:
-                  text: "${lightbulb} Light Control"
+                  text: " Light Control"
                   text_font: roboto24
                   align: center
             on_click:
@@ -1040,7 +1184,7 @@ lvgl:
             checkable: true
             widgets:
               - label:
-                  text: "💧 Water Pump"
+                  text: "Pump"
                   text_font: roboto24
                   align: center
             on_click:
@@ -1062,11 +1206,11 @@ lvgl:
                   id: sw3_button_label
                   text: !lambda |-
                     if (id(valve_training_mode)) {
-                      return "🚰 Valve (TRAINING MODE)";
+                      return "Valve (TRAINING MODE)";
                     } else if (id(sw3_winter_mode)) {
-                      return "🚰 Irrigation Valve (Winter)";
+                      return " Irrigation Valve (Winter)";
                     } else {
-                      return "🚰 Irrigation Valve (Summer)";
+                      return " Irrigation Valve (Summer)";
                     }
                   text_font: roboto24
                   align: center
@@ -1844,13 +1988,370 @@ lvgl:
                   styles: nav_button_style
                   widgets:
                     - label:
-                        text: "Back"
+                        text: "Next"
+                        text_font: roboto
+                        align: center
+                  on_click:
+                    then:
+                      - lvgl.page.next:
+
+    - id: water_pump_settings_page
+      bg_color: 0x000000
+      bg_opa: cover
+      pad_all: 0
+      border_width: 0
+      scrollable: true
+      widgets:
+        # Background image
+        - image:
+            src: background_image
+            x: 0
+            y: 0
+            width: 480
+            height: 480
+            align: TOP_LEFT
+        
+        # Title bar
+        - obj:
+            width: 460
+            height: 50
+            bg_color: 0x1E3A8A
+            bg_opa: 80%
+            radius: 10
+            x: 10
+            y: 10
+            widgets:
+              - label:
+                  text: "PUMP & IRRIGATION SETTINGS"
+                  text_font: roboto24
+                  align: center
+                  text_color: 0xFFFFFF
+                  x: 0
+                  y: 5
+                  on_click: 
+                    then:
+                      - lvgl.page.previous:
+                      - lambda: |-
+                          id(current_page) = 1;  // Set current page to settings
+
+        # Field Configuration Section
+        - obj:
+            width: 460
+            height: 120
+            bg_color: 0x000000
+            bg_opa: 50%
+            radius: 10
+            x: 10
+            y: 70
+            widgets:
+              - label:
+                  text: "Field Configuration"
+                  text_font: roboto24
+                  text_color: 0xFFFFFF
+                  x: 10
+                  y: 5
+              - label:
+                  text: "Field Area:"
+                  text_font: roboto
+                  x: 10
+                  y: 35
+                  text_color: 0xCCCCCC
+              - label:
+                  id: field_area_display
+                  text: !lambda |-
+                    static char area_text[30];
+                    snprintf(area_text, sizeof(area_text), "%.0f m²", id(field_area_m2));
+                    return area_text;
+                  text_font: roboto
+                  x: 120
+                  y: 35
+                  text_color: 0xFFFFFF
+              - label:
+                  text: "Valve Flow Rate:"
+                  text_font: roboto
+                  x: 10
+                  y: 60
+                  text_color: 0xCCCCCC
+              - label:
+                  id: flow_rate_display
+                  text: !lambda |-
+                    static char flow_text[30];
+                    snprintf(flow_text, sizeof(flow_text), "%.1f L/min", id(valve_liters_per_minute));
+                    return flow_text;
+                  text_font: roboto
+                  x: 150
+                  y: 60
+                  text_color: 0xFFFFFF
+              - button:
+                  id: train_valve_btn
+                  x: 320
+                  y: 35
+                  width: 120
+                  height: 50
+                  widgets:
+                    - label:
+                        text: !lambda |-
+                          if (id(valve_training_mode)) {
+                            return "Training...";
+                          }
+                          return "Train Valve";
+                        text_font: roboto
+                        align: center
+                        text_color: !lambda |-
+                          if (id(valve_training_mode)) {
+                            return 0xFFA500;  // Orange
+                          }
+                          return 0xFFFFFF;  // White
+                  on_click:
+                    then:
+                      - script.execute: start_valve_training
+
+        # Irrigation Calculations Section
+        - obj:
+            width: 460
+            height: 140
+            bg_color: 0x000000
+            bg_opa: 50%
+            radius: 10
+            x: 10
+            y: 200
+            widgets:
+              - label:
+                  text: "Daily Water Calculations"
+                  text_font: roboto24
+                  text_color: 0xFFFFFF
+                  x: 10
+                  y: 5
+              - label:
+                  text: "Evaporation:"
+                  text_font: roboto
+                  x: 10
+                  y: 35
+                  text_color: 0xCCCCCC
+              - label:
+                  id: evaporation_display
+                  text: !lambda |-
+                    static char evap_text[40];
+                    snprintf(evap_text, sizeof(evap_text), "%.1f L/day", id(calculated_evaporation_liters));
+                    return evap_text;
+                  text_font: roboto
+                  x: 120
+                  y: 35
+                  text_color: 0xFFFFFF
+              - label:
+                  text: "Rainfall:"
+                  text_font: roboto
+                  x: 10
+                  y: 60
+                  text_color: 0xCCCCCC
+              - label:
+                  id: rainfall_display
+                  text: !lambda |-
+                    static char rain_text[40];
+                    float rainfall_liters = id(daily_rainfall_mm) * id(field_area_m2) / 1000.0;
+                    snprintf(rain_text, sizeof(rain_text), "%.1f L (%.1fmm)", rainfall_liters, id(daily_rainfall_mm));
+                    return rain_text;
+                  text_font: roboto
+                  x: 80
+                  y: 60
+                  text_color: 0xFFFFFF
+              - label:
+                  text: "Irrigation Needed:"
+                  text_font: roboto
+                  x: 10
+                  y: 85
+                  text_color: 0xCCCCCC
+              - label:
+                  id: irrigation_needed_display
+                  text: !lambda |-
+                    static char need_text[50];
+                    if (id(irrigation_needed_liters) > 0) {
+                      float minutes_needed = id(irrigation_needed_liters) / id(valve_liters_per_minute);
+                      snprintf(need_text, sizeof(need_text), "%.1f L (%.1f min)", 
+                              id(irrigation_needed_liters), minutes_needed);
+                    } else {
+                      snprintf(need_text, sizeof(need_text), "0 L (No irrigation needed)");
+                    }
+                    return need_text;
+                  text_font: roboto
+                  x: 150
+                  y: 85
+                  text_color: !lambda |-
+                    if (id(irrigation_needed_liters) > 0) {
+                      return 0xFFA500;  // Orange
+                    }
+                    return 0x00FF00;  // Green - no irrigation needed
+              - label:
+                  text: "Mode:"
+                  text_font: roboto
+                  x: 10
+                  y: 110
+                  text_color: 0xCCCCCC
+              - label:
+                  id: irrigation_mode_display
+                  text: !lambda |-
+                    if (id(sw3_winter_mode)) {
+                      return "Winter (Low evaporation)";
+                    } else {
+                      return "Summer (High evaporation)";
+                    }
+                  text_font: roboto
+                  x: 60
+                  y: 110
+                  text_color: 0xFFFFFF
+
+        # Weather Impact Section
+        - obj:
+            width: 460
+            height: 100
+            bg_color: 0x000000
+            bg_opa: 50%
+            radius: 10
+            x: 10
+            y: 350
+            widgets:
+              - label:
+                  text: "Weather Impact"
+                  text_font: roboto24
+                  text_color: 0xFFFFFF
+                  x: 10
+                  y: 5
+              - label:
+                  text: "Temperature:"
+                  text_font: roboto
+                  x: 10
+                  y: 35
+                  text_color: 0xCCCCCC
+              - label:
+                  id: temp_impact_display
+                  text: !lambda |-
+                    static char temp_text[40];
+                    if (id(owm_temperature).has_state()) {
+                      snprintf(temp_text, sizeof(temp_text), "%.1f°C", id(owm_temperature).state);
+                    } else {
+                      snprintf(temp_text, sizeof(temp_text), "--°C");
+                    }
+                    return temp_text;
+                  text_font: roboto
+                  x: 120
+                  y: 35
+                  text_color: 0xFFFFFF
+              - label:
+                  text: "Humidity:"
+                  text_font: roboto
+                  x: 200
+                  y: 35
+                  text_color: 0xCCCCCC
+              - label:
+                  id: humidity_impact_display
+                  text: !lambda |-
+                    static char hum_text[40];
+                    if (id(owm_humidity).has_state()) {
+                      snprintf(hum_text, sizeof(hum_text), "%.0f%%", id(owm_humidity).state);
+                    } else {
+                      snprintf(hum_text, sizeof(hum_text), "--%");
+                    }
+                    return hum_text;
+                  text_font: roboto
+                  x: 270
+                  y: 35
+                  text_color: 0xFFFFFF
+              - label:
+                  id: weather_recommendation
+                  text: !lambda |-
+                    if (id(irrigation_needed_liters) > 20) {
+                      return "⚠️ High irrigation needs - Check valve operation";
+                    } else if (id(irrigation_needed_liters) > 5) {
+                      return "💧 Moderate irrigation recommended";
+                    } else if (id(daily_rainfall_mm) > 10) {
+                      return "🌧️ Recent rainfall - Irrigation not needed";
+                    } else {
+                      return "✅ Water levels optimal";
+                    }
+                  text_font: roboto
+                  x: 10
+                  y: 60
+                  text_color: 0xFFFFFF
+                  width: 440
+
+        # Control Buttons Section
+        - obj:
+            width: 460
+            height: 80
+            bg_color: 0x000000
+            bg_opa: 30%
+            radius: 10
+            x: 10
+            y: 460
+            widgets:
+              - button:
+                  id: winter_summer_toggle
+                  x: 10
+                  y: 10
+                  width: 150
+                  height: 60
+                  checkable: true
+                  state:
+                    checked: !lambda 'return id(sw3_winter_mode);'
+                  widgets:
+                    - label:
+                        id: season_mode_label
+                        text: !lambda |-
+                          if (id(sw3_winter_mode)) {
+                            return "Winter Mode";
+                          } else {
+                            return "Summer Mode";
+                          }
+                        text_font: roboto
+                        align: center
+                  on_click:
+                    then:
+                      - lambda: |-
+                          id(sw3_winter_mode) = !id(sw3_winter_mode);
+                      - script.execute: calculate_irrigation_needs
+                      - if:
+                          condition:
+                            lambda: 'return id(sw3_winter_mode);'
+                          then:
+                            - lvgl.label.update:
+                                id: season_mode_label
+                                text: "Winter Mode"
+                          else:
+                            - lvgl.label.update:
+                                id: season_mode_label
+                                text: "Summer Mode"
+
+              - button:
+                  id: manual_irrigation_btn
+                  x: 170
+                  y: 10
+                  width: 130
+                  height: 60
+                  widgets:
+                    - label:
+                        text: "Manual Irrigation"
+                        text_font: roboto
+                        align: center
+                  on_click:
+                    then:
+                      - switch.toggle: sw3
+                      - lambda: |-
+                          id(sw3_manual_override_time) = id(time_comp).now().timestamp;
+
+              - button:
+                  id: back_to_controls_btn
+                  x: 310
+                  y: 10
+                  width: 140
+                  height: 60
+                  widgets:
+                    - label:
+                        text: "Back to Controls"
                         text_font: roboto
                         align: center
                   on_click:
                     then:
                       - lvgl.page.previous:
-
 
 #-------------------------------------------
 # Internal outputs
@@ -1951,12 +2452,22 @@ switch:
                   ESP_LOGI("irrigation", "Training mode: Valve opened, timer started");
               - lvgl.label.update:
                   id: status_label
-                  text: "TRAINING: Valve ON - Timer started"
+                  text: "TRAINING: Valve ON - Timer running"
                   text_color: orange_color
             else:
+              - lambda: |-
+                  float estimated_minutes = 0;
+                  if (id(irrigation_needed_liters) > 0 && id(valve_liters_per_minute) > 0) {
+                    estimated_minutes = id(irrigation_needed_liters) / id(valve_liters_per_minute);
+                  }
+                  ESP_LOGI("irrigation", "Irrigation started - estimated %.1f minutes needed", estimated_minutes);
               - lvgl.label.update:
                   id: status_label
-                  text: "Irrigation Valve ON"
+                  text: !lambda |-
+                    static char msg[80];
+                    float est_min = id(irrigation_needed_liters) / id(valve_liters_per_minute);
+                    snprintf(msg, sizeof(msg), "Irrigation ON (est. %.1f min)", est_min);
+                    return msg;
                   text_color: green_color
         - lvgl.widget.update:
             id: sw3_button
@@ -1970,12 +2481,14 @@ switch:
             then:
               - lambda: |-
                   int training_duration = id(time_comp).now().timestamp - id(valve_training_start_time);
-                  float training_minutes = training_duration / 60.0;
+                  float training_minutes = training_duration / 60.0f;
                   
-                  // Calculate flow rate based on today's rainfall
-                  if (id(daily_rainfall_mm) > 0) {
-                    float total_liters = id(daily_rainfall_mm) * id(field_area_m2);
-                    id(valve_liters_per_minute) = total_liters / training_minutes;
+                  // Calculate flow rate based on estimated water delivered
+                  // This is a simplified calculation - in reality you'd measure actual water
+                  if (training_minutes > 0.5f) {  // Minimum 30 seconds for valid training
+                    // Assume we delivered the amount of water equivalent to today's evaporation needs
+                    float estimated_liters = std::max(10.0f, id(calculated_evaporation_liters));
+                    id(valve_liters_per_minute) = estimated_liters / training_minutes;
                     
                     ESP_LOGI("irrigation", "Training complete: %.1f minutes = %.1f L/min flow rate", 
                             training_minutes, id(valve_liters_per_minute));
@@ -1987,10 +2500,17 @@ switch:
                   id: status_label
                   text: !lambda |-
                     static char msg[100];
-                    snprintf(msg, sizeof(msg), "Training complete: %.1f L/min", id(valve_liters_per_minute));
+                    snprintf(msg, sizeof(msg), "Training complete: %.1f L/min calibrated", id(valve_liters_per_minute));
                     return msg;
                   text_color: green_color
+              - delay: 3s
+              - lvgl.label.update:
+                  id: status_label
+                  text: "Valve calibration saved"
+                  text_color: blue_color
             else:
+              - lambda: |-
+                  ESP_LOGI("irrigation", "Irrigation stopped");
               - lvgl.label.update:
                   id: status_label
                   text: "Irrigation Valve OFF"
@@ -1999,7 +2519,6 @@ switch:
             id: sw3_button
             state:
               checked: false
-
 
 #-------------------------------------------
 # Scripts for automation logic
@@ -2052,13 +2571,26 @@ script:
 
   - id: start_valve_training
     then:
-      - lambda: |-
-          id(valve_training_mode) = true;
-          ESP_LOGI("irrigation", "Training mode activated");
-      - lvgl.label.update:
-          id: status_label
-          text: "Training mode: Turn ON valve manually"
-          text_color: orange_color
+      - if:
+          condition:
+            lambda: 'return !id(valve_training_mode);'
+          then:
+            - lambda: |-
+                id(valve_training_mode) = true;
+                ESP_LOGI("irrigation", "Training mode activated - Turn ON valve manually");
+            - lvgl.label.update:
+                id: status_label
+                text: "Training: Turn ON valve manually, then OFF when done"
+                text_color: orange_color
+          else:
+            - lambda: |-
+                id(valve_training_mode) = false;
+                ESP_LOGI("irrigation", "Training mode cancelled");
+            - lvgl.label.update:
+                id: status_label
+                text: "Training cancelled"
+                text_color: red_color
+
   - id: update_qr_display
     then:
       - component.update: ip_address  # Force update the IP sensor first
@@ -2276,8 +2808,47 @@ script:
             }
           }
 
-          // Similar logic for SW2 and SW3...
-
+          // Similar logic for SW2 
+          // ---- SWITCH 3: IRRIGATION VALVE CONTROL ----
+          if (id(sw3_manual_override_time) == 0) {
+            // Check if irrigation is needed and it's appropriate time
+            bool should_irrigate = false;
+            
+            // Only irrigate during appropriate hours (early morning or evening)
+            int hour = now.hour;
+            bool appropriate_time = (hour >= 5 && hour <= 7) || (hour >= 18 && hour <= 20);
+            
+            if (appropriate_time && id(irrigation_needed_liters) > 10.0) {
+              if (id(sw3_winter_mode)) {
+                // Winter mode: Only irrigate if really needed (>15L)
+                should_irrigate = id(irrigation_needed_liters) > 15.0;
+              } else {
+                // Summer mode: Irrigate if needed (>10L)
+                should_irrigate = id(irrigation_needed_liters) > 10.0;
+              }
+            }
+            
+            // Turn on irrigation if needed
+            if (should_irrigate && !id(sw3).state) {
+              // Calculate irrigation time based on needs
+              float irrigation_minutes = id(irrigation_needed_liters) / id(valve_liters_per_minute);
+              irrigation_minutes = std::min(irrigation_minutes, 30.0f); // Max 30 minutes
+              
+              id(sw3).turn_on();
+              id(sw3_off_time) = now.timestamp + (int)(irrigation_minutes * 60);
+              ESP_LOGI("automation", "SW3 irrigation started - %.1f minutes for %.1fL", 
+                      irrigation_minutes, id(irrigation_needed_liters));
+            }
+            // Turn off irrigation when timer expires
+            if (id(sw3).state && now.timestamp >= id(sw3_off_time) && id(sw3_off_time) > 0) {
+              id(sw3).turn_off();
+              id(sw3_off_time) = 0;
+              // Reset irrigation needs after watering
+              id(irrigation_needed_liters) = std::max(0.0f, id(irrigation_needed_liters) - 
+                                                      (id(valve_liters_per_minute) * ((now.timestamp - (id(sw3_off_time) - 1800)) / 60.0f)));
+              ESP_LOGI("automation", "SW3 irrigation completed");
+            }
+          }
 
 #-------------------------------------------
 # Graphics and Fonts
@@ -2489,9 +3060,14 @@ image:
     type: RGB565
 
 interval:
-  - interval: 300s  # Every 5 minutes
+  - interval: 60s  # Every 5 minutes
     then:
       - script.execute: calculate_irrigation_needs
+      - lambda: |-
+          // Update all display elements on the water pump settings page
+          if (id(current_page) == 2) {  // If on water pump settings page
+            id(lvgl_comp).loop();
+          }
   - interval: 20s
     then:
       - lambda: |-
