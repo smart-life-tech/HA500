@@ -1187,9 +1187,9 @@ lvgl:
                     if (id(valve_training_mode)) {
                       return "Valve (TRAINING MODE)";
                     } else if (id(sw3_winter_mode)) {
-                      return " Irrigation Valve (Winter)";
+                      return " Valve (Winter)";
                     } else {
-                      return " Irrigation Valve (Summer)";
+                      return " Valve (Summer)";
                     }
                   text_font: roboto24
                   align: center
@@ -1209,21 +1209,20 @@ lvgl:
             x: 10
             y: 310
             widgets:
-              # Replace the single long line with two separate labels
-              - label:
-                  id: irrigation_summary_line1
-                  text: !lambda |-
-                    static char line1_text[60];
-                    snprintf(line1_text, sizeof(line1_text), 
-                            "Field: %.1fm² | Flow: %.1fL/min", 
-                            id(field_area_m2), id(valve_liters_per_minute));
-                    return line1_text;
-                  text_font: roboto
-                  text_color: 0xCCCCCC
-                  align: center
-                  x: 0
-                  y: 65
-                  border_width: 0
+              # - label:
+              #     id: irrigation_summary_line1
+              #     text: !lambda |-
+              #       static char line1_text[60];
+              #       snprintf(line1_text, sizeof(line1_text), 
+              #               "Field: %.1fm² | Flow: %.1fL/min", 
+              #               id(field_area_m2), id(valve_liters_per_minute));
+              #       return line1_text;
+              #     text_font: roboto
+              #     text_color: 0xCCCCCC
+              #     align: center
+              #     x: 0
+              #     y: 65
+              #     border_width: 0
 
               - label:
                   id: irrigation_summary_line2
@@ -1980,7 +1979,7 @@ lvgl:
 
     - id: water_pump_settings_page
       bg_color: 0x000000
-      bg_opa: cover
+      #bg_opa: cover
       pad_all: 0
       border_width: 0
       scrollable: true
@@ -2024,7 +2023,7 @@ lvgl:
             width: 460
             height: 120
             bg_color: 0x000000
-            bg_opa: 50%
+            #bg_opa: 50%
             radius: 10
             x: 10
             y: 70
@@ -2101,7 +2100,7 @@ lvgl:
             width: 460
             height: 160
             bg_color: 0x000000
-            bg_opa: 50%
+            #bg_opa: 50%
             radius: 10
             x: 10
             y: 70
@@ -2193,12 +2192,12 @@ lvgl:
         # Weather Impact Section
         - obj:
             width: 460
-            height: 150
+            height: 110
             bg_color: 0x000000
-            bg_opa: 50%
+            bg_opa: 0%
             radius: 10
             x: 10
-            y: 200
+            y: 220
             widgets:
               - label:
                   text: "Weather Impact"
@@ -2267,9 +2266,9 @@ lvgl:
         # Control Buttons Section
         - obj:
             width: 460
-            height: 80
+            height: 100
             bg_color: 0x000000
-            bg_opa: 30%
+            bg_opa: 0%
             radius: 10
             x: 10
             y: 350
@@ -2319,7 +2318,7 @@ lvgl:
                   height: 60
                   widgets:
                     - label:
-                        text: "Manual Irrigation"
+                        text: "Manual"
                         text_font: roboto
                         align: center
                   on_click:
@@ -2332,7 +2331,7 @@ lvgl:
                   id: back_to_controls_btn
                   x: 310
                   y: 10
-                  width: 140
+                  width: 150
                   height: 60
                   widgets:
                     - label:
