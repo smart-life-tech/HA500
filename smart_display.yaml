@@ -1946,7 +1946,7 @@ lvgl:
                             checked: false
 
               - button:
-                  id: mode_manual_btn
+                  id: back_manual_btn
                   x: 340
                   y: 0
                   width: 100
