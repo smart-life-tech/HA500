@@ -1209,22 +1209,36 @@ lvgl:
             x: 10
             y: 310
             widgets:
+              # Replace the single long line with two separate labels
               - label:
-                  id: irrigation_status_label
+                  id: irrigation_summary_line1
                   text: !lambda |-
-                    static char status_text[150];
-                    snprintf(status_text, sizeof(status_text), 
-                            "Field: %.1fm² | Flow: %.1fL/min '\n' Evap: %.1fL/day | Need: %.1fL", 
-                            id(field_area_m2),
-                            id(valve_liters_per_minute),
-                            id(calculated_evaporation_liters),
-                            id(irrigation_needed_liters));
-                    return status_text;
+                    static char line1_text[60];
+                    snprintf(line1_text, sizeof(line1_text), 
+                            "Field: %.1fm² | Flow: %.1fL/min", 
+                            id(field_area_m2), id(valve_liters_per_minute));
+                    return line1_text;
                   text_font: roboto
                   text_color: 0xCCCCCC
                   align: center
-                  x: 2
-                  y: 5
+                  x: 0
+                  y: 65
+                  border_width: 0
+
+              - label:
+                  id: irrigation_summary_line2
+                  text: !lambda |-
+                    static char line2_text[60];
+                    snprintf(line2_text, sizeof(line2_text), 
+                            "Evap: %.1fL/day | Need: %.1fL", 
+                            id(calculated_evaporation_liters), id(irrigation_needed_liters));
+                    return line2_text;
+                  text_font: roboto
+                  text_color: 0xCCCCCC
+                  align: center
+                  x: 0
+                  y: 85
+                  border_width: 0
 
         # Navigation buttons
         - button:
