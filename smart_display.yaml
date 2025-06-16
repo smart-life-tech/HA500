@@ -1214,7 +1214,7 @@ lvgl:
                   text: !lambda |-
                     static char status_text[150];
                     snprintf(status_text, sizeof(status_text), 
-                            "Field: %.0fm² | Flow: %.1fL/min | Evap: %.1fL/day | Need: %.1fL", 
+                            "Field: %.1fm² | Flow: %.1fL/min '\n' Evap: %.1fL/day | Need: %.1fL", 
                             id(field_area_m2),
                             id(valve_liters_per_minute),
                             id(calculated_evaporation_liters),
@@ -1223,7 +1223,7 @@ lvgl:
                   text_font: roboto
                   text_color: 0xCCCCCC
                   align: center
-                  x: 0
+                  x: 2
                   y: 5
 
         # Navigation buttons
@@ -1369,12 +1369,21 @@ lvgl:
             styles: nav_button_style
             widgets:
               - label:
-                  text: "Train Valve"
+                  text: !lambda |-
+                          if (id(valve_training_mode)) {
+                            return "Training...";
+                          }
+                          return "Train Valve";
                   text_font: roboto
                   align: center
-            on_click:
-              then:
-                - script.execute: start_valve_training
+                  text_color: !lambda |-
+                      if (id(valve_training_mode)) {
+                        return lv_color_hex(0xFFA500);  // Orange
+                      }
+                      return lv_color_hex(0xFFFFFF);  // White
+                  on_click:
+                    then:
+                      - script.execute: start_valve_training
 
 
         # SW3 Mode Toggle
@@ -1448,7 +1457,7 @@ lvgl:
             styles: nav_button_style
             widgets:
               - label:
-                  text: "Light Auto"
+                  text: "Light Set"
                   text_font: roboto
                   align: center
             on_click:
@@ -1796,137 +1805,148 @@ lvgl:
                   x: 10
                   y: 5
               - button:
-                      id: mode_duration_btn
-                      x: 10
-                      y: 35
-                      width: 100
-                      height: 30
-                      checkable: true
-                      widgets:
-                        - label:
-                            text: "Duration"
-                            align: center
-                            text_font: roboto
-                      on_click:
-                        then:
-                          - lambda: |-
-                              id(automation_mode) = 0;
-                          - lvgl.widget.update:
-                              id: mode_duration_btn
-                              state:
-                                checked: true
-                          - lvgl.widget.update:
-                              id: mode_until_btn
-                              state:
-                                checked: false
-                          - lvgl.widget.update:
-                              id: mode_between_btn
-                              state:
-                                checked: false
-                          - lvgl.widget.update:
-                              id: mode_manual_btn
-                              state:
-                                checked: false
+                  id: mode_duration_btn
+                  x: 10
+                  y: 35
+                  width: 100
+                  height: 30
+                  checkable: true
+                  widgets:
+                    - label:
+                        text: "Duration"
+                        align: center
+                        text_font: roboto
+                  on_click:
+                    then:
+                      - lambda: |-
+                          id(automation_mode) = 0;
+                      - lvgl.widget.update:
+                          id: mode_duration_btn
+                          state:
+                            checked: true
+                      - lvgl.widget.update:
+                          id: mode_until_btn
+                          state:
+                            checked: false
+                      - lvgl.widget.update:
+                          id: mode_between_btn
+                          state:
+                            checked: false
+                      - lvgl.widget.update:
+                          id: mode_manual_btn
+                          state:
+                            checked: false
                   
               - button:
-                      id: mode_until_btn
-                      x: 120
-                      y: 35
-                      width: 100
-                      height: 30
-                      checkable: true
-                      widgets:
-                        - label:
-                            text: "Until Time"
-                            align: center
-                            text_font: roboto
-                      on_click:
-                        then:
-                          - lambda: |-
-                              id(automation_mode) = 1;
-                          - lvgl.widget.update:
-                              id: mode_duration_btn
-                              state:
-                                checked: false
-                          - lvgl.widget.update:
-                              id: mode_until_btn
-                              state:
-                                checked: true
-                          - lvgl.widget.update:
-                              id: mode_between_btn
-                              state:
-                                checked: false
-                          - lvgl.widget.update:
-                              id: mode_manual_btn
-                              state:
-                                checked: false
+                  id: mode_until_btn
+                  x: 120
+                  y: 35
+                  width: 100
+                  height: 30
+                  checkable: true
+                  widgets:
+                    - label:
+                        text: "Until Time"
+                        align: center
+                        text_font: roboto
+                  on_click:
+                    then:
+                      - lambda: |-
+                          id(automation_mode) = 1;
+                      - lvgl.widget.update:
+                          id: mode_duration_btn
+                          state:
+                            checked: false
+                      - lvgl.widget.update:
+                          id: mode_until_btn
+                          state:
+                            checked: true
+                      - lvgl.widget.update:
+                          id: mode_between_btn
+                          state:
+                            checked: false
+                      - lvgl.widget.update:
+                          id: mode_manual_btn
+                          state:
+                            checked: false
                   
               - button:
-                      id: mode_between_btn
-                      x: 230
-                      y: 35
-                      width: 100
-                      height: 30
-                      checkable: true
-                      widgets:
-                        - label:
-                            text: "Between"
-                            align: center
-                            text_font: roboto
-                      on_click:
-                        then:
-                          - lambda: |-
-                              id(automation_mode) = 2;
-                          - lvgl.widget.update:
-                              id: mode_duration_btn
-                              state:
-                                checked: false
-                          - lvgl.widget.update:
-                              id: mode_until_btn
-                              state:
-                                checked: false
-                          - lvgl.widget.update:
-                              id: mode_between_btn
-                              state:
-                                checked: true
-                          - lvgl.widget.update:
-                              id: mode_manual_btn
-                              state:
-                                checked: false
-                  
+                  id: mode_between_btn
+                  x: 230
+                  y: 35
+                  width: 100
+                  height: 30
+                  checkable: true
+                  widgets:
+                    - label:
+                        text: "Between"
+                        align: center
+                        text_font: roboto
+                  on_click:
+                    then:
+                      - lambda: |-
+                          id(automation_mode) = 2;
+                      - lvgl.widget.update:
+                          id: mode_duration_btn
+                          state:
+                            checked: false
+                      - lvgl.widget.update:
+                          id: mode_until_btn
+                          state:
+                            checked: false
+                      - lvgl.widget.update:
+                          id: mode_between_btn
+                          state:
+                            checked: true
+                      - lvgl.widget.update:
+                          id: mode_manual_btn
+                          state:
+                            checked: false
               - button:
-                      id: mode_manual_btn
-                      x: 340
-                      y: 0
-                      width: 100
-                      height: 30
-                      checkable: true
-                      widgets:
-                        - label:
-                            text: "Manual"
-                            align: center
-                            text_font: roboto
-                      on_click:
-                        then:
-                          - lambda: |-
-                              id(automation_mode) = 3;
-                          - lvgl.widget.update:
-                              id: mode_duration_btn
-                              state:
-                                checked: false
-                          - lvgl.widget.update:
-                              id: mode_until_btn
-                              state:
-                                checked: false
-                          - lvgl.widget.update:
-                              id: mode_between_btn
-                              state:
-                                checked: false
-                          - lvgl.widget.update:
-                              id: mode_manual_btn
-                              state:
-                                checked: true
+                  id: mode_manual_btn
+                  x: 230
+                  y: 0
+                  width: 100
+                  height: 30
+                  checkable: true
+                  widgets:
+                    - label:
+                        text: "Manual"
+                        align: center
+                        text_font: roboto
+                  on_click:
+                    then:
+                      - lambda: |-
+                          id(automation_mode) = 3;
+                      - lvgl.widget.update:
+                          id: mode_duration_btn
+                          state:
+                            checked: false
+                      - lvgl.widget.update:
+                          id: mode_until_btn
+                          state:
+                            checked: false
+                      - lvgl.widget.update:
+                          id: mode_between_btn
+                          state:
+                            checked: false
 
+              - button:
+                  id: mode_manual_btn
+                  x: 340
+                  y: 0
+                  width: 100
+                  height: 30
+                  checkable: true
+                  widgets:
+                    - label:
+                        text: "Back"
+                        align: center
+                        text_font: roboto
+                  on_click:
+                    then:
+                      lvgl.page.previous:
+                      
               # Navigation buttons
               - button:
                   id: back_to_settings_btn
@@ -1969,6 +1989,7 @@ lvgl:
             radius: 10
             x: 10
             y: 10
+            scrollable: false
             widgets:
               - label:
                   text: "PUMP & IRRIGATION SETTINGS"
@@ -1977,6 +1998,7 @@ lvgl:
                   text_color: 0xFFFFFF
                   x: 0
                   y: 5
+                  scrollable: false
                   on_click: 
                     then:
                       - lvgl.page.previous:
@@ -1992,7 +2014,10 @@ lvgl:
             radius: 10
             x: 10
             y: 70
+            hidden: true
+            scrollable: false
             widgets:
+            
               - label:
                   text: "Field Configuration"
                   text_font: roboto24
@@ -2038,6 +2063,7 @@ lvgl:
                   width: 120
                   height: 50
                   widgets:
+                    
                     - label:
                         text: !lambda |-
                           if (id(valve_training_mode)) {
@@ -2057,13 +2083,14 @@ lvgl:
 
         # Irrigation Calculations Section
         - obj:
+            scrollable: false
             width: 460
-            height: 140
+            height: 160
             bg_color: 0x000000
             bg_opa: 50%
             radius: 10
             x: 10
-            y: 200
+            y: 70
             widgets:
               - label:
                   text: "Daily Water Calculations"
@@ -2152,12 +2179,12 @@ lvgl:
         # Weather Impact Section
         - obj:
             width: 460
-            height: 100
+            height: 150
             bg_color: 0x000000
             bg_opa: 50%
             radius: 10
             x: 10
-            y: 350
+            y: 200
             widgets:
               - label:
                   text: "Weather Impact"
@@ -2209,13 +2236,13 @@ lvgl:
                   id: weather_recommendation
                   text: !lambda |-
                     if (id(irrigation_needed_liters) > 20) {
-                      return "⚠️ High irrigation needs - Check valve operation";
+                      return " High irrigation needs - Check valve operation";
                     } else if (id(irrigation_needed_liters) > 5) {
-                      return "💧 Moderate irrigation recommended";
+                      return " Moderate irrigation recommended";
                     } else if (id(daily_rainfall_mm) > 10) {
-                      return "🌧️ Recent rainfall - Irrigation not needed";
+                      return " Recent rainfall - Irrigation not needed";
                     } else {
-                      return "✅ Water levels optimal";
+                      return " Water levels optimal";
                     }
                   text_font: roboto
                   x: 10
@@ -2231,7 +2258,7 @@ lvgl:
             bg_opa: 30%
             radius: 10
             x: 10
-            y: 460
+            y: 350
             widgets:
               - button:
                   id: winter_summer_toggle
