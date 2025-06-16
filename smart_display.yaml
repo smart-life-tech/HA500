@@ -869,7 +869,7 @@ lvgl:
                   align: center
                   text_color: 0xFFFFFF
                   x: 10
-                  y: 8
+                  y: 2
                   border_width: 0
         - obj:
             width: 460
@@ -878,7 +878,7 @@ lvgl:
             bg_opa: 0%
             radius: 10
             x: 10
-            y: 75
+            y: 30
             border_width: 0
             scrollable: false # Add this
             widgets:
@@ -924,7 +924,7 @@ lvgl:
             radius: 10
             #pad_all: 10
             x: 10
-            y: 180 # Adjusted position
+            y: 150 # Adjusted position
             border_width: 0
             scrollable: false
             widgets:
@@ -1078,7 +1078,7 @@ lvgl:
             bg_opa: 0%
             radius: 10
             x: 10
-            y: 430
+            y: 420
             border_width: 0
             widgets:
               - label:
@@ -1133,35 +1133,14 @@ lvgl:
             width: 480
             height: 480
             align: TOP_LEFT
-        # Title Bar
-        - obj:
-            width: 460
-            height: 50
-            bg_color: 0x1E3A8A
-            bg_opa: 0%
-            radius: 10
-            x: 10
-            y: 10
-            scrollable: false # Add this
-            widgets:
-              - label:
-                  text: "CONTROLS"
-                  text_font: roboto24
-                  width: 460
-                  align: center
-                  text_color: 0xFFFFFF
-                  x: 160
-                  y: 5
-                  border_width: 0
-                  scrollable: false
-
+        
         # Update Switch 1 - Light Control
         - button:
             id: sw1_button
             width: 400
             height: 70
             x: 40
-            y: 100
+            y: 50
             checkable: true
             widgets:
               - label:
@@ -1180,7 +1159,7 @@ lvgl:
             width: 400
             height: 70
             x: 40
-            y: 190
+            y: 140
             checkable: true
             widgets:
               - label:
@@ -1199,7 +1178,7 @@ lvgl:
             width: 400
             height: 70
             x: 40
-            y: 280
+            y: 230
             checkable: true
             widgets:
               - label:
@@ -1223,12 +1202,12 @@ lvgl:
         # Add irrigation status display
         - obj:
             width: 460
-            height: 80
+            height: 100
             bg_color: 0x000000
             bg_opa: 30%
             radius: 10
             x: 10
-            y: 360
+            y: 310
             widgets:
               - label:
                   id: irrigation_status_label
@@ -1441,37 +1420,7 @@ lvgl:
                           id: sw3_button_label
                           text: "${rain_icon} Weather Light (Summer)"
 
-        # System Info container
-        - obj:
-            width: 460
-            height: 120
-            bg_color: 0x000000
-            bg_opa: 50%
-            radius: 10
-            scrollable: false
-            x: 10
-            y: 300
-            widgets:
-              - label:
-                  text: "System Information"
-                  text_font: roboto24
-                  text_color: 0xFFFFFF
-                  x: 10
-                  y: 10
-              - label:
-                  id: settings_ip_display
-                  text: !lambda |-
-                    return "IP: " + id(ip_address).state;
-                  text_font: roboto
-                  x: 10
-                  y: 40
-                  text_color: 0xCCCCCC
-              - label:
-                  text: "Version: ${project_version}"
-                  text_font: roboto
-                  x: 10
-                  y: 65
-                  text_color: 0xFFFFFF
+        
 
         # Navigation buttons
         - button:
@@ -1567,7 +1516,7 @@ lvgl:
             y: 10
             widgets:
               - label:
-                  text: "LIGHT AUTOMATION SETTINGS"
+                  text: "LIGHT SETTINGS"
                   text_font: roboto24
                   align: center
                   text_color: 0xFFFFFF
