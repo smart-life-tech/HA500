@@ -205,7 +205,7 @@ wifi:
   # Added parameters for better connection reliability
   power_save_mode: NONE
   # fast_connect: true
-  # reboot_timeout: 15min
+  reboot_timeout: 0s
 
   # Existing fallback AP configuration
   ap:
@@ -1205,25 +1205,25 @@ lvgl:
             width: 460
             height: 100
             bg_color: 0x000000
-            bg_opa: 30%
+            bg_opa: 10%
             radius: 10
             x: 10
             y: 310
             widgets:
-              # - label:
-              #     id: irrigation_summary_line1
-              #     text: !lambda |-
-              #       static char line1_text[60];
-              #       snprintf(line1_text, sizeof(line1_text), 
-              #               "Field: %.1fm² | Flow: %.1fL/min", 
-              #               id(field_area_m2), id(valve_liters_per_minute));
-              #       return line1_text;
-              #     text_font: roboto
-              #     text_color: 0xCCCCCC
-              #     align: center
-              #     x: 0
-              #     y: 65
-              #     border_width: 0
+              - label:
+                  id: irrigation_summary_line1
+                  text: !lambda |-
+                    static char line1_text[60];
+                    snprintf(line1_text, sizeof(line1_text), 
+                            "Field: %.1fm² | Flow: %.1fL/min", 
+                            id(field_area_m2), id(valve_liters_per_minute));
+                    return line1_text;
+                  text_font: roboto
+                  text_color: 0xCCCCCC
+                  align: center
+                  x: 0
+                  y: 0
+                  border_width: 0
 
               - label:
                   id: irrigation_summary_line2
@@ -1237,7 +1237,7 @@ lvgl:
                   text_color: 0xCCCCCC
                   align: center
                   x: 0
-                  y: 85
+                  y: 20
                   border_width: 0
 
         # Navigation buttons
@@ -2010,6 +2010,7 @@ lvgl:
                   text_font: roboto24
                   align: center
                   text_color: 0xFFFFFF
+                  border_width: 0
                   x: 0
                   y: 5
                   scrollable: false
@@ -2024,7 +2025,7 @@ lvgl:
             width: 460
             height: 120
             bg_color: 0x000000
-            #bg_opa: 50%
+            bg_opa: 0%
             radius: 10
             x: 10
             y: 70
@@ -2196,9 +2197,11 @@ lvgl:
             height: 110
             bg_color: 0x000000
             bg_opa: 0%
+            scrollable: false
+            border_width: 0
             radius: 10
             x: 10
-            y: 220
+            y: 230
             widgets:
               - label:
                   text: "Weather Impact"
@@ -2271,12 +2274,14 @@ lvgl:
             bg_color: 0x000000
             bg_opa: 0%
             radius: 10
+            scrollable: false
+            border_width: 0
             x: 10
             y: 350
             widgets:
               - button:
                   id: winter_summer_toggle
-                  x: 10
+                  x: 2
                   y: 10
                   width: 150
                   height: 60
@@ -2313,7 +2318,7 @@ lvgl:
 
               - button:
                   id: manual_irrigation_btn
-                  x: 170
+                  x: 160
                   y: 10
                   width: 130
                   height: 60
@@ -2330,7 +2335,7 @@ lvgl:
 
               - button:
                   id: back_to_controls_btn
-                  x: 310
+                  x: 300
                   y: 10
                   width: 150
                   height: 60
