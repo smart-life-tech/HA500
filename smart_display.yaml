@@ -1083,6 +1083,7 @@ lvgl:
             widgets:
               - label:
                   id: status_label
+                  hidden: true
                   text: "Ready"
                   text_color: 0xFFFFFF
                   text_font: roboto
@@ -2610,7 +2611,7 @@ script:
           then:
             - lvgl.label.update:
                 id: status_label
-                text: "Web portal active"
+                text: " "
                 text_color: ha_blue
             - logger.log: 
                 format: "Web portal active at http://%s"
