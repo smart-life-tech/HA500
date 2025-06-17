@@ -1219,7 +1219,7 @@ lvgl:
                             id(field_area_m2), id(valve_liters_per_minute));
                     return line1_text;
                   text_font: roboto
-                  text_color: 0xCCCCCC
+                  text_color: black_color
                   align: center
                   x: 0
                   y: 0
@@ -1234,7 +1234,7 @@ lvgl:
                             id(calculated_evaporation_liters), id(irrigation_needed_liters));
                     return line2_text;
                   text_font: roboto
-                  text_color: 0xCCCCCC
+                  text_color: black_color
                   align: center
                   x: 0
                   y: 20
@@ -1312,7 +1312,9 @@ lvgl:
             width: 460
             height: 120
             bg_color: 0x000000
-            bg_opa: 50%
+            bg_opa: 20%
+            border_width: 0
+            scrollable: false
             radius: 10
             x: 10
             y: 80
@@ -1394,7 +1396,7 @@ lvgl:
                       if (id(valve_training_mode)) {
                         return lv_color_hex(0xFFA500);  // Orange
                       }
-                      return lv_color_hex(0xFFFFFF);  // White
+                      return lv_color_hex(0xCCCCCC);  // GREY
                   on_click:
                     then:
                       - script.execute: start_valve_training
@@ -1558,6 +1560,7 @@ lvgl:
             bg_color: 0x000000
             bg_opa: 50%
             radius: 10
+            scrollable: false
             x: 10
             y: 70
             widgets:
@@ -1689,6 +1692,7 @@ lvgl:
             bg_color: 0x000000
             bg_opa: 50%
             radius: 10
+            scrollable: false
             x: 10
             y: 200
             widgets:
@@ -1756,6 +1760,7 @@ lvgl:
                   text: "Manual Control Settings"
                   text_font: roboto24
                   text_color: 0xFFFFFF
+                  scrollable: false
                   x: 10
                   y: 5
               
@@ -2006,7 +2011,7 @@ lvgl:
             scrollable: false
             widgets:
               - label:
-                  text: "PUMP & IRRIGATION SETTINGS"
+                  text: "VALVE SETTINGS - WATER FILL/RELEASE"
                   text_font: roboto24
                   align: center
                   text_color: 0xFFFFFF
@@ -2101,8 +2106,8 @@ lvgl:
             scrollable: false
             width: 460
             height: 160
-            bg_color: 0x000000
-            #bg_opa: 50%
+            #bg_color: 0x000000
+            bg_opa: 20%
             radius: 10
             x: 10
             y: 70
@@ -2147,7 +2152,7 @@ lvgl:
                   y: 60
                   text_color: 0xFFFFFF
               - label:
-                  text: "Irrigation Needed:"
+                  text: ""
                   text_font: roboto
                   x: 10
                   y: 85
