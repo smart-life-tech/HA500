@@ -991,199 +991,7 @@ lvgl:
                   border_width: 0
                   width: 480
                   scrollable: false # Add this
-        - obj:
-            id: wifi_popup_obj
-            hidden: true
-            x: 50
-            y: 80
-            width: 380
-            height: 320
-            #bg_color: 0x000000
-            bg_opa: 100%
-            radius: 15
-            border_width: 2
-            border_color: 0x1E3A8A
-            widgets:
-              # Popup title
-              - label:
-                  text: "WiFi Status Information"
-                  text_font: roboto24
-                  text_color: 0xFFFFFF
-                  align: center
-                  x: 0
-                  y: 10
-                  width: 380
-
-              # Close button
-              - button:
-                  x: 340
-                  y: 10
-                  width: 30
-                  height: 30
-                  widgets:
-                    - label:
-                        text: "×"
-                        text_font: roboto24
-                        align: center
-                        text_color: 0xFFFFFF
-                  on_click:
-                    then:
-                      - script.execute: toggle_wifi_popup
-
-              # WiFi Status
-              - label:
-                  text: "Status:"
-                  text_font: roboto
-                  text_color: 0xCCCCCC
-                  x: 10
-                  y: 50
-              - label:
-                  id: wifi_status_text
-                  text: "Checking..."
-                  text_font: roboto
-                  text_color: 0xFFFFFF
-                  x: 80
-                  y: 50
-
-              # SSID
-              - label:
-                  text: "SSID:"
-                  text_font: roboto
-                  text_color: 0xCCCCCC
-                  x: 10
-                  y: 75
-              - label:
-                  id: wifi_ssid_text
-                  text: "N/A"
-                  text_font: roboto
-                  text_color: 0xFFFFFF
-                  x: 80
-                  y: 75
-
-              # BSSID
-              - label:
-                  text: "BSSID:"
-                  text_font: roboto
-                  text_color: 0xCCCCCC
-                  x: 10
-                  y: 100
-              - label:
-                  id: wifi_bssid_text
-                  text: "N/A"
-                  text_font: roboto
-                  text_color: 0xFFFFFF
-                  x: 80
-                  y: 100
-                  width: 280
-
-              # RSSI
-              - label:
-                  text: "Signal:"
-                  text_font: roboto
-                  text_color: 0xCCCCCC
-                  x: 10
-                  y: 125
-              - label:
-                  id: wifi_rssi_text
-                  text: "N/A"
-                  text_font: roboto
-                  text_color: 0xFFFFFF
-                  x: 80
-                  y: 125
-
-              # IP Address
-              - label:
-                  text: "IP:"
-                  text_font: roboto
-                  text_color: 0xCCCCCC
-                  x: 10
-                  y: 150
-              - label:
-                  id: wifi_ip_text
-                  text: "N/A"
-                  text_font: roboto
-                  text_color: 0xFFFFFF
-                  x: 80
-                  y: 150
-
-              # Gateway
-              - label:
-                  text: "Gateway:"
-                  text_font: roboto
-                  text_color: 0xCCCCCC
-                  x: 10
-                  y: 175
-              - label:
-                  id: wifi_gateway_text
-                  text: "N/A"
-                  text_font: roboto
-                  text_color: 0xFFFFFF
-                  x: 80
-                  y: 175
-
-              # Subnet
-              - label:
-                  text: "Subnet:"
-                  text_font: roboto
-                  text_color: 0xCCCCCC
-                  x: 10
-                  y: 200
-              - label:
-                  id: wifi_subnet_text
-                  text: "N/A"
-                  text_font: roboto
-                  text_color: 0xFFFFFF
-                  x: 80
-                  y: 200
-
-              # DNS
-              - label:
-                  text: "DNS:"
-                  text_font: roboto
-                  text_color: 0xCCCCCC
-                  x: 10
-                  y: 225
-              - label:
-                  id: wifi_dns_text
-                  text: "N/A"
-                  text_font: roboto
-                  text_color: 0xFFFFFF
-                  x: 80
-                  y: 225
-
-              # MAC Address
-              - label:
-                  text: "MAC:"
-                  text_font: roboto
-                  text_color: 0xCCCCCC
-                  x: 10
-                  y: 250
-              - label:
-                  id: wifi_mac_text
-                  text: "N/A"
-                  text_font: roboto
-                  text_color: 0xFFFFFF
-                  x: 80
-                  y: 250
-                  width: 280
-
-              # Refresh button
-              - button:
-                  x: 10
-                  y: 280
-                  width: 100
-                  height: 30
-                  widgets:
-                    - label:
-                        text: "Refresh"
-                        text_font: roboto
-                        align: center
-                  on_click:
-                    then:
-                      - script.execute: toggle_wifi_popup
-                      - delay: 100ms
-                      - script.execute: toggle_wifi_popup
-
+        
         # Weather section - semi-transparent overlay
         - obj:
             width: 460
@@ -1368,7 +1176,7 @@ lvgl:
                   text_font: roboto
                   x: 0
                   y: 30
-
+        
         # Navigation buttons
         - button:
             id: controls_nav_button
@@ -1385,6 +1193,200 @@ lvgl:
             on_click:
               then:
                 - lvgl.page.next:
+        - obj:
+            id: wifi_popup_obj
+            hidden: true
+            x: 50
+            y: 80
+            width: 380
+            height: 340
+            bg_color: 0x000000
+            bg_opa: 100%
+            radius: 15
+            border_width: 2
+            border_color: 0x1E3A8A
+            clickable: true
+            flag_clickable: true
+            widgets:
+              # Popup title
+              - label:
+                  text: "WiFi Status Information"
+                  text_font: roboto24
+                  text_color: 0xFFFFFF
+                  align: center
+                  x: 0
+                  y: 10
+                  width: 380
+
+              # Close button
+              - button:
+                  x: 340
+                  y: 10
+                  width: 30
+                  height: 30
+                  widgets:
+                    - label:
+                        text: "×"
+                        text_font: roboto24
+                        align: center
+                        text_color: 0xFFFFFF
+                  on_click:
+                    then:
+                      - script.execute: toggle_wifi_popup
+
+              # WiFi Status
+              - label:
+                  text: "Status:"
+                  text_font: roboto
+                  text_color: 0xCCCCCC
+                  x: 10
+                  y: 50
+              - label:
+                  id: wifi_status_text
+                  text: "Checking..."
+                  text_font: roboto
+                  text_color: 0xFFFFFF
+                  x: 80
+                  y: 50
+
+              # SSID
+              - label:
+                  text: "SSID:"
+                  text_font: roboto
+                  text_color: 0xCCCCCC
+                  x: 10
+                  y: 75
+              - label:
+                  id: wifi_ssid_text
+                  text: "N/A"
+                  text_font: roboto
+                  text_color: 0xFFFFFF
+                  x: 80
+                  y: 75
+
+              # BSSID
+              - label:
+                  text: "BSSID:"
+                  text_font: roboto
+                  text_color: 0xCCCCCC
+                  x: 10
+                  y: 100
+              - label:
+                  id: wifi_bssid_text
+                  text: "N/A"
+                  text_font: roboto
+                  text_color: 0xFFFFFF
+                  x: 80
+                  y: 100
+                  width: 280
+
+              # RSSI
+              - label:
+                  text: "Signal:"
+                  text_font: roboto
+                  text_color: 0xCCCCCC
+                  x: 10
+                  y: 125
+              - label:
+                  id: wifi_rssi_text
+                  text: "N/A"
+                  text_font: roboto
+                  text_color: 0xFFFFFF
+                  x: 80
+                  y: 125
+
+              # IP Address
+              - label:
+                  text: "IP:"
+                  text_font: roboto
+                  text_color: 0xCCCCCC
+                  x: 10
+                  y: 150
+              - label:
+                  id: wifi_ip_text
+                  text: "N/A"
+                  text_font: roboto
+                  text_color: 0xFFFFFF
+                  x: 80
+                  y: 150
+
+              # Gateway
+              - label:
+                  text: "Gateway:"
+                  text_font: roboto
+                  text_color: 0xCCCCCC
+                  x: 10
+                  y: 175
+              - label:
+                  id: wifi_gateway_text
+                  text: "N/A"
+                  text_font: roboto
+                  text_color: 0xFFFFFF
+                  x: 80
+                  y: 175
+
+              # Subnet
+              - label:
+                  text: "Subnet:"
+                  text_font: roboto
+                  text_color: 0xCCCCCC
+                  x: 10
+                  y: 200
+              - label:
+                  id: wifi_subnet_text
+                  text: "N/A"
+                  text_font: roboto
+                  text_color: 0xFFFFFF
+                  x: 80
+                  y: 200
+
+              # DNS
+              - label:
+                  text: "DNS:"
+                  text_font: roboto
+                  text_color: 0xCCCCCC
+                  x: 10
+                  y: 225
+              - label:
+                  id: wifi_dns_text
+                  text: "N/A"
+                  text_font: roboto
+                  text_color: 0xFFFFFF
+                  x: 80
+                  y: 225
+
+              # MAC Address
+              - label:
+                  text: "MAC:"
+                  text_font: roboto
+                  text_color: 0xCCCCCC
+                  x: 10
+                  y: 250
+              - label:
+                  id: wifi_mac_text
+                  text: "N/A"
+                  text_font: roboto
+                  text_color: 0xFFFFFF
+                  x: 80
+                  y: 250
+                  width: 280
+
+              # Refresh button
+              - button:
+                  x: 10
+                  y: 280
+                  width: 100
+                  height: 30
+                  widgets:
+                    - label:
+                        text: "Refresh"
+                        text_font: roboto
+                        align: center
+                  on_click:
+                    then:
+                      - script.execute: toggle_wifi_popup
+                      - delay: 100ms
+                      - script.execute: toggle_wifi_popup
 
     # Controls Page - Light Control Buttons
     - id: controls_page
@@ -1579,17 +1581,17 @@ lvgl:
                 # QR Code settings container (replaces location settings)
         - obj:
             width: 460
-            height: 100
+            height: 120
             bg_color: 0x000000
             bg_opa: 0%
             border_width: 0
             scrollable: false
             radius: 10
             x: 10
-            y: 70
+            y: 60
             widgets:
               - label:
-                  text: "Scan QR code"
+                  text: "Scan QR Code"
                   text_font: roboto24
                   text_color: 0xFFFFFF
                   x: 10
@@ -1599,7 +1601,7 @@ lvgl:
                   text: "configure device via web:"
                   text_font: roboto
                   x: 10
-                  y: 0
+                  y: 30
                   text_color: 0xCCCCCC
                   align: center
 
@@ -1632,7 +1634,7 @@ lvgl:
                     return "Waiting for IP address...";
                   text_font: roboto
                   x: 10
-                  y: 45
+                  y: 40
                   text_color: 0xFFFFFF
                   width: 320
                   align: center
