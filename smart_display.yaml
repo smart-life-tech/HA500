@@ -919,7 +919,7 @@ lvgl:
             widgets:
               - image:
                   src: wifi_icon
-                  x: 2
+                  x: 0
                   y: 1
                   width: 50
                   height: 50
@@ -998,8 +998,8 @@ lvgl:
             y: 80
             width: 380
             height: 320
-            bg_color: 0x000000
-            bg_opa: 90%
+            #bg_color: 0x000000
+            bg_opa: 100%
             radius: 15
             border_width: 2
             border_color: 0x1E3A8A
@@ -1579,27 +1579,27 @@ lvgl:
                 # QR Code settings container (replaces location settings)
         - obj:
             width: 460
-            height: 120
+            height: 100
             bg_color: 0x000000
-            bg_opa: 20%
+            bg_opa: 0%
             border_width: 0
             scrollable: false
             radius: 10
             x: 10
-            y: 80
+            y: 70
             widgets:
               - label:
-                  text: "Device Settings Over Web"
+                  text: "Scan QR code"
                   text_font: roboto24
                   text_color: 0xFFFFFF
                   x: 10
                   y: 0
                   align: center
               - label:
-                  text: "Scan QR code to configure device via web:"
+                  text: "configure device via web:"
                   text_font: roboto
                   x: 10
-                  y: 30
+                  y: 0
                   text_color: 0xCCCCCC
                   align: center
 
@@ -1700,9 +1700,9 @@ lvgl:
                   id: sw3_mode_label
                   text: !lambda |-
                     if (id(sw3_winter_mode)) {
-                      return "SW3 Mode: Winter (Rain-based)";
+                      return "Valve: Winter (Rain-based)";
                     } else {
-                      return "SW3 Mode: Summer (Temperature-based)";
+                      return "Valve: Summer (Temperature-based)";
                     }
                   text_font: roboto
                   align: center
@@ -1716,7 +1716,7 @@ lvgl:
                     then:
                       - lvgl.label.update:
                           id: sw3_mode_label
-                          text: "SW3 Mode: Winter (Rain-based)"
+                          text: "Valve: Winter (Rain-based)"
                       - lvgl.label.update:
                           id: sw3_button_label
                           text: "Weather Light (Winter)"
@@ -2273,7 +2273,7 @@ lvgl:
                       - lambda: |-
                           id(current_page) = 1;  // Set current page to settings
 
-        # Irrigation Calculations Section
+        # WaterCalculations Section
         - obj:
             scrollable: false
             width: 460
@@ -2338,7 +2338,7 @@ lvgl:
                       snprintf(need_text, sizeof(need_text), "%.1f L (%.1f min)", 
                               id(irrigation_needed_liters), minutes_needed);
                     } else {
-                      snprintf(need_text, sizeof(need_text), "0 L (No irrigation needed)");
+                      snprintf(need_text, sizeof(need_text), "0 L (No Water needed)");
                     }
                     return need_text;
                   text_font: roboto
@@ -2348,7 +2348,7 @@ lvgl:
                     if (id(irrigation_needed_liters) > 0) {
                       return lv_color_hex(0xFFA500);  // Orange
                     }
-                    return lv_color_hex(0x00FF00);  // Green - no irrigation needed
+                    return lv_color_hex(0x00FF00);  // Green - no Water needed
               - label:
                   text: "Mode:"
                   text_font: roboto
@@ -2430,11 +2430,11 @@ lvgl:
                   id: weather_recommendation
                   text: !lambda |-
                     if (id(irrigation_needed_liters) > 20) {
-                      return " High irrigation needs - Check valve operation";
+                      return " High Water needs - Check valve operation";
                     } else if (id(irrigation_needed_liters) > 5) {
-                      return " Moderate irrigation recommended";
+                      return " Moderate Water recommended";
                     } else if (id(daily_rainfall_mm) > 10) {
-                      return " Recent rainfall - Irrigation not needed";
+                      return " Recent rainfall - Water not needed";
                     } else {
                       return " Water levels optimal";
                     }
@@ -2632,13 +2632,13 @@ switch:
                   if (id(irrigation_needed_liters) > 0 && id(valve_liters_per_minute) > 0) {
                     estimated_minutes = id(irrigation_needed_liters) / id(valve_liters_per_minute);
                   }
-                  ESP_LOGI("irrigation", "Irrigation started - estimated %.1f minutes needed", estimated_minutes);
+                  ESP_LOGI("irrigation", "Water started - estimated %.1f minutes needed", estimated_minutes);
               - lvgl.label.update:
                   id: status_label
                   text: !lambda |-
                     static char msg[80];
                     float est_min = id(irrigation_needed_liters) / id(valve_liters_per_minute);
-                    snprintf(msg, sizeof(msg), "Irrigation ON (est. %.1f min)", est_min);
+                    snprintf(msg, sizeof(msg), "Water ON (est. %.1f min)", est_min);
                     return msg;
                   text_color: green_color
         - lvgl.widget.update:
@@ -2682,10 +2682,10 @@ switch:
                   text_color: blue_color
             else:
               - lambda: |-
-                  ESP_LOGI("irrigation", "Irrigation stopped");
+                  ESP_LOGI("irrigation", "Watering stopped");
               - lvgl.label.update:
                   id: status_label
-                  text: "Irrigation Valve OFF"
+                  text: "Watering Valve OFF"
                   text_color: red_color
         - lvgl.widget.update:
             id: sw3_button
@@ -2818,7 +2818,7 @@ script:
           id(irrigation_needed_liters) = id(calculated_evaporation_liters) - (id(daily_rainfall_mm) * id(field_area_m2) / 1000.0);
           if (id(irrigation_needed_liters) < 0) id(irrigation_needed_liters) = 0;
 
-          ESP_LOGI("irrigation", "Calculated evaporation: %.1fL, irrigation needed: %.1fL", 
+          ESP_LOGI("irrigation", "Calculated evaporation: %.1fL, Watering needed: %.1fL", 
                   id(calculated_evaporation_liters), id(irrigation_needed_liters));
 
   - id: start_valve_training
@@ -3101,7 +3101,7 @@ script:
               // Reset irrigation needs after watering
               id(irrigation_needed_liters) = std::max(0.0f, id(irrigation_needed_liters) - 
                                                       (id(valve_liters_per_minute) * ((now.timestamp - (id(sw3_off_time) - 1800)) / 60.0f)));
-              ESP_LOGI("automation", "SW3 irrigation completed");
+              ESP_LOGI("automation", "SW3 watering completed");
             }
           }
 
@@ -3174,7 +3174,7 @@ touchscreen:
     - lambda: |-
         ESP_LOGD("touch", "Touch at (%d, %d)", touch.x, touch.y);
         // Check if touch is in top-left WiFi area (x: 0-60, y: 50-100)
-        if (touch.x <= 60 && touch.y >= 50 && touch.y <= 100) {
+        if (touch.x <= 100 && touch.y >= 5 && touch.y <= 100) {
           ESP_LOGD("touch", "WiFi area touched at (%d, %d)", touch.x, touch.y);
           // execute the page toggle script 
           id(toggle_wifi_popup).execute();
