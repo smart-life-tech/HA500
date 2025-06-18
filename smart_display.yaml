@@ -910,18 +910,19 @@ lvgl:
           #       - script.execute: toggle_wifi_popup
         - obj:
             width: 50
-            scrollable: false 
+            scrollable: false
             height: 50
             bg_opa: 0%
             x: 10
             y: 10
+            border_width: 0
             widgets:
               - image:
                   src: wifi_icon
                   x: 2
-                  y: 10
-                  width: 30
-                  height: 30
+                  y: 1
+                  width: 50
+                  height: 50
                   bg_opa: 0% # Transparent background
                   border_width: 0
             on_click:
@@ -1592,7 +1593,7 @@ lvgl:
                   text_font: roboto24
                   text_color: 0xFFFFFF
                   x: 10
-                  y: 10
+                  y: 0
                   align: center
               - label:
                   text: "Scan QR code to configure device via web:"
@@ -1690,7 +1691,7 @@ lvgl:
             width: 460
             height: 60
             x: 10
-            y: 310
+            y: 320
             checkable: true
             state:
               checked: !lambda "return id(sw3_winter_mode);"
@@ -3172,6 +3173,13 @@ touchscreen:
   on_touch:
     - lambda: |-
         ESP_LOGD("touch", "Touch at (%d, %d)", touch.x, touch.y);
+        // Check if touch is in top-left WiFi area (x: 0-60, y: 50-100)
+        if (touch.x <= 60 && touch.y >= 50 && touch.y <= 100) {
+          ESP_LOGD("touch", "WiFi area touched at (%d, %d)", touch.x, touch.y);
+          // execute the page toggle script 
+          id(toggle_wifi_popup).execute();
+          return; // Exit early if WiFi area touched
+          }
         if (!id(touch_active)) {
           // Store initial touch position
           id(touch_start_y) = touch.y;
@@ -3200,7 +3208,7 @@ touchscreen:
         }
     - if:
         condition:
-          lambda: "return (id(touch_start_y) - id(touch_end_y)) > 80;"
+          lambda: "return (id(touch_start_y) - id(touch_end_y)) > 20;"
         then:
           - lvgl.page.next:
     - if:
@@ -3280,7 +3288,7 @@ image:
 
   - file: "images/wifi.png"
     id: wifi_icon
-    resize: 30x30
+    resize: 50x50
     type: RGB565
 
   - file: "images/cloud.png"
