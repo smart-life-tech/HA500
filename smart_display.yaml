@@ -908,18 +908,19 @@ lvgl:
           # on_click:
           #     then:
           #       - script.execute: toggle_wifi_popup
-          widgets:
-            - image:
-                src: wifi_icon
-                x: 2
-                y: 10
-                width: 30
-                height: 30
-                bg_opa: 0% # Transparent background
-                border_width: 0
-          on_click:
-            then:
-              - script.execute: toggle_wifi_popup
+        - obj:
+            widgets:
+              - image:
+                  src: wifi_icon
+                  x: 2
+                  y: 10
+                  width: 30
+                  height: 30
+                  bg_opa: 0% # Transparent background
+                  border_width: 0
+            on_click:
+              then:
+                - script.execute: toggle_wifi_popup
         # Title Bar
         - obj:
             width: 460
