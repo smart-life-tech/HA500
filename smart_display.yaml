@@ -1599,7 +1599,7 @@ lvgl:
                   text: "Scan QR code to configure device via web:"
                   text_font: roboto
                   x: 10
-                  y: 40
+                  y: 30
                   text_color: 0xCCCCCC
                   align: center
 
@@ -1632,7 +1632,7 @@ lvgl:
                     return "Waiting for IP address...";
                   text_font: roboto
                   x: 10
-                  y: 65
+                  y: 45
                   text_color: 0xFFFFFF
                   width: 320
                   align: center
