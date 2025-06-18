@@ -1213,14 +1213,14 @@ lvgl:
                   text: "WiFi Status Information"
                   text_font: roboto24
                   text_color: 0xFFFFFF
-                  align: center
+    
                   x: 0
                   y: 10
                   width: 380
 
               # Close button
               - button:
-                  x: 340
+                  x: 330
                   y: 10
                   width: 30
                   height: 30
@@ -1588,7 +1588,7 @@ lvgl:
             scrollable: false
             radius: 10
             x: 10
-            y: 60
+            y: 50
             widgets:
               - label:
                   text: "Scan QR Code"
@@ -1633,8 +1633,8 @@ lvgl:
                     }
                     return "Waiting for IP address...";
                   text_font: roboto
-                  x: 10
-                  y: 40
+                  x: 50
+                  y: 50
                   text_color: 0xFFFFFF
                   width: 320
                   align: center
@@ -1651,7 +1651,7 @@ lvgl:
             widgets:
               - qrcode:
                   id: settings_qr
-                  x: 200
+                  x: 170
                   y: 10
                   light_color: whitesmoke
                   dark_color: steelblue
