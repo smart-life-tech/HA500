@@ -75,21 +75,26 @@ ota:
         - logger.log: "OTA start"
         - light.turn_on: backlight
         - lvgl.resume:
-        - lvgl.widget.show: popup_obj
+        #- lvgl.widget.show: popup_obj
         - lvgl.resume:
         - lvgl.widget.redraw:
-    on_progress:
-      then:
-        - lvgl.bar.update:
-            id: popup_pb_percentage
-            value: !lambda "return (int)x;"
-        - lvgl.label.update:
-            id: popup_lbl_percentage
-            text:
-              format: "OTA progress %0.1f%%"
-              args: ["x"]
-        - lambda: "id(lvgl_comp).loop();"
+    # on_progress:
+    #   then:
+    #     - lvgl.bar.update:
+    #         id: popup_pb_percentage
+    #         value: !lambda "return (int)x;"
+    #     - lvgl.label.update:
+    #         id: popup_lbl_percentage
+    #         text:
+    #           format: "OTA progress %0.1f%%"
+    #           args: ["x"]
+    #     - lambda: "id(lvgl_comp).loop();"
 sensor:
+  - platform: wifi_signal
+    name: "WiFi Signal"
+    id: wifi_rssi
+    update_interval: 60s
+
   - platform: template
     name: "Daily Evaporation"
     id: daily_evaporation_sensor
@@ -453,6 +458,48 @@ binary_sensor:
     lambda: 'return id(valve_training_mode);'
 
 text_sensor:
+  - platform: wifi_info
+    ssid:
+      name: "Connected SSID"
+      id: wifi_ssid
+      entity_category: diagnostic
+    bssid:
+      name: "Connected BSSID"
+      id: wifi_bssid
+      entity_category: diagnostic
+    mac_address:
+      name: "Mac Address"
+      id: wifi_mac
+      entity_category: diagnostic
+    scan_results:
+      name: "WiFi Scan Results"
+      id: wifi_scan
+      entity_category: diagnostic
+
+  - platform: template
+    name: "WiFi Gateway"
+    id: wifi_gateway
+    lambda: |-
+      auto gateway = wifi::global_wifi_component->wifi_sta_ip_config().gateway;
+      return gateway.str();
+    update_interval: 60s
+
+  - platform: template
+    name: "WiFi Subnet"
+    id: wifi_subnet
+    lambda: |-
+      auto subnet = wifi::global_wifi_component->wifi_sta_ip_config().subnet;
+      return subnet.str();
+    update_interval: 60s
+
+  - platform: template
+    name: "WiFi DNS"
+    id: wifi_dns
+    lambda: |-
+      auto dns1 = wifi::global_wifi_component->wifi_sta_ip_config().dns1;
+      return dns1.str();
+    update_interval: 60s
+
   - platform: template
     id: weather_condition
     name: "Weather Condition"
@@ -576,7 +623,12 @@ globals:
     type: float
     restore_value: yes
     initial_value: "48.0"  # Default 48 m² field area
-  
+
+  - id: wifi_popup_visible
+    type: bool
+    restore_value: no
+    initial_value: "false"
+
   - id: valve_training_mode
     type: bool
     restore_value: yes
@@ -850,7 +902,21 @@ lvgl:
             width: 480
             height: 480
             align: TOP_LEFT
-
+        - image:
+            src: wifi_icon
+            x: 10
+            y: 10
+            width: 52
+            height: 52
+            bg_opa: 0%  # Transparent background
+            border_width: 0
+            widgets:
+              - image:
+                  src: wifi_icon
+                  align: center
+            on_click:
+              then:
+                - script.execute: toggle_wifi_popup
         # Title Bar
         - obj:
             width: 460
@@ -914,8 +980,200 @@ lvgl:
                   border_width: 0
                   width: 480
                   scrollable: false # Add this
+        - obj:
+            id: wifi_popup_obj
+            hidden: true
+            x: 50
+            y: 80
+            width: 380
+            height: 320
+            bg_color: 0x000000
+            bg_opa: 90%
+            radius: 15
+            border_width: 2
+            border_color: 0x1E3A8A
+            widgets:
+              # Popup title
+              - label:
+                  text: "WiFi Status Information"
+                  text_font: roboto24
+                  text_color: 0xFFFFFF
+                  align: center
+                  x: 0
+                  y: 10
+                  width: 380
 
-            # Weather section - semi-transparent overlay
+              # Close button
+              - button:
+                  x: 340
+                  y: 10
+                  width: 30
+                  height: 30
+                  widgets:
+                    - label:
+                        text: "×"
+                        text_font: roboto24
+                        align: center
+                        text_color: 0xFFFFFF
+                  on_click:
+                    then:
+                      - script.execute: toggle_wifi_popup
+
+              # WiFi Status
+              - label:
+                  text: "Status:"
+                  text_font: roboto
+                  text_color: 0xCCCCCC
+                  x: 10
+                  y: 50
+              - label:
+                  id: wifi_status_text
+                  text: "Checking..."
+                  text_font: roboto
+                  text_color: 0xFFFFFF
+                  x: 80
+                  y: 50
+
+              # SSID
+              - label:
+                  text: "SSID:"
+                  text_font: roboto
+                  text_color: 0xCCCCCC
+                  x: 10
+                  y: 75
+              - label:
+                  id: wifi_ssid_text
+                  text: "N/A"
+                  text_font: roboto
+                  text_color: 0xFFFFFF
+                  x: 80
+                  y: 75
+
+              # BSSID
+              - label:
+                  text: "BSSID:"
+                  text_font: roboto
+                  text_color: 0xCCCCCC
+                  x: 10
+                  y: 100
+              - label:
+                  id: wifi_bssid_text
+                  text: "N/A"
+                  text_font: roboto
+                  text_color: 0xFFFFFF
+                  x: 80
+                  y: 100
+                  width: 280
+
+              # RSSI
+              - label:
+                  text: "Signal:"
+                  text_font: roboto
+                  text_color: 0xCCCCCC
+                  x: 10
+                  y: 125
+              - label:
+                  id: wifi_rssi_text
+                  text: "N/A"
+                  text_font: roboto
+                  text_color: 0xFFFFFF
+                  x: 80
+                  y: 125
+
+              # IP Address
+              - label:
+                  text: "IP:"
+                  text_font: roboto
+                  text_color: 0xCCCCCC
+                  x: 10
+                  y: 150
+              - label:
+                  id: wifi_ip_text
+                  text: "N/A"
+                  text_font: roboto
+                  text_color: 0xFFFFFF
+                  x: 80
+                  y: 150
+
+              # Gateway
+              - label:
+                  text: "Gateway:"
+                  text_font: roboto
+                  text_color: 0xCCCCCC
+                  x: 10
+                  y: 175
+              - label:
+                  id: wifi_gateway_text
+                  text: "N/A"
+                  text_font: roboto
+                  text_color: 0xFFFFFF
+                  x: 80
+                  y: 175
+
+              # Subnet
+              - label:
+                  text: "Subnet:"
+                  text_font: roboto
+                  text_color: 0xCCCCCC
+                  x: 10
+                  y: 200
+              - label:
+                  id: wifi_subnet_text
+                  text: "N/A"
+                  text_font: roboto
+                  text_color: 0xFFFFFF
+                  x: 80
+                  y: 200
+
+              # DNS
+              - label:
+                  text: "DNS:"
+                  text_font: roboto
+                  text_color: 0xCCCCCC
+                  x: 10
+                  y: 225
+              - label:
+                  id: wifi_dns_text
+                  text: "N/A"
+                  text_font: roboto
+                  text_color: 0xFFFFFF
+                  x: 80
+                  y: 225
+
+              # MAC Address
+              - label:
+                  text: "MAC:"
+                  text_font: roboto
+                  text_color: 0xCCCCCC
+                  x: 10
+                  y: 250
+              - label:
+                  id: wifi_mac_text
+                  text: "N/A"
+                  text_font: roboto
+                  text_color: 0xFFFFFF
+                  x: 80
+                  y: 250
+                  width: 280
+
+              # Refresh button
+              - button:
+                  x: 10
+                  y: 280
+                  width: 100
+                  height: 30
+                  widgets:
+                    - label:
+                        text: "Refresh"
+                        text_font: roboto
+                        align: center
+                  on_click:
+                    then:
+                      - script.execute: toggle_wifi_popup
+                      - delay: 100ms
+                      - script.execute: toggle_wifi_popup
+                      
+        # Weather section - semi-transparent overlay
         - obj:
             width: 460
             height: 250 # Increased height to fit more info
@@ -1300,7 +1558,7 @@ lvgl:
             y: 10
             widgets:
               - label:
-                  text: "SETTINGS"
+                  text: "DEVICE SETTINGS"
                   text_font: roboto24
                   align: center
                   text_color: 0xFFFFFF
@@ -1320,7 +1578,7 @@ lvgl:
             y: 80
             widgets:
               - label:
-                  text: "Device Settings"
+                  text: "Device Settings Over Web"
                   text_font: roboto24
                   text_color: 0xFFFFFF
                   x: 10
@@ -1331,18 +1589,7 @@ lvgl:
                   x: 10
                   y: 40
                   text_color: 0xCCCCCC
-              - qrcode:
-                  id: settings_qr
-                  x: 350
-                  y: 15
-                  light_color: whitesmoke
-                  dark_color: steelblue
-                  size: 90
-                  text: !lambda |-
-                    //if (id(ip_address).has_state() && !id(ip_address).state.empty()) {
-                     return "phijo-smart-device.local/";
-                    //}
-                    //return "http://192.168.4.1/";
+              
               - label:
                   id: qr_url_label
                   text: !lambda |-
@@ -1375,6 +1622,29 @@ lvgl:
                   y: 65
                   text_color: 0xFFFFFF
                   width: 320
+        - obj:
+            width: 460
+            height: 120
+            bg_color: 0x000000
+            bg_opa: 0%
+            border_width: 0
+            scrollable: false
+            radius: 10
+            x: 5
+            y: 220
+            widgets:
+              - qrcode:
+                  id: settings_qr
+                  x: 200
+                  y: 10
+                  light_color: whitesmoke
+                  dark_color: steelblue
+                  size: 90
+                  text: !lambda |-
+                    if (id(ip_address).has_state() && !id(ip_address).state.empty()) {
+                     return "phijo-smart-device.local/";
+                    }
+                    return "http://192.168.4.1/";
 
         - button:
             id: valve_training_btn
@@ -1408,7 +1678,7 @@ lvgl:
             width: 460
             height: 60
             x: 10
-            y: 220
+            y: 400
             checkable: true
             state:
               checked: !lambda "return id(sw3_winter_mode);"
@@ -1480,46 +1750,14 @@ lvgl:
               then:
                 - lvgl.page.next:
 
-        
-        # OTA popup (moved outside pages to be global)
-        - obj:
-            id: popup_obj
-            hidden: true
-            clickable: false
-            x: 0
-            y: 0
-            width: 100%
-            height: 100%
-            pad_all: 10
-            bg_opa: cover
-            widgets:
-              - label:
-                  id: lbl_popup_title
-                  x: 2
-                  y: 2
-                  text: "OTA in progress"
-              - label:
-                  id: popup_lbl_percentage
-                  x: 2
-                  y: 30
-                  width: 100%
-                  text: "0 %"
-              - bar:
-                  id: popup_pb_percentage
-                  x: 2
-                  y: 60
-                  width: 100%
-                  height: 10
-                  max_value: 100
-                  min_value: 0
-                  value: 0
+      
         # Light Automation Settings Page
     - id: light_settings_page
       bg_color: 0x000000
       bg_opa: cover
       pad_all: 0
       border_width: 0
-      scrollable: true
+      scrollable: false
       widgets:
         # Background image
         - image:
@@ -2025,82 +2263,6 @@ lvgl:
                       - lambda: |-
                           id(current_page) = 1;  // Set current page to settings
 
-        # Field Configuration Section
-        - obj:
-            width: 460
-            height: 120
-            bg_color: 0x000000
-            bg_opa: 0%
-            radius: 10
-            x: 10
-            y: 70
-            hidden: true
-            scrollable: false
-            widgets:
-            
-              - label:
-                  text: "Field Configuration"
-                  text_font: roboto24
-                  text_color: 0xFFFFFF
-                  x: 10
-                  y: 5
-              - label:
-                  text: "Field Area:"
-                  text_font: roboto
-                  x: 10
-                  y: 35
-                  text_color: 0xCCCCCC
-              - label:
-                  id: field_area_display
-                  text: !lambda |-
-                    static char area_text[30];
-                    snprintf(area_text, sizeof(area_text), "%.0f m²", id(field_area_m2));
-                    return area_text;
-                  text_font: roboto
-                  x: 120
-                  y: 35
-                  text_color: 0xFFFFFF
-              - label:
-                  text: "Valve Flow Rate:"
-                  text_font: roboto
-                  x: 10
-                  y: 60
-                  text_color: 0xCCCCCC
-              - label:
-                  id: flow_rate_display
-                  text: !lambda |-
-                    static char flow_text[30];
-                    snprintf(flow_text, sizeof(flow_text), "%.1f L/min", id(valve_liters_per_minute));
-                    return flow_text;
-                  text_font: roboto
-                  x: 150
-                  y: 60
-                  text_color: 0xFFFFFF
-              - button:
-                  id: train_valve_btn
-                  x: 320
-                  y: 35
-                  width: 120
-                  height: 50
-                  widgets:
-                    
-                    - label:
-                        text: !lambda |-
-                          if (id(valve_training_mode)) {
-                            return "Training...";
-                          }
-                          return "Train Valve";
-                        text_font: roboto
-                        align: center
-                        text_color: !lambda |-
-                          if (id(valve_training_mode)) {
-                            return lv_color_hex(0xFFA500);  // Orange
-                          }
-                          return lv_color_hex(0xFFFFFF);  // White
-                  on_click:
-                    then:
-                      - script.execute: start_valve_training
-
         # Irrigation Calculations Section
         - obj:
             scrollable: false
@@ -2152,7 +2314,7 @@ lvgl:
                   y: 60
                   text_color: 0xFFFFFF
               - label:
-                  text: ""
+                  text: "Today :"
                   text_font: roboto
                   x: 10
                   y: 85
@@ -2524,6 +2686,86 @@ switch:
 # Scripts for automation logic
 #-------------------------------------------
 script:
+  # ... your existing scripts ...
+  
+  - id: toggle_wifi_popup
+    then:
+      - lambda: |-
+          id(wifi_popup_visible) = !id(wifi_popup_visible);
+      - if:
+          condition:
+            lambda: 'return id(wifi_popup_visible);'
+          then:
+            - lvgl.widget.show: wifi_popup_obj
+            # Update all WiFi info when showing popup
+            - lvgl.label.update:
+                id: wifi_status_text
+                text: !lambda |-
+                  if (wifi::global_wifi_component->is_connected()) {
+                    return "Connected";
+                  } else {
+                    return "Disconnected";
+                  }
+            - lvgl.label.update:
+                id: wifi_ssid_text
+                text: !lambda |-
+                  if (id(wifi_ssid).has_state()) {
+                    return id(wifi_ssid).state.c_str();
+                  }
+                  return "N/A";
+            - lvgl.label.update:
+                id: wifi_bssid_text
+                text: !lambda |-
+                  if (id(wifi_bssid).has_state()) {
+                    return id(wifi_bssid).state.c_str();
+                  }
+                  return "N/A";
+            - lvgl.label.update:
+                id: wifi_rssi_text
+                text: !lambda |-
+                  if (id(wifi_rssi).has_state()) {
+                    static char rssi_text[20];
+                    snprintf(rssi_text, sizeof(rssi_text), "%.0f dBm", id(wifi_rssi).state);
+                    return rssi_text;
+                  }
+                  return "N/A";
+            - lvgl.label.update:
+                id: wifi_ip_text
+                text: !lambda |-
+                  if (id(ip_address).has_state()) {
+                    return id(ip_address).state.c_str();
+                  }
+                  return "N/A";
+            - lvgl.label.update:
+                id: wifi_gateway_text
+                text: !lambda |-
+                  if (id(wifi_gateway).has_state()) {
+                    return id(wifi_gateway).state.c_str();
+                  }
+                  return "N/A";
+            - lvgl.label.update:
+                id: wifi_subnet_text
+                text: !lambda |-
+                  if (id(wifi_subnet).has_state()) {
+                    return id(wifi_subnet).state.c_str();
+                  }
+                  return "N/A";
+            - lvgl.label.update:
+                id: wifi_dns_text
+                text: !lambda |-
+                  if (id(wifi_dns).has_state()) {
+                    return id(wifi_dns).state.c_str();
+                  }
+                  return "N/A";
+            - lvgl.label.update:
+                id: wifi_mac_text
+                text: !lambda |-
+                  if (id(wifi_mac).has_state()) {
+                    return id(wifi_mac).state.c_str();
+                  }
+                  return "N/A";
+          else:
+            - lvgl.widget.hide: wifi_popup_obj
   - id: goto_settings
     then:
       - delay: 1000ms
@@ -3024,10 +3266,10 @@ image:
     resize: 480x480
     type: RGB565
 
-  # - file: "images/weather-sunny.png"
-  #   id: sunny_icon
-  #   resize: 32x32
-  #   type: RGB565
+  - file: "images/wifi.png"
+    id: wifi_icon
+    resize: 52x52
+    type: RGB565
 
   - file: "images/cloud.png"
     id: cloud_icon
