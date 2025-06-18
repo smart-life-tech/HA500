@@ -909,6 +909,12 @@ lvgl:
           #     then:
           #       - script.execute: toggle_wifi_popup
         - obj:
+            width: 50
+            scrollable: false 
+            height: 50
+            bg_opa: 0%
+            x: 10
+            y: 10
             widgets:
               - image:
                   src: wifi_icon
@@ -3274,7 +3280,7 @@ image:
 
   - file: "images/wifi.png"
     id: wifi_icon
-    resize: 52x52
+    resize: 30x30
     type: RGB565
 
   - file: "images/cloud.png"
