@@ -906,14 +906,14 @@ lvgl:
             src: wifi_icon
             x: 10
             y: 10
-            width: 52
-            height: 52
+            width: 40
+            height: 40
             bg_opa: 0%  # Transparent background
             border_width: 0
-            widgets:
-              - image:
-                  src: wifi_icon
-                  align: center
+            # widgets:
+            #   - image:
+            #       src: wifi_icon
+            #     align: center
             on_click:
               then:
                 - script.execute: toggle_wifi_popup
@@ -1217,7 +1217,7 @@ lvgl:
                     if (id(owm_temperature).has_state()) {
                       static char temp_text[60];
                       if (id(owm_feels_like).has_state()) {
-                        snprintf(temp_text, sizeof(temp_text), "%.1f°C (feels %.1f°C)", 
+                        snprintf(temp_text, sizeof(temp_text), "%.1f°C feels %.1f°C", 
                                 id(owm_temperature).state, id(owm_feels_like).state);
                       } else {
                         snprintf(temp_text, sizeof(temp_text), "%.1f°C", id(owm_temperature).state);
@@ -1473,7 +1473,7 @@ lvgl:
                   text: !lambda |-
                     static char line1_text[60];
                     snprintf(line1_text, sizeof(line1_text), 
-                            "Field: %.1fm² | Flow: %.1fL/min", 
+                            "Field: %.1fm^2 | Flow: %.1fL/min", 
                             id(field_area_m2), id(valve_liters_per_minute));
                     return line1_text;
                   text_font: roboto
@@ -3557,7 +3557,7 @@ interval:
                             snprintf(info_text, sizeof(info_text), " %.0fhPa ", 
                                      id(owm_pressure).state);
                           }else {
-                            snprintf(info_text, sizeof(info_text), "pre: --%");
+                            snprintf(info_text, sizeof(info_text), "--%");
                           }
                           return info_text;
 
@@ -3570,7 +3570,7 @@ interval:
                               snprintf(wind_text, sizeof(wind_text), " %.1fm/s (gust %.1f)", 
                                       id(owm_wind_speed).state, id(owm_wind_gust).state);
                             } else {
-                              snprintf(wind_text, sizeof(wind_text), ":%.1fm/s", id(owm_wind_speed).state);
+                              snprintf(wind_text, sizeof(wind_text), "%.1fm/s", id(owm_wind_speed).state);
                             }
                           } else {
                             snprintf(wind_text, sizeof(wind_text), "Wind: --m/s");
@@ -3582,7 +3582,7 @@ interval:
                         text: !lambda |-
                           static char vis_text[60];
                           if (id(owm_visibility).has_state() && id(owm_clouds).has_state()) {
-                            snprintf(vis_text, sizeof(vis_text), ": %.1fkm ", 
+                            snprintf(vis_text, sizeof(vis_text), " %.1fkm ", 
                                     id(owm_visibility).state, id(owm_clouds).state);
                           } else if (id(owm_visibility).has_state()) {
                             snprintf(vis_text, sizeof(vis_text), " %.1fkm", id(owm_visibility).state);
