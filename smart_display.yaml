@@ -906,8 +906,8 @@ lvgl:
             src: wifi_icon
             x: 10
             y: 10
-            width: 40
-            height: 40
+            width: 30
+            height: 30
             bg_opa: 0%  # Transparent background
             border_width: 0
             # widgets:
@@ -1563,7 +1563,7 @@ lvgl:
                   align: center
                   text_color: 0xFFFFFF
                   x: 0
-                  y: 5
+                  y: 2
                   scrollable: false
                 # QR Code settings container (replaces location settings)
         - obj:
@@ -1613,7 +1613,7 @@ lvgl:
                       // Validate IP format
                       int dot_count = std::count(clean_ip.begin(), clean_ip.end(), '.');
                       if (dot_count == 3 && clean_ip.length() >= 7 && clean_ip.length() <= 15) {
-                        return "http://" + clean_ip + "/";
+                        return "http://" + clean_ip;
                       }
                     }
                     return "Waiting for IP address...";
@@ -1631,7 +1631,7 @@ lvgl:
             scrollable: false
             radius: 10
             x: 5
-            y: 220
+            y: 190
             widgets:
               - qrcode:
                   id: settings_qr
@@ -1678,7 +1678,7 @@ lvgl:
             width: 460
             height: 60
             x: 10
-            y: 400
+            y: 380
             checkable: true
             state:
               checked: !lambda "return id(sw3_winter_mode);"
@@ -1706,14 +1706,14 @@ lvgl:
                           text: "SW3 Mode: Winter (Rain-based)"
                       - lvgl.label.update:
                           id: sw3_button_label
-                          text: "${rain_icon} Weather Light (Winter)"
+                          text: "Weather Light (Winter)"
                     else:
                       - lvgl.label.update:
                           id: sw3_mode_label
-                          text: "SW3 Mode: Summer (Temperature-based)"
+                          text: "Summer (Temperature-based)"
                       - lvgl.label.update:
                           id: sw3_button_label
-                          text: "${rain_icon} Weather Light (Summer)"
+                          text: "Light (Summer)"
 
         
 
@@ -2949,7 +2949,7 @@ script:
             if (id(owm_temperature).has_state()) {
               static char temp_text[50];
               if (id(owm_feels_like).has_state()) {
-                snprintf(temp_text, sizeof(temp_text), "%.1f°C (feels %.1f°C)", 
+                snprintf(temp_text, sizeof(temp_text), "%.1f°C feels %.1f°C", 
                         id(owm_temperature).state, id(owm_feels_like).state);
               } else {
                 snprintf(temp_text, sizeof(temp_text), "Temperature: %.1f°C", id(owm_temperature).state);
