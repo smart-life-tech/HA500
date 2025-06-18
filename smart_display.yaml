@@ -904,19 +904,27 @@ lvgl:
             align: TOP_LEFT
         - image:
             src: wifi_icon
-            x: 10
+            x: 3
             y: 10
             width: 30
             height: 30
             bg_opa: 0%  # Transparent background
             border_width: 0
-            # widgets:
-            #   - image:
-            #       src: wifi_icon
-            #     align: center
-            on_click:
+          on_click:
               then:
                 - script.execute: toggle_wifi_popup
+          # widgets:
+          #   - image:
+          #       src: wifi_icon
+          #       x: 10
+          #       y: 10
+          #       width: 30
+          #       height: 30
+          #       bg_opa: 0%  # Transparent background
+          #       border_width: 0
+          # on_click:
+          #   then:
+          #     - script.execute: toggle_wifi_popup
         # Title Bar
         - obj:
             width: 460
@@ -1583,12 +1591,14 @@ lvgl:
                   text_color: 0xFFFFFF
                   x: 10
                   y: 10
+                  align: center
               - label:
                   text: "Scan QR code to configure device via web:"
                   text_font: roboto
                   x: 10
                   y: 40
                   text_color: 0xCCCCCC
+                  align: center
               
               - label:
                   id: qr_url_label
@@ -1622,6 +1632,7 @@ lvgl:
                   y: 65
                   text_color: 0xFFFFFF
                   width: 320
+                  align: center
         - obj:
             width: 460
             height: 120
@@ -1639,7 +1650,7 @@ lvgl:
                   y: 10
                   light_color: whitesmoke
                   dark_color: steelblue
-                  size: 90
+                  size: 100
                   text: !lambda |-
                     if (id(ip_address).has_state() && !id(ip_address).state.empty()) {
                      return "phijo-smart-device.local/";
@@ -1678,7 +1689,7 @@ lvgl:
             width: 460
             height: 60
             x: 10
-            y: 380
+            y: 310
             checkable: true
             state:
               checked: !lambda "return id(sw3_winter_mode);"
