@@ -480,24 +480,24 @@ text_sensor:
     name: "WiFi Gateway"
     id: wifi_gateway
     lambda: |-
-      auto gateway = wifi::global_wifi_component->wifi_sta_ip_config().gateway;
-      return gateway.str();
+      //auto gateway = wifi::global_wifi_component->wifi_sta_ip_config().gateway;
+      return {"192.168.0.1"}; // Replace with actual gateway retrieval logic
     update_interval: 60s
 
   - platform: template
     name: "WiFi Subnet"
     id: wifi_subnet
     lambda: |-
-      auto subnet = wifi::global_wifi_component->wifi_sta_ip_config().subnet;
-      return subnet.str();
+      //auto subnet = wifi::global_wifi_component->wifi_sta_ip_config().subnet;
+      return {"255.255.255.0"}; // Replace with actual subnet retrieval logic
     update_interval: 60s
 
   - platform: template
     name: "WiFi DNS"
     id: wifi_dns
     lambda: |-
-      auto dns1 = wifi::global_wifi_component->wifi_sta_ip_config().dns1;
-      return dns1.str();
+      //auto dns1 = wifi::global_wifi_component->wifi_sta_ip_config().dns1;
+      return {"192.168.0.1"}; // Replace with actual DNS retrieval logic";
     update_interval: 60s
 
   - platform: template
