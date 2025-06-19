@@ -53,7 +53,7 @@ logger:
   baud_rate: 115200
 
 # Enable Home Assistant API
-api:
+#api:
 #   encryption:
 #     key: !secret encryption_key
 #   id: api_server
@@ -228,13 +228,59 @@ wifi:
       - script.execute: notify_web_portal
       #- script.execute: update_qr_display  # Update QR code
 time:
-  - platform: homeassistant
-    id: time_comp
+  # - platform: homeassistant
+  #   id: time_comp
+  #   timezone: "Europe/Lisbon"
+  #   on_time_sync:
+  #     then:
+  #       - logger.log: "TIME DEBUG: Time synchronized with Home Assistant"
+  #       - script.execute: time_display_update # Changed from time_update
+  #   on_time:
+  #     # Update clock display every minute (display only)
+  #     - minutes: "*"
+  #       seconds: 0
+  #       then:
+  #         - script.execute: time_display_update # Changed from time_update
+
+  #     # Run automation checks less frequently (every 5 minutes)
+  #     - minutes: "/5" # Changed from /1 to /5
+  #       seconds: 0
+  #       then:
+  #         - script.execute: check_light_schedules
+  - platform: sntp
+    id: sntp_time
     timezone: "Europe/Lisbon"
+    servers:
+      - "pool.ntp.org"
+      - "time.nist.gov"
+      - "time.google.com"
     on_time_sync:
       then:
-        - logger.log: "TIME DEBUG: Time synchronized with Home Assistant"
-        - script.execute: time_display_update # Changed from time_update
+        - logger.log: "TIME DEBUG: Time synchronized with SNTP server"
+        # - if:
+        #     condition:
+        #       not:
+        #         api.connected:
+        #     then:
+        - script.execute: time_display_update
+
+  # Add SNTP as fallback when Home Assistant is unavailable
+  - platform: sntp
+    id: time_comp
+    timezone: "Europe/Lisbon"
+    servers:
+      - "pool.ntp.org"
+      - "time.nist.gov"
+      - "time.google.com"
+    on_time_sync:
+      then:
+        - logger.log: "TIME DEBUG: Time synchronized with SNTP server"
+        # - if:
+        #     condition:
+        #       not:
+        #         api.connected:
+        #     then:
+        - script.execute: time_display_update
     on_time:
       # Update clock display every minute (display only)
       - minutes: "*"
@@ -247,24 +293,6 @@ time:
         seconds: 0
         then:
           - script.execute: check_light_schedules
-
-  # Add SNTP as fallback when Home Assistant is unavailable
-  - platform: sntp
-    id: sntp_time
-    timezone: "Europe/Lisbon"
-    servers:
-      - "pool.ntp.org"
-      - "time.nist.gov"
-      - "time.google.com"
-    on_time_sync:
-      then:
-        - logger.log: "TIME DEBUG: Time synchronized with SNTP server"
-        - if:
-            condition:
-              not:
-                api.connected:
-            then:
-              - script.execute: time_display_update
 
 web_server:
   port: 80
@@ -991,7 +1019,7 @@ lvgl:
                   border_width: 0
                   width: 480
                   scrollable: false # Add this
-        
+
         # Weather section - semi-transparent overlay
         - obj:
             width: 460
@@ -1176,7 +1204,7 @@ lvgl:
                   text_font: roboto
                   x: 0
                   y: 30
-        
+
         # Navigation buttons
         - button:
             id: controls_nav_button
@@ -1206,14 +1234,14 @@ lvgl:
             border_width: 2
             border_color: 0x1E3A8A
             clickable: true
-            
+
             widgets:
               # Popup title
               - label:
                   text: "WiFi Status Information"
                   text_font: roboto24
                   text_color: 0xFFFFFF
-    
+
                   x: 0
                   y: 10
                   width: 380
@@ -1634,7 +1662,7 @@ lvgl:
                     }
                     return "Waiting for IP address...";
                   text_font: roboto
-                  x: 50
+                  x: 70
                   y: 50
                   text_color: 0xFFFFFF
                   width: 320
