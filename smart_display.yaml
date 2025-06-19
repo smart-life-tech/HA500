@@ -1603,7 +1603,7 @@ lvgl:
                   text_font: roboto
                   x: 10
                   y: 30
-                  text_color: 0xCCCCCC
+                  text_color: 0xFFFFFF
                   align: center
 
               - label:
@@ -1634,7 +1634,7 @@ lvgl:
                     }
                     return "Waiting for IP address...";
                   text_font: roboto
-                  x: 150
+                  x: 10
                   y: 50
                   text_color: 0xFFFFFF
                   width: 320
@@ -2298,7 +2298,7 @@ lvgl:
                   text_font: roboto
                   x: 10
                   y: 35
-                  text_color: 0xCCCCCC
+                  text_color: 0xFFFFFF
               - label:
                   id: evaporation_display
                   text: !lambda |-
@@ -2314,7 +2314,7 @@ lvgl:
                   text_font: roboto
                   x: 10
                   y: 60
-                  text_color: 0xCCCCCC
+                  text_color: 0xFFFFFF
               - label:
                   id: rainfall_display
                   text: !lambda |-
@@ -2331,7 +2331,7 @@ lvgl:
                   text_font: roboto
                   x: 10
                   y: 85
-                  text_color: 0xCCCCCC
+                  text_color: 0xFFFFFF
               - label:
                   id: irrigation_needed_display
                   text: !lambda |-
@@ -2345,13 +2345,13 @@ lvgl:
                     }
                     return need_text;
                   text_font: roboto
-                  x: 150
+                  x: 80
                   y: 85
                   text_color: !lambda |-
                     if (id(irrigation_needed_liters) > 0) {
                       return lv_color_hex(0xFFA500);  // Orange
                     }
-                    return lv_color_hex(0x00FF00);  // Green - no Water needed
+                    return lv_color_hex(0x0000FF);  // Green - no Water needed
               - label:
                   text: "Mode:"
                   text_font: roboto
