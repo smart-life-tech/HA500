@@ -54,18 +54,18 @@ logger:
 
 # Enable Home Assistant API
 api:
-  encryption:
-    key: !secret encryption_key
-  id: api_server
-  on_client_connected:
-    then:
-      - logger.log: "API DEBUG: Home Assistant connected"
-      - delay: 2s
-      - script.execute: time_display_update
-  on_client_disconnected:
-    then:
-      - logger.log: "API DEBUG: Home Assistant disconnected"
-      - script.execute: time_display_update
+#   encryption:
+#     key: !secret encryption_key
+#   id: api_server
+#   on_client_connected:
+#     then:
+#       - logger.log: "API DEBUG: Home Assistant connected"
+#       - delay: 2s
+#       - script.execute: time_display_update
+#   on_client_disconnected:
+#     then:
+#       - logger.log: "API DEBUG: Home Assistant disconnected"
+#       - script.execute: time_display_update
 ota:
   - platform: esphome
     id: my_ota
@@ -1634,7 +1634,7 @@ lvgl:
                     }
                     return "Waiting for IP address...";
                   text_font: roboto
-                  x: 10
+                  x: 50
                   y: 50
                   text_color: 0xFFFFFF
                   width: 320
@@ -2921,13 +2921,13 @@ script:
   - id: time_display_update
     then:
       #- script.execute: notify_web_portal
-      - logger.log:
-          format: "TIME DEBUG: HA connected: %s, Time valid: %s"
-          args:
-            [
-              'id(api_server).is_connected() ? "YES" : "NO"',
-              'id(time_comp).now().is_valid() ? "YES" : "NO"',
-            ]
+      # - logger.log:
+      #     format: "TIME DEBUG: HA connected: %s, Time valid: %s"
+      #     args:
+      #       [
+      #         'id(api_server).is_connected() ? "YES" : "NO"',
+      #         'id(time_comp).now().is_valid() ? "YES" : "NO"',
+      #       ]
       - lvgl.label.update:
           id: digital_clock
           text: !lambda |-
