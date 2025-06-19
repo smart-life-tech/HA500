@@ -920,7 +920,7 @@ lvgl:
               - image:
                   src: wifi_icon
                   x: 0
-                  y: 1
+                  y: 0
                   width: 50
                   height: 50
                   bg_opa: 0% # Transparent background
@@ -1220,6 +1220,7 @@ lvgl:
 
               # Close button
               - button:
+                  hidden: true
                   x: 330
                   y: 10
                   width: 30
@@ -1633,7 +1634,7 @@ lvgl:
                     }
                     return "Waiting for IP address...";
                   text_font: roboto
-                  x: 50
+                  x: 150
                   y: 50
                   text_color: 0xFFFFFF
                   width: 320
@@ -2861,7 +2862,7 @@ script:
           id: qr_url_label
           text: !lambda |-
             if (id(ip_address).has_state() && !id(ip_address).state.empty()) {
-              return ("http://" + id(ip_address).state + "/").c_str();
+              return ("http://" + id(ip_address).state).c_str();
             }
             return "Waiting for IP address...";
 
