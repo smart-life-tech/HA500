@@ -1636,7 +1636,7 @@ lvgl:
                     return "Waiting for IP address...";
                   text_font: roboto
                   x: 10
-                  y: 50
+                  y: 60
                   text_color: 0xFFFFFF
                   width: 320
                   align: center
