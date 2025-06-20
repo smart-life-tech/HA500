@@ -248,6 +248,15 @@ time:
         seconds: 0
         then:
           - script.execute: check_light_schedules
+      - seconds: 0
+        then:
+          - lambda: |-
+              auto now = id(time_comp).now();
+              if (now.hour == id(irrigation_schedule_hour) && 
+                  now.minute == id(irrigation_schedule_minute)) {
+                ESP_LOGI("irrigation", "Irrigation schedule triggered at %02d:%02d", now.hour, now.minute);
+                id(run_scheduled_irrigation).execute();
+                }
 
   # Add SNTP as fallback when Home Assistant is unavailable
   - platform: sntp
@@ -284,6 +293,67 @@ sun:
 # Add this to update the sun component when location changes
 number:
   - platform: template
+    id: daily_rainfall_input
+    name: "Daily Rainfall (mm)"
+    min_value: 0
+    max_value: 100
+    step: 0.5
+    restore_value: no
+    initial_value: 0
+    optimistic: true
+    on_value:
+      then:
+        - lambda: |-
+            id(daily_rainfall_mm) = x;
+            ESP_LOGI("irrigation", "Daily rainfall updated to %.1f mm", x);
+        - script.execute: calculate_irrigation_needs
+        - lvgl.label.update:
+            id: rainfall_manual_display
+            text: !lambda |-
+              static char text[20];
+              snprintf(text, sizeof(text), "%.1f mm", id(daily_rainfall_mm));
+              return text;
+
+  - platform: template
+    id: irrigation_schedule_hour_input
+    name: "Irrigation Schedule Hour"
+    min_value: 0
+    max_value: 23
+    step: 1
+    restore_value: yes
+    initial_value: 6
+    optimistic: true
+    on_value:
+      then:
+        - lambda: |-
+            id(irrigation_schedule_hour) = (int)x;
+        - lvgl.label.update:
+            id: schedule_time_display
+            text: !lambda |-
+              static char text[20];
+              snprintf(text, sizeof(text), "%02d:%02d", id(irrigation_schedule_hour), id(irrigation_schedule_minute));
+              return text;
+
+  - platform: template
+    id: irrigation_schedule_minute_input
+    name: "Irrigation Schedule Minute"
+    min_value: 0
+    max_value: 59
+    step: 15
+    restore_value: yes
+    initial_value: 0
+    optimistic: true
+    on_value:
+      then:
+        - lambda: |-
+            id(irrigation_schedule_minute) = (int)x;
+        - lvgl.label.update:
+            id: schedule_time_display
+            text: !lambda |-
+              static char text[20];
+              snprintf(text, sizeof(text), "%02d:%02d", id(irrigation_schedule_hour), id(irrigation_schedule_minute));
+              return text;
+  - platform: template
     id: field_area_input
     name: "Field Area (m²)"
     min_value: 1
@@ -298,6 +368,12 @@ number:
             id(field_area_m2) = x;
             ESP_LOGI("irrigation", "Field area updated to %.0f m²", x);
         - script.execute: calculate_irrigation_needs
+        - lvgl.label.update:
+            id: field_area_display
+            text: !lambda |-
+              static char text[20];
+              snprintf(text, sizeof(text), "%.0f m²", id(field_area_m2));
+              return text;
 
   - platform: template
     id: valve_flow_rate_input
@@ -313,6 +389,12 @@ number:
         - lambda: |-
             id(valve_liters_per_minute) = x;
             ESP_LOGI("irrigation", "Valve flow rate updated to %.1f L/min", x);
+        - lvgl.label.update:
+            id: flow_rate_display
+            text: !lambda |-
+              static char text[20];
+              snprintf(text, sizeof(text), "%.1f L/min", id(valve_liters_per_minute));
+              return text;
 
   - platform: template
     id: location_latitude
@@ -614,6 +696,25 @@ color:
 
 # Global variables for timer tracking and settings
 globals:
+  - id: irrigation_duration_remaining
+    type: int
+    restore_value: no
+    initial_value: "0"
+
+  - id: irrigation_schedule_hour
+    type: int
+    restore_value: yes
+    initial_value: "6" # Default 6 AM
+
+  - id: irrigation_schedule_minute
+    type: int
+    restore_value: yes
+    initial_value: "0" # Default 6:00 AM
+
+  - id: auto_irrigation_enabled
+    type: bool
+    restore_value: yes
+    initial_value: "true"
   # Irrigation system globals
   - id: field_area_m2
     type: float
@@ -920,8 +1021,8 @@ lvgl:
             widgets:
               - image:
                   src: wifi_icon
-                  x: 0
-                  y: 0
+                  x: -5
+                  y: -5
                   width: 50
                   height: 50
                   bg_opa: 0% # Transparent background
@@ -992,7 +1093,7 @@ lvgl:
                   border_width: 0
                   width: 480
                   scrollable: false # Add this
-        
+
         # Weather section - semi-transparent overlay
         - obj:
             width: 460
@@ -1177,7 +1278,7 @@ lvgl:
                   text_font: roboto
                   x: 0
                   y: 30
-        
+
         # Navigation buttons
         - button:
             id: controls_nav_button
@@ -1207,14 +1308,14 @@ lvgl:
             border_width: 2
             border_color: 0x1E3A8A
             clickable: true
-            
+            scrollable: false
             widgets:
               # Popup title
               - label:
                   text: "WiFi Status Information"
                   text_font: roboto24
                   text_color: 0xFFFFFF
-    
+
                   x: 0
                   y: 10
                   width: 380
@@ -1418,7 +1519,7 @@ lvgl:
             checkable: true
             widgets:
               - label:
-                  text: " Light Control"
+                  text: " Light"
                   text_font: roboto24
                   align: center
             on_click:
@@ -1534,18 +1635,526 @@ lvgl:
             id: settings_nav_button2
             x: 110
             y: 430
-            width: 100
+            width: 120
             height: 45
             styles: nav_button_style
             widgets:
               - label:
-                  text: "Settings"
+                  text: "Pump Settings"
                   text_font: roboto
                   align: center
             on_click:
               then:
                 - lvgl.page.next:
 
+    # New Pump/Irrigation Settings Page
+    - id: pump_settings_page
+      bg_color: 0x000000
+      bg_opa: cover
+      pad_all: 0
+      border_width: 0
+      scrollable: true
+      widgets:
+        # Background image
+        - image:
+            src: background_image
+            x: 0
+            y: 0
+            width: 480
+            height: 480
+            align: TOP_LEFT
+
+        # Title bar
+        - obj:
+            width: 460
+            height: 50
+            bg_color: 0x1E3A8A
+            bg_opa: 80%
+            radius: 10
+            x: 10
+            y: 10
+            scrollable: false
+            widgets:
+              - label:
+                  text: "PUMP & IRRIGATION SETTINGS"
+                  text_font: roboto24
+                  align: center
+                  text_color: 0xFFFFFF
+                  border_width: 0
+                  x: 0
+                  y: 5
+
+        # Field Area Settings
+        - obj:
+            scrollable: false
+            width: 460
+            height: 80
+            bg_color: 0x000000
+            bg_opa: 50%
+            radius: 10
+            x: 10
+            y: 70
+            widgets:
+              - label:
+                  text: "Field Area Settings"
+                  text_font: roboto24
+                  text_color: 0xFFFFFF
+                  x: 10
+                  y: 5
+
+              - label:
+                  text: "Field area:"
+                  text_font: roboto
+                  text_color: 0xCCCCCC
+                  x: 10
+                  y: 35
+              - button:
+                  id: field_area_minus
+                  x: 150
+                  y: 30
+                  width: 40
+                  height: 30
+                  widgets:
+                    - label:
+                        text: "-"
+                        align: center
+                  on_click:
+                    then:
+                      - number.decrement: field_area_input
+              - label:
+                  id: field_area_display
+                  text: !lambda |-
+                    static char text[20];
+                    snprintf(text, sizeof(text), "%.0f m²", id(field_area_m2));
+                    return text;
+                  text_font: roboto
+                  text_color: 0xFFFFFF
+                  x: 200
+                  y: 35
+              - button:
+                  id: field_area_plus
+                  x: 280
+                  y: 30
+                  width: 40
+                  height: 30
+                  widgets:
+                    - label:
+                        text: "+"
+                        align: center
+                  on_click:
+                    then:
+                      - number.increment: field_area_input
+
+        # Flow Rate Settings
+        - obj:
+            scrollable: false
+            width: 460
+            height: 80
+            bg_color: 0x000000
+            bg_opa: 50%
+            radius: 10
+            x: 10
+            y: 160
+            widgets:
+              - label:
+                  text: "Valve Flow Rate Settings"
+                  text_font: roboto24
+                  text_color: 0xFFFFFF
+                  x: 10
+                  y: 5
+
+              - label:
+                  text: "Flow rate:"
+                  text_font: roboto
+                  text_color: 0xCCCCCC
+                  x: 10
+                  y: 35
+              - button:
+                  id: flow_rate_minus
+                  x: 150
+                  y: 30
+                  width: 40
+                  height: 30
+                  widgets:
+                    - label:
+                        text: "-"
+                        align: center
+                  on_click:
+                    then:
+                      - number.decrement: valve_flow_rate_input
+              - label:
+                  id: flow_rate_display
+                  text: !lambda |-
+                    static char text[20];
+                    snprintf(text, sizeof(text), "%.1f L/min", id(valve_liters_per_minute));
+                    return text;
+                  text_font: roboto
+                  text_color: 0xFFFFFF
+                  x: 200
+                  y: 35
+              - button:
+                  id: flow_rate_plus
+                  x: 300
+                  y: 30
+                  width: 40
+                  height: 30
+                  widgets:
+                    - label:
+                        text: "+"
+                        align: center
+                  on_click:
+                    then:
+                      - number.increment: valve_flow_rate_input
+
+        # Manual Rainfall Input
+        - obj:
+            scrollable: false
+            width: 460
+            height: 80
+            bg_color: 0x000000
+            bg_opa: 50%
+            radius: 10
+            x: 10
+            y: 250
+            widgets:
+              - label:
+                  text: "Manual Rainfall Input"
+                  text_font: roboto24
+                  text_color: 0xFFFFFF
+                  x: 10
+                  y: 5
+
+              - label:
+                  text: "Today's rain:"
+                  text_font: roboto
+                  text_color: 0xCCCCCC
+                  x: 10
+                  y: 35
+              - button:
+                  id: rainfall_minus
+                  x: 150
+                  y: 30
+                  width: 40
+                  height: 30
+                  widgets:
+                    - label:
+                        text: "-"
+                        align: center
+                  on_click:
+                    then:
+                      - number.decrement: daily_rainfall_input
+              - label:
+                  id: rainfall_manual_display
+                  text: !lambda |-
+                    static char text[20];
+                    snprintf(text, sizeof(text), "%.1f mm", id(daily_rainfall_mm));
+                    return text;
+                  text_font: roboto
+                  text_color: 0xFFFFFF
+                  x: 200
+                  y: 35
+              - button:
+                  id: rainfall_plus
+                  x: 280
+                  y: 30
+                  width: 40
+                  height: 30
+                  widgets:
+                    - label:
+                        text: "+"
+                        align: center
+                  on_click:
+                    then:
+                      - number.increment: daily_rainfall_input
+              - button:
+                  id: rainfall_reset
+                  x: 330
+                  y: 30
+                  width: 60
+                  height: 30
+                  widgets:
+                    - label:
+                        text: "Reset"
+                        text_font: roboto
+                        align: center
+                  on_click:
+                    then:
+                      - number.set:
+                          id: daily_rainfall_input
+                          value: 0
+
+        # Irrigation Schedule Settings
+        - obj:
+            scrollable: false
+            width: 460
+            height: 120
+            bg_color: 0x000000
+            bg_opa: 50%
+            radius: 10
+            x: 10
+            y: 340
+            widgets:
+              - label:
+                  text: "Watering Schedule"
+                  text_font: roboto24
+                  text_color: 0xFFFFFF
+                  x: 10
+                  y: 5
+
+              - label:
+                  text: "Auto irrigation time:"
+                  text_font: roboto
+                  text_color: 0xCCCCCC
+                  x: 10
+                  y: 35
+              - button:
+                  id: schedule_hour_minus
+                  x: 180
+                  y: 30
+                  width: 30
+                  height: 30
+                  widgets:
+                    - label:
+                        text: "-"
+                        align: center
+                  on_click:
+                    then:
+                      - number.decrement: irrigation_schedule_hour_input
+              - label:
+                  id: schedule_time_display
+                  text: !lambda |-
+                    static char text[20];
+                    snprintf(text, sizeof(text), "%02d:%02d", id(irrigation_schedule_hour), id(irrigation_schedule_minute));
+                    return text;
+                  text_font: roboto
+                  text_color: 0xFFFFFF
+                  x: 220
+                  y: 35
+              - button:
+                  id: schedule_hour_plus
+                  x: 280
+                  y: 30
+                  width: 30
+                  height: 30
+                  widgets:
+                    - label:
+                        text: "+"
+                        align: center
+                  on_click:
+                    then:
+                      - number.increment: irrigation_schedule_hour_input
+              - button:
+                  id: schedule_minute_minus
+                  x: 320
+                  y: 30
+                  width: 30
+                  height: 30
+                  widgets:
+                    - label:
+                        text: "-"
+                        align: center
+                  on_click:
+                    then:
+                      - number.decrement: irrigation_schedule_minute_input
+              - button:
+                  id: schedule_minute_plus
+                  x: 360
+                  y: 30
+                  width: 30
+                  height: 30
+                  widgets:
+                    - label:
+                        text: "+"
+                        align: center
+                  on_click:
+                    then:
+                      - number.increment: irrigation_schedule_minute_input
+
+              # Auto irrigation toggle
+              - button:
+                  id: auto_irrigation_toggle
+                  x: 10
+                  y: 70
+                  width: 200
+                  height: 40
+                  checkable: true
+                  state:
+                    checked: !lambda "return id(auto_irrigation_enabled);"
+                  widgets:
+                    - label:
+                        id: auto_irrigation_label
+                        text: !lambda |-
+                          if (id(auto_irrigation_enabled)) {
+                            return "Auto Irrigation: ON";
+                          } else {
+                            return "Auto Irrigation: OFF";
+                          }
+                        text_font: roboto
+                        align: center
+                  on_click:
+                    then:
+                      - lambda: |-
+                          id(auto_irrigation_enabled) = !id(auto_irrigation_enabled);
+                      - if:
+                          condition:
+                            lambda: "return id(auto_irrigation_enabled);"
+                          then:
+                            - lvgl.label.update:
+                                id: auto_irrigation_label
+                                text: "Auto Irrigation: ON"
+                          else:
+                            - lvgl.label.update:
+                                id: auto_irrigation_label
+                                text: "Auto Irrigation: OFF"
+
+        # Action Buttons
+        - obj:
+            width: 460
+            height: 80
+            bg_color: 0x000000
+            bg_opa: 0%
+            radius: 10
+            scrollable: false
+            border_width: 0
+            x: 10
+            y: 470
+            widgets:
+              # Manual irrigation test button
+              - button:
+                  id: test_irrigation_button
+                  x: 10
+                  y: 10
+                  width: 120
+                  height: 50
+                  widgets:
+                    - label:
+                        text: "Manual Watering"
+                        text_font: roboto
+                        align: center
+                  on_click:
+                    then:
+                      - script.execute: manual_irrigation_test
+
+              # Calculate needs button
+              - button:
+                  id: calculate_needs_button
+                  x: 140
+                  y: 10
+                  width: 120
+                  height: 50
+                  widgets:
+                    - label:
+                        text: "Calculate Needs"
+                        text_font: roboto
+                        align: center
+                  on_click:
+                    then:
+                      - script.execute: calculate_irrigation_needs
+
+              # Reset all settings button
+              - button:
+                  id: reset_settings_button
+                  x: 270
+                  y: 10
+                  width: 100
+                  height: 50
+                  widgets:
+                    - label:
+                        text: "Reset All"
+                        text_font: roboto
+                        align: center
+                  on_click:
+                    then:
+                      - script.execute: reset_irrigation_settings
+
+        # Current Status Display
+        - obj:
+            width: 460
+            height: 100
+            bg_color: 0x000000
+            bg_opa: 50%
+            radius: 10
+            scrollable: false
+            x: 10
+            y: 560
+            widgets:
+              - label:
+                  text: "Current Status"
+                  text_font: roboto24
+                  text_color: 0xFFFFFF
+                  x: 10
+                  y: 5
+
+              - label:
+                  id: irrigation_status_display
+                  text: !lambda |-
+                    static char status_text[200];
+                    if (id(pump_relay).state) {
+                      int remaining = id(irrigation_duration_remaining);
+                      snprintf(status_text, sizeof(status_text), 
+                              "Irrigating - %d min remaining", remaining);
+                    } else {
+                      auto now = id(time_comp).now();
+                      int next_hour = id(irrigation_schedule_hour);
+                      int next_min = id(irrigation_schedule_minute);
+                      snprintf(status_text, sizeof(status_text), 
+                              "Next watering: %02d:%02d", next_hour, next_min);
+                    }
+                    return status_text;
+                  text_font: roboto
+                  text_color: 0xCCCCCC
+                  x: 10
+                  y: 35
+                  width: 440
+
+              - label:
+                  id: irrigation_calculation_display
+                  text: !lambda |-
+                    static char calc_text[150];
+                    float water_needed = id(field_area_m2) * 5.0; // 5L per m² base
+                    float duration = water_needed / id(valve_liters_per_minute);
+                    snprintf(calc_text, sizeof(calc_text), 
+                            "💧 Calculated: %.0fL water, %.1f min duration", 
+                            water_needed, duration);
+                    return calc_text;
+                  text_font: roboto
+                  text_color: 0xAABBCC
+                  x: 10
+                  y: 60
+                  width: 440
+
+        # Navigation buttons
+        - button:
+            id: pump_back_button
+            x: 10
+            y: 680
+            width: 100
+            height: 40
+            styles: nav_button_style
+            widgets:
+              - label:
+                  text: "Control"
+                  text_font: roboto
+                  align: center
+            on_click:
+              then:
+                - lvgl.page.previous:
+
+        - button:
+            id: pump_home_button
+            x: 100
+            y: 680
+            width: 100
+            height: 40
+            styles: nav_button_style
+            widgets:
+              - label:
+                  text: "Device Settings"
+                  text_font: roboto
+                  align: center
+            on_click:
+              then:
+                - lvgl.page.next:
     # Settings Page
     - id: settings_page
       bg_color: 0x000000
@@ -1635,8 +2244,8 @@ lvgl:
                     }
                     return "Waiting for IP address...";
                   text_font: roboto
-                  x: 10
-                  y: 60
+                  x: 80
+                  y: 50
                   text_color: 0xFFFFFF
                   width: 320
                   align: center
@@ -1737,12 +2346,12 @@ lvgl:
             id: home_button
             x: 10
             y: 420
-            width: 100
+            width: 120
             height: 45
             styles: nav_button_style
             widgets:
               - label:
-                  text: "Controls"
+                  text: "Pump Set"
                   text_font: roboto
                   align: center
             on_click:
@@ -2564,6 +3173,23 @@ light:
 
 switch:
   - platform: output
+    id: pump_relay
+    name: "Irrigation Pump"
+    output: internal_relay_3
+    on_turn_on:
+      then:
+        - lvgl.label.update:
+            id: irrigation_status_display
+            text: "Pump ON - Irrigating..."
+        - logger.log: "Irrigation pump turned ON"
+    on_turn_off:
+      then:
+        - lvgl.label.update:
+            id: irrigation_status_display
+            text: "Pump OFF - Irrigation stopped"
+        - logger.log: "Irrigation pump turned OFF"
+
+  - platform: output
     id: sw1
     name: "Light Control"
     output: internal_relay_1
@@ -2619,6 +3245,10 @@ switch:
     output: internal_relay_3
     on_turn_on:
       then:
+        - lvgl.label.update:
+            id: irrigation_status_display
+            text: " Pump ON - Irrigating..."
+        - logger.log: "Irrigation pump turned ON"
         - if:
             condition:
               lambda: "return id(valve_training_mode);"
@@ -2651,6 +3281,11 @@ switch:
               checked: true
     on_turn_off:
       then:
+        - lvgl.label.update:
+            id: irrigation_status_display
+            text: "⏹️ Pump OFF - Irrigation stopped"
+        - logger.log: "Irrigation pump turned OFF"
+
         - if:
             condition:
               lambda: "return id(valve_training_mode) && id(valve_training_start_time) > 0;"
@@ -2700,7 +3335,75 @@ switch:
 # Scripts for automation logic
 #-------------------------------------------
 script:
-  # ... your existing scripts ...
+  - id: manual_irrigation_test
+    then:
+      - logger.log: "Manual irrigation test started"
+      - lvgl.label.update:
+          id: irrigation_status_display
+          text: " Starting test irrigation..."
+      - switch.turn_on: pump_relay
+      - lambda: |-
+          id(irrigation_duration_remaining) = 2; // 2 minute test
+      - lvgl.label.update:
+          id: irrigation_status_display
+          text: "Test irrigation running - 2 min"
+      - delay: 60s # 1 minute
+      - lambda: |-
+          id(irrigation_duration_remaining) = 1;
+      - lvgl.label.update:
+          id: irrigation_status_display
+          text: " Test irrigation running - 1 min"
+      - delay: 60s # 1 more minute (total 2 minutes)
+      - switch.turn_off: pump_relay
+      - lambda: |-
+          id(irrigation_duration_remaining) = 0;
+      - lvgl.label.update:
+          id: irrigation_status_display
+          text: "Test irrigation completed"
+      - logger.log: "Manual irrigation test completed"
+
+  - id: reset_irrigation_settings
+    then:
+      - logger.log: "Resetting irrigation settings to defaults"
+      - lvgl.label.update:
+          id: irrigation_status_display
+          text: "🔄 Resetting settings..."
+      - number.set:
+          id: field_area_input
+          value: 48
+      - number.set:
+          id: valve_flow_rate_input
+          value: 20
+      - number.set:
+          id: daily_rainfall_input
+          value: 0
+      - number.set:
+          id: irrigation_schedule_hour_input
+          value: 6
+      - number.set:
+          id: irrigation_schedule_minute_input
+          value: 0
+      - lambda: |-
+          id(auto_irrigation_enabled) = true;
+          // Reset all irrigation globals to defaults
+          id(field_area_m2) = 48.0;
+          id(valve_liters_per_minute) = 20.0;
+          id(daily_rainfall_mm) = 0.0;
+          id(irrigation_schedule_hour) = 6;
+          id(irrigation_schedule_minute) = 0;
+      - lvgl.widget.update:
+          id: auto_irrigation_toggle
+          state:
+            checked: true
+      - lvgl.label.update:
+          id: auto_irrigation_label
+          text: "Auto Irrigation: ON"
+      - script.execute: calculate_irrigation_needs
+      - delay: 1s
+      - lvgl.label.update:
+          id: irrigation_status_display
+          text: "✅ Settings reset to defaults"
+      - logger.log: "Irrigation settings reset to defaults"
 
   - id: toggle_wifi_popup
     then:
@@ -2791,39 +3494,44 @@ script:
   - id: calculate_irrigation_needs
     then:
       - lambda: |-
-          // Calculate daily evaporation based on temperature and humidity
-          float temp = 25.0; // Default, will be updated from weather
-          float humidity = 50.0; // Default, will be updated from weather
+          // Calculate water needs based on field area, weather, and season
+          float base_water_per_m2 = 5.0; // Base 5L per m²
 
+          // Adjust for season (more water in summer)
+          auto now = id(time_comp).now();
+          float seasonal_multiplier = 1.0;
+          if (now.month >= 6 && now.month <= 8) {
+            seasonal_multiplier = 1.5; // Summer - 50% more water
+          } else if (now.month >= 12 || now.month <= 2) {
+            seasonal_multiplier = 0.7; // Winter - 30% less water
+          }
+
+          // Adjust for rainfall (reduce water if it rained)
+          float rainfall_reduction = id(daily_rainfall_mm) * 0.1; // 10% reduction per mm of rain
+          if (rainfall_reduction > 0.8) rainfall_reduction = 0.8; // Max 80% reduction
+
+          // Adjust for temperature if available
+          float temp_multiplier = 1.0;
           if (id(owm_temperature).has_state()) {
-            temp = id(owm_temperature).state;
-          }
-          if (id(owm_humidity).has_state()) {
-            humidity = id(owm_humidity).state;
-          }
-
-          // Simplified evaporation calculation
-          // Based on temperature and humidity for the given area
-          float evap_rate_per_m2 = 0.0;
-
-          if (id(sw3_winter_mode)) {
-            // Winter mode - lower evaporation
-            evap_rate_per_m2 = (temp - 10) * 0.1 * (1 - humidity/100.0);
-          } else {
-            // Summer mode - higher evaporation
-            evap_rate_per_m2 = (temp - 15) * 0.2 * (1 - humidity/100.0);
+            float temp = id(owm_temperature).state;
+            if (temp > 30) temp_multiplier = 1.3;      // Very hot
+            else if (temp > 25) temp_multiplier = 1.1; // Hot
+            else if (temp < 10) temp_multiplier = 0.8; // Cold
           }
 
-          if (evap_rate_per_m2 < 0) evap_rate_per_m2 = 0;
+          // Calculate final water needed
+          float water_needed = id(field_area_m2) * base_water_per_m2 * seasonal_multiplier * temp_multiplier * (1.0 - rainfall_reduction);
+          if (water_needed < 0) water_needed = 0; // Never negative
 
-          id(calculated_evaporation_liters) = evap_rate_per_m2 * id(field_area_m2);
+          // Calculate duration based on valve flow rate
+          float duration_minutes = water_needed / id(valve_liters_per_minute);
 
-          // Calculate irrigation needs (evaporation - rainfall)
-          id(irrigation_needed_liters) = id(calculated_evaporation_liters) - (id(daily_rainfall_mm) * id(field_area_m2) / 1000.0);
-          if (id(irrigation_needed_liters) < 0) id(irrigation_needed_liters) = 0;
+          // Store calculated values in globals (you may want to add these)
+          // id(calculated_water_needed) = water_needed;
+          // id(calculated_duration_minutes) = duration_minutes;
 
-          ESP_LOGI("irrigation", "Calculated evaporation: %.1fL, Watering needed: %.1fL", 
-                  id(calculated_evaporation_liters), id(irrigation_needed_liters));
+          ESP_LOGI("irrigation", "Calculated irrigation: %.1fL water, %.1f minutes", water_needed, duration_minutes);
+      #- script.execute: update_pump_settings_display
 
   - id: start_valve_training
     then:
@@ -2918,6 +3626,61 @@ script:
             } else {
               return "WiFi: Not connected";
             }
+  - id: run_scheduled_irrigation
+    then:
+      - if:
+          condition:
+            lambda: "return id(auto_irrigation_enabled) && !id(pump_relay).state;"
+          then:
+            - logger.log: "Starting scheduled irrigation"
+            - script.execute: calculate_irrigation_needs
+            - lambda: |-
+                // Calculate duration based on current settings
+                float base_water_per_m2 = 5.0;
+                auto now = id(time_comp).now();
+                float seasonal_multiplier = 1.0;
+                if (now.month >= 6 && now.month <= 8) {
+                  seasonal_multiplier = 1.5;
+                } else if (now.month >= 12 || now.month <= 2) {
+                  seasonal_multiplier = 0.7;
+                }
+
+                float rainfall_reduction = id(daily_rainfall_mm) * 0.1;
+                if (rainfall_reduction > 0.8) rainfall_reduction = 0.8;
+
+                float temp_multiplier = 1.0;
+                if (id(owm_temperature).has_state()) {
+                  float temp = id(owm_temperature).state;
+                  if (temp > 30) temp_multiplier = 1.3;
+                  else if (temp > 25) temp_multiplier = 1.1;
+                  else if (temp < 10) temp_multiplier = 0.8;
+                }
+
+                float water_needed = id(field_area_m2) * base_water_per_m2 * seasonal_multiplier * temp_multiplier * (1.0 - rainfall_reduction);
+                if (water_needed < 0) water_needed = 0;
+
+                float duration_minutes = water_needed / id(valve_liters_per_minute);
+                if (duration_minutes > 60) duration_minutes = 60; // Max 1 hour
+                if (duration_minutes < 1) duration_minutes = 1;   // Min 1 minute
+
+                id(irrigation_duration_remaining) = (int)duration_minutes;
+
+                ESP_LOGI("irrigation", "Scheduled irrigation: %.1f minutes", duration_minutes);
+            - switch.turn_on: pump_relay
+            - while:
+                condition:
+                  lambda: "return id(irrigation_duration_remaining) > 0 && id(pump_relay).state;"
+                then:
+                  - delay: 60s # Wait 1 minute
+                  - lambda: |-
+                      id(irrigation_duration_remaining)--;
+                      ESP_LOGD("irrigation", "Irrigation remaining: %d minutes", id(irrigation_duration_remaining));
+            - switch.turn_off: pump_relay
+            - lambda: |-
+                id(irrigation_duration_remaining) = 0;
+            - logger.log: "Scheduled irrigation completed"
+          else:
+            - logger.log: "Scheduled irrigation skipped (auto disabled or pump already running)"
 
   - id: time_display_update
     then:
