@@ -1022,8 +1022,8 @@ lvgl:
               - image:
                   id: wifi_space
                   src: wifi_icon_online
-                  x: -5
-                  y: 2
+                  x: -7
+                  y: 0
                   width: 50
                   height: 50
                   bg_opa: 0% # Transparent background
@@ -2395,7 +2395,7 @@ lvgl:
                 # In your existing settings page, add this button
         - button:
             id: light_automation_btn
-            x: 150
+            x: 135
             y: 420
             width: 100
             height: 45
