@@ -1020,8 +1020,9 @@ lvgl:
             border_width: 0
             widgets:
               - image:
-                  src: wifi_icon
-                  x: -6
+                  id: wifi_space
+                  src: wifi_icon_online
+                  x: -5
                   y: 2
                   width: 50
                   height: 50
@@ -2009,7 +2010,7 @@ lvgl:
               # Navigation buttons
               - button:
                   id: back_back_button
-                  x: 220
+                  x: 210
                   y: 70
                   width: 100
                   height: 40
@@ -2025,14 +2026,14 @@ lvgl:
 
               - button:
                   id: next_home_button
-                  x: 330
+                  x: 320
                   y: 70
-                  width: 150
+                  width: 110
                   height: 40
                   styles: nav_button_style
                   widgets:
                     - label:
-                        text: "Device Settings"
+                        text: "Device Set."
                         text_font: roboto
                         align: center
                   on_click:
@@ -2211,6 +2212,7 @@ lvgl:
             bg_color: 0x1E3A8A
             bg_opa: 80%
             radius: 10
+            scrollable: false
             x: 10
             y: 10
             widgets:
@@ -2308,7 +2310,7 @@ lvgl:
 
         - button:
             id: valve_training_btn
-            x: 230
+            x: 245
             y: 420
             width: 120
             height: 45
@@ -2393,7 +2395,7 @@ lvgl:
                 # In your existing settings page, add this button
         - button:
             id: light_automation_btn
-            x: 127
+            x: 150
             y: 420
             width: 100
             height: 45
@@ -4091,6 +4093,11 @@ image:
 
   - file: "images/wifi.png"
     id: wifi_icon
+    resize: 50x50
+    type: RGB565
+
+  - file: "images/wifi_icons.jpg"
+    id: wifi_icon_online
     resize: 50x50
     type: RGB565
 
