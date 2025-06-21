@@ -2107,6 +2107,7 @@ lvgl:
             bg_opa: 50%
             radius: 10
             scrollable: false
+            hidden: true
             x: 10
             y: 560
             widgets:
@@ -2156,37 +2157,37 @@ lvgl:
                   width: 440
 
         # Navigation buttons
-        - button:
-            id: pump_back_button
-            x: 10
-            y: 680
-            width: 100
-            height: 40
-            styles: nav_button_style
-            widgets:
-              - label:
-                  text: "Control"
-                  text_font: roboto
-                  align: center
-            on_click:
-              then:
-                - lvgl.page.previous:
+        # - button:
+        #     id: pump_back_button
+        #     x: 10
+        #     y: 680
+        #     width: 100
+        #     height: 40
+        #     styles: nav_button_style
+        #     widgets:
+        #       - label:
+        #           text: "Control"
+        #           text_font: roboto
+        #           align: center
+        #     on_click:
+        #       then:
+        #         - lvgl.page.previous:
 
-        - button:
-            id: pump_home_button
-            x: 100
-            y: 680
-            width: 100
-            height: 40
-            styles: nav_button_style
-            widgets:
-              - label:
-                  text: "Device Settings"
-                  text_font: roboto
-                  align: center
-            on_click:
-              then:
-                - lvgl.page.next:
+        # - button:
+        #     id: pump_home_button
+        #     x: 100
+        #     y: 680
+        #     width: 100
+        #     height: 40
+        #     styles: nav_button_style
+        #     widgets:
+        #       - label:
+        #           text: "Device Settings"
+        #           text_font: roboto
+        #           align: center
+        #     on_click:
+        #       then:
+        #         - lvgl.page.next:
     # Settings Page
     - id: settings_page
       bg_color: 0x000000
