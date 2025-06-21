@@ -2039,153 +2039,154 @@ lvgl:
                     then:
                       - lvgl.page.next:
         # Action Buttons
-        # - obj:
-        #     width: 460
-        #     height: 80
-        #     bg_color: 0x000000
-        #     bg_opa: 0%
-        #     radius: 10
-        #     scrollable: false
-        #     border_width: 0
-        #     x: 10
-        #     y: 470
-        #     widgets:
-        #       # Manual irrigation test button
-        #       - button:
-        #           id: test_irrigation_button
-        #           x: 10
-        #           y: 10
-        #           width: 120
-        #           height: 50
-        #           widgets:
-        #             - label:
-        #                 text: "Manual Watering"
-        #                 text_font: roboto
-        #                 align: center
-        #           on_click:
-        #             then:
-        #               - script.execute: manual_irrigation_test
+        - obj:
+            width: 460
+            height: 80
+            bg_color: 0x000000
+            bg_opa: 0%
+            radius: 10
+            scrollable: false
+            border_width: 0
+            hidden: true
+            x: 10
+            y: 470
+            widgets:
+              # Manual irrigation test button
+              - button:
+                  id: test_irrigation_button
+                  x: 10
+                  y: 10
+                  width: 120
+                  height: 50
+                  widgets:
+                    - label:
+                        text: "Manual Watering"
+                        text_font: roboto
+                        align: center
+                  on_click:
+                    then:
+                      - script.execute: manual_irrigation_test
 
-        #       # Calculate needs button
-        #       - button:
-        #           id: calculate_needs_button
-        #           x: 140
-        #           y: 10
-        #           width: 120
-        #           height: 50
-        #           widgets:
-        #             - label:
-        #                 text: "Calculate Needs"
-        #                 text_font: roboto
-        #                 align: center
-        #           on_click:
-        #             then:
-        #               - script.execute: calculate_irrigation_needs
+              # Calculate needs button
+              - button:
+                  id: calculate_needs_button
+                  x: 140
+                  y: 10
+                  width: 120
+                  height: 50
+                  widgets:
+                    - label:
+                        text: "Calculate Needs"
+                        text_font: roboto
+                        align: center
+                  on_click:
+                    then:
+                      - script.execute: calculate_irrigation_needs
 
-        #       # Reset all settings button
-        #       - button:
-        #           id: reset_settings_button
-        #           x: 270
-        #           y: 10
-        #           width: 100
-        #           height: 50
-        #           widgets:
-        #             - label:
-        #                 text: "Reset All"
-        #                 text_font: roboto
-        #                 align: center
-        #           on_click:
-        #             then:
-        #               - script.execute: reset_irrigation_settings
+              # Reset all settings button
+              - button:
+                  id: reset_settings_button
+                  x: 270
+                  y: 10
+                  width: 100
+                  height: 50
+                  widgets:
+                    - label:
+                        text: "Reset All"
+                        text_font: roboto
+                        align: center
+                  on_click:
+                    then:
+                      - script.execute: reset_irrigation_settings
 
-        # # Current Status Display
-        # - obj:
-        #     width: 460
-        #     height: 100
-        #     bg_color: 0x000000
-        #     bg_opa: 50%
-        #     radius: 10
-        #     scrollable: false
-        #     x: 10
-        #     y: 560
-        #     widgets:
-        #       - label:
-        #           text: "Current Status"
-        #           text_font: roboto24
-        #           text_color: 0xFFFFFF
-        #           x: 10
-        #           y: 5
+        # Current Status Display
+        - obj:
+            width: 460
+            height: 100
+            bg_color: 0x000000
+            bg_opa: 50%
+            radius: 10
+            scrollable: false
+            x: 10
+            y: 560
+            widgets:
+              - label:
+                  text: "Current Status"
+                  text_font: roboto24
+                  text_color: 0xFFFFFF
+                  x: 10
+                  y: 5
 
-        #       - label:
-        #           id: irrigation_status_display
-        #           text: !lambda |-
-        #             static char status_text[200];
-        #             if (id(pump_relay).state) {
-        #               int remaining = id(irrigation_duration_remaining);
-        #               snprintf(status_text, sizeof(status_text), 
-        #                       "Irrigating - %d min remaining", remaining);
-        #             } else {
-        #               auto now = id(time_comp).now();
-        #               int next_hour = id(irrigation_schedule_hour);
-        #               int next_min = id(irrigation_schedule_minute);
-        #               snprintf(status_text, sizeof(status_text), 
-        #                       "Next watering: %02d:%02d", next_hour, next_min);
-        #             }
-        #             return status_text;
-        #           text_font: roboto
-        #           text_color: 0xCCCCCC
-        #           x: 10
-        #           y: 35
-        #           width: 440
+              - label:
+                  id: irrigation_status_display
+                  text: !lambda |-
+                    static char status_text[200];
+                    if (id(pump_relay).state) {
+                      int remaining = id(irrigation_duration_remaining);
+                      snprintf(status_text, sizeof(status_text), 
+                              "Irrigating - %d min remaining", remaining);
+                    } else {
+                      auto now = id(time_comp).now();
+                      int next_hour = id(irrigation_schedule_hour);
+                      int next_min = id(irrigation_schedule_minute);
+                      snprintf(status_text, sizeof(status_text), 
+                              "Next watering: %02d:%02d", next_hour, next_min);
+                    }
+                    return status_text;
+                  text_font: roboto
+                  text_color: 0xCCCCCC
+                  x: 10
+                  y: 35
+                  width: 440
 
-        #       - label:
-        #           id: irrigation_calculation_display
-        #           text: !lambda |-
-        #             static char calc_text[150];
-        #             float water_needed = id(field_area_m2) * 5.0; // 5L per m² base
-        #             float duration = water_needed / id(valve_liters_per_minute);
-        #             snprintf(calc_text, sizeof(calc_text), 
-        #                     "💧 Calculated: %.0fL water, %.1f min duration", 
-        #                     water_needed, duration);
-        #             return calc_text;
-        #           text_font: roboto
-        #           text_color: 0xAABBCC
-        #           x: 10
-        #           y: 60
-        #           width: 440
+              - label:
+                  id: irrigation_calculation_display
+                  text: !lambda |-
+                    static char calc_text[150];
+                    float water_needed = id(field_area_m2) * 5.0; // 5L per m² base
+                    float duration = water_needed / id(valve_liters_per_minute);
+                    snprintf(calc_text, sizeof(calc_text), 
+                            "💧 Calculated: %.0fL water, %.1f min duration", 
+                            water_needed, duration);
+                    return calc_text;
+                  text_font: roboto
+                  text_color: 0xAABBCC
+                  x: 10
+                  y: 60
+                  width: 440
 
-        # # Navigation buttons
-        # - button:
-        #     id: pump_back_button
-        #     x: 10
-        #     y: 680
-        #     width: 100
-        #     height: 40
-        #     styles: nav_button_style
-        #     widgets:
-        #       - label:
-        #           text: "Control"
-        #           text_font: roboto
-        #           align: center
-        #     on_click:
-        #       then:
-        #         - lvgl.page.previous:
+        # Navigation buttons
+        - button:
+            id: pump_back_button
+            x: 10
+            y: 680
+            width: 100
+            height: 40
+            styles: nav_button_style
+            widgets:
+              - label:
+                  text: "Control"
+                  text_font: roboto
+                  align: center
+            on_click:
+              then:
+                - lvgl.page.previous:
 
-        # - button:
-        #     id: pump_home_button
-        #     x: 100
-        #     y: 680
-        #     width: 100
-        #     height: 40
-        #     styles: nav_button_style
-        #     widgets:
-        #       - label:
-        #           text: "Device Settings"
-        #           text_font: roboto
-        #           align: center
-        #     on_click:
-        #       then:
-        #         - lvgl.page.next:
+        - button:
+            id: pump_home_button
+            x: 100
+            y: 680
+            width: 100
+            height: 40
+            styles: nav_button_style
+            widgets:
+              - label:
+                  text: "Device Settings"
+                  text_font: roboto
+                  align: center
+            on_click:
+              then:
+                - lvgl.page.next:
     # Settings Page
     - id: settings_page
       bg_color: 0x000000
