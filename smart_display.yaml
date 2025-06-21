@@ -3621,7 +3621,7 @@ script:
           condition:
             wifi.connected:
           then:
-            - lvgl.update:
+            - lvgl.image.update:
                 id: wifi_space
                 src: wifi_icon_online
             - lvgl.label.update:
