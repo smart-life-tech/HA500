@@ -1511,6 +1511,23 @@ lvgl:
             align: TOP_LEFT
 
         # Update Switch 1 - Light Control
+        - image:
+            src: settings_icon
+            x: 450
+            y: 50
+            width: 60
+            height: 60
+        - button:
+            id: sw1_setting_button
+            width: 50
+            height: 50
+            x: 450
+            y: 50
+            on_click:
+              then:
+                lvgl.widget.show:
+                  id: pump_settings_page
+        
         - button:
             id: sw1_button
             width: 400
@@ -4112,8 +4129,13 @@ image:
   - file: "images/cloud.png"
     id: cloud_icon
     resize: 24x24
-    type: RGB565
 
+    type: RGB565
+  - file: "images/settings.jpg"
+    id: settings_icon
+    resize: 50x50
+
+    type: RGB565
   - file: "images/pressure.png"
     id: pressure
     resize: 24x24
