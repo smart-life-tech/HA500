@@ -1296,6 +1296,8 @@ lvgl:
             on_click:
               then:
                 - lvgl.page.next:
+                - lambda: |-
+                    id(current_page) = 2;
         - obj:
             id: wifi_popup_obj
             hidden: true
@@ -1532,8 +1534,8 @@ lvgl:
             id: sw1_setting_button
             x: 380
             y: 55
-            width: 60
-            height: 60
+            width: 50
+            height: 50
             bg_color: 0xFFFFFF
             #bg_opa: 0%
             radius: 20
@@ -1542,7 +1544,7 @@ lvgl:
                 lvgl.widget.show: light_settings_page
         - image:
             src: settings_icon
-            x: 400
+            x: 380
             y: 50
             width: 50
             height: 50
@@ -2892,12 +2894,14 @@ lvgl:
                   styles: nav_button_style
                   widgets:
                     - label:
-                        text: "Next"
+                        text: "Done"
                         text_font: roboto
                         align: center
                   on_click:
                     then:
-                      - lvgl.page.next:
+                      - lvgl.page.show:
+                          id: controls_page
+                      
 
     - id: water_pump_settings_page
       bg_color: 0x000000
@@ -3999,10 +4003,18 @@ touchscreen:
     - lambda: |-
         ESP_LOGD("touch", "Touch at (%d, %d)", touch.x, touch.y);
         // Check if touch is in top-left WiFi area (x: 0-60, y: 50-100)
-        if (touch.x <= 100 && touch.y >= 5 && touch.y <= 100) {
+        if (touch.x <= 100 && touch.y >= 5 && touch.y <= 100 && id(current_page)==1) {
           ESP_LOGD("touch", "WiFi area touched at (%d, %d)", touch.x, touch.y);
           // execute the page toggle script 
           id(toggle_wifi_popup).execute();
+          return; // Exit early if WiFi area touched
+          }
+          if (touch.x >= 397 && touch.y >= 93 && touch.y <= 108 && id(current_page)==2) {
+          ESP_LOGD("touch", "WiFi area touched at (%d, %d)", touch.x, touch.y);
+          // go to the light settings Page
+          id(current_page) = 1;
+          id(settings_page)->set_hidden(true);
+          id(light_settings_page)->set_hidden(false);
           return; // Exit early if WiFi area touched
           }
         if (!id(touch_active)) {
