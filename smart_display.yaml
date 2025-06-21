@@ -1022,8 +1022,8 @@ lvgl:
               - image:
                   id: wifi_space
                   src: wifi_icon_online
-                  x: -7
-                  y: 0
+                  x: -8
+                  y: -4
                   width: 50
                   height: 50
                   bg_opa: 0% # Transparent background
@@ -1625,7 +1625,7 @@ lvgl:
             styles: nav_button_style
             widgets:
               - label:
-                  text: "Home"
+                  text: "Back"
                   text_font: roboto
                   align: center
             on_click:
@@ -1641,7 +1641,7 @@ lvgl:
             styles: nav_button_style
             widgets:
               - label:
-                  text: "Pump Settings"
+                  text: "Next"
                   text_font: roboto
                   align: center
             on_click:
@@ -2017,7 +2017,7 @@ lvgl:
                   styles: nav_button_style
                   widgets:
                     - label:
-                        text: "Control"
+                        text: "Back"
                         text_font: roboto
                         align: center
                   on_click:
@@ -2033,7 +2033,7 @@ lvgl:
                   styles: nav_button_style
                   widgets:
                     - label:
-                        text: "Device Set."
+                        text: "Next"
                         text_font: roboto
                         align: center
                   on_click:
@@ -2386,7 +2386,7 @@ lvgl:
             styles: nav_button_style
             widgets:
               - label:
-                  text: "Pump Set"
+                  text: "Back"
                   text_font: roboto
                   align: center
             on_click:
@@ -2402,7 +2402,7 @@ lvgl:
             styles: nav_button_style
             widgets:
               - label:
-                  text: "Light Set"
+                  text: "Next"
                   text_font: roboto
                   align: center
             on_click:
@@ -3169,7 +3169,7 @@ lvgl:
                   height: 60
                   widgets:
                     - label:
-                        text: "Back to Controls"
+                        text: "Back "
                         text_font: roboto
                         align: center
                   on_click:
