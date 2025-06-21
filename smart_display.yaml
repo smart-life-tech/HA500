@@ -1512,20 +1512,6 @@ lvgl:
 
         # Update Switch 1 - Light Control
         - button:
-            id: sw1_setting_button
-            x: 400
-            y: 50
-            width: 50
-            height: 50
-            bg_color: 0xFFFFFF
-            bg_opa: 0%
-            radius: 25
-            on_click:
-              then:
-                lvgl.widget.show:
-                  id: light_settings_page
-        
-        - button:
             id: sw1_button
             width: 400
             height: 70
@@ -1542,12 +1528,25 @@ lvgl:
                 - switch.toggle: sw1
                 - lambda: |-
                     id(sw1_manual_override_time) = id(time_comp).now().timestamp;
-        - image:
-            src: settings_icon
+        - button:
+            id: sw1_setting_button
             x: 400
             y: 50
-            width: 60
-            height: 60
+            width: 50
+            height: 50
+            bg_color: 0xFFFFFF
+            #bg_opa: 0%
+            radius: 25
+            on_click:
+              then:
+                lvgl.widget.show:
+                  id: light_settings_page
+        # - image:
+        #     src: settings_icon
+        #     x: 400
+        #     y: 50
+        #     width: 60
+        #     height: 60
         # Update Switch 2 - Water Pump
         - button:
             id: sw2_button
