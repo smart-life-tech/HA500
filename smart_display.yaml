@@ -1297,7 +1297,7 @@ lvgl:
               then:
                 - lvgl.page.next:
                 - lambda: |-
-                    id(current_page) = 2;
+                    id(current_page) = 1;
         - obj:
             id: wifi_popup_obj
             hidden: true
@@ -1323,22 +1323,6 @@ lvgl:
                   y: 10
                   width: 380
 
-              # Close button
-              - button:
-                  hidden: true
-                  x: 330
-                  y: 10
-                  width: 30
-                  height: 30
-                  widgets:
-                    - label:
-                        text: "×"
-                        text_font: roboto24
-                        align: center
-                        text_color: 0xFFFFFF
-                  on_click:
-                    then:
-                      - script.execute: toggle_wifi_popup
 
               # WiFi Status
               - label:
@@ -1530,18 +1514,18 @@ lvgl:
                 - switch.toggle: sw1
                 - lambda: |-
                     id(sw1_manual_override_time) = id(time_comp).now().timestamp;
-        - button:
-            id: sw1_setting_button
-            x: 380
-            y: 55
-            width: 50
-            height: 50
-            bg_color: 0xFFFFFF
-            #bg_opa: 0%
-            radius: 20
-            on_click:
-              then:
-                lvgl.widget.show: light_settings_page
+        # - button:
+        #     id: sw1_setting_button
+        #     x: 380
+        #     y: 55
+        #     width: 50
+        #     height: 50
+        #     bg_color: 0xFFFFFF
+        #     #bg_opa: 0%
+        #     radius: 20
+        #     on_click:
+        #       then:
+        #         lvgl.widget.show: light_settings_page
         - image:
             src: settings_icon
             x: 380
@@ -1566,7 +1550,12 @@ lvgl:
                 - switch.toggle: sw2
                 - lambda: |-
                     id(sw2_manual_override_time) = id(time_comp).now().timestamp;
-
+        - image:
+            src: settings_icon
+            x: 380
+            y: 140
+            width: 50
+            height: 50
         # Update Switch 3 - Irrigation Valve
         - button:
             id: sw3_button
@@ -1593,7 +1582,12 @@ lvgl:
                 - switch.toggle: sw3
                 - lambda: |-
                     id(sw3_manual_override_time) = id(time_comp).now().timestamp;
-
+        - image:
+            src: settings_icon
+            x: 380
+            y: 230
+            width: 50
+            height: 50
         # Add irrigation status display
         - obj:
             width: 460
@@ -1665,7 +1659,11 @@ lvgl:
                   align: center
             on_click:
               then:
-                - lvgl.page.next:
+                #- lvgl.page.next:
+                - lambda: |-
+                    // go to sttong page from control page
+                    id(lvgl_comp).show_page(3, LV_SCR_LOAD_ANIM_OVER_LEFT, 300);
+                 
 
     # New Pump/Irrigation Settings Page
     - id: pump_settings_page
@@ -1950,6 +1948,11 @@ lvgl:
                   text_color: 0xFFFFFF
                   x: 220
                   y: 35
+              - label:
+                  id: irrigation_status_display
+                  hidden: true
+                  text: "Irrigation Status: OFF"
+                  align: center
               - button:
                   id: schedule_hour_plus
                   x: 280
@@ -2058,156 +2061,7 @@ lvgl:
                   on_click:
                     then:
                       - lvgl.page.next:
-        # Action Buttons
-        - obj:
-            width: 460
-            height: 80
-            bg_color: 0x000000
-            bg_opa: 0%
-            radius: 10
-            scrollable: false
-            border_width: 0
-            hidden: true
-            x: 10
-            y: 470
-            widgets:
-              # Manual irrigation test button
-              - button:
-                  id: test_irrigation_button
-                  x: 10
-                  y: 10
-                  width: 120
-                  height: 50
-                  widgets:
-                    - label:
-                        text: "Manual Watering"
-                        text_font: roboto
-                        align: center
-                  on_click:
-                    then:
-                      - script.execute: manual_irrigation_test
-
-              # Calculate needs button
-              - button:
-                  id: calculate_needs_button
-                  x: 140
-                  y: 10
-                  width: 120
-                  height: 50
-                  widgets:
-                    - label:
-                        text: "Calculate Needs"
-                        text_font: roboto
-                        align: center
-                  on_click:
-                    then:
-                      - script.execute: calculate_irrigation_needs
-
-              # Reset all settings button
-              - button:
-                  id: reset_settings_button
-                  x: 270
-                  y: 10
-                  width: 100
-                  height: 50
-                  widgets:
-                    - label:
-                        text: "Reset All"
-                        text_font: roboto
-                        align: center
-                  on_click:
-                    then:
-                      - script.execute: reset_irrigation_settings
-
-        # Current Status Display
-        - obj:
-            width: 460
-            height: 100
-            bg_color: 0x000000
-            bg_opa: 50%
-            radius: 10
-            scrollable: false
-            hidden: true
-            x: 10
-            y: 560
-            widgets:
-              - label:
-                  text: "Current Status"
-                  text_font: roboto24
-                  text_color: 0xFFFFFF
-                  x: 10
-                  y: 5
-
-              - label:
-                  id: irrigation_status_display
-                  text: !lambda |-
-                    static char status_text[200];
-                    if (id(pump_relay).state) {
-                      int remaining = id(irrigation_duration_remaining);
-                      snprintf(status_text, sizeof(status_text), 
-                              "Irrigating - %d min remaining", remaining);
-                    } else {
-                      auto now = id(time_comp).now();
-                      int next_hour = id(irrigation_schedule_hour);
-                      int next_min = id(irrigation_schedule_minute);
-                      snprintf(status_text, sizeof(status_text), 
-                              "Next watering: %02d:%02d", next_hour, next_min);
-                    }
-                    return status_text;
-                  text_font: roboto
-                  text_color: 0xCCCCCC
-                  x: 10
-                  y: 35
-                  width: 440
-
-              - label:
-                  id: irrigation_calculation_display
-                  text: !lambda |-
-                    static char calc_text[150];
-                    float water_needed = id(field_area_m2) * 5.0; // 5L per m² base
-                    float duration = water_needed / id(valve_liters_per_minute);
-                    snprintf(calc_text, sizeof(calc_text), 
-                            "💧 Calculated: %.0fL water, %.1f min duration", 
-                            water_needed, duration);
-                    return calc_text;
-                  text_font: roboto
-                  text_color: 0xAABBCC
-                  x: 10
-                  y: 60
-                  width: 440
-
-        # Navigation buttons
-        # - button:
-        #     id: pump_back_button
-        #     x: 10
-        #     y: 680
-        #     width: 100
-        #     height: 40
-        #     styles: nav_button_style
-        #     widgets:
-        #       - label:
-        #           text: "Control"
-        #           text_font: roboto
-        #           align: center
-        #     on_click:
-        #       then:
-        #         - lvgl.page.previous:
-
-        # - button:
-        #     id: pump_home_button
-        #     x: 100
-        #     y: 680
-        #     width: 100
-        #     height: 40
-        #     styles: nav_button_style
-        #     widgets:
-        #       - label:
-        #           text: "Device Settings"
-        #           text_font: roboto
-        #           align: center
-        #     on_click:
-        #       then:
-        #         - lvgl.page.next:
+        
     # Settings Page
     - id: settings_page
       bg_color: 0x000000
@@ -2901,7 +2755,6 @@ lvgl:
                     then:
                       - lvgl.page.show:
                           id: controls_page
-                      
 
     - id: water_pump_settings_page
       bg_color: 0x000000
@@ -2943,7 +2796,7 @@ lvgl:
                     then:
                       - lvgl.page.previous:
                       - lambda: |-
-                          id(current_page) = 1;  // Set current page to settings
+                          id(current_page) = 1;  // Set current page to controll settings
 
         # WaterCalculations Section
         - obj:
@@ -4003,19 +3856,20 @@ touchscreen:
     - lambda: |-
         ESP_LOGD("touch", "Touch at (%d, %d)", touch.x, touch.y);
         // Check if touch is in top-left WiFi area (x: 0-60, y: 50-100)
-        if (touch.x <= 100 && touch.y >= 5 && touch.y <= 100 && id(current_page)==1) {
+        if (touch.x <= 100 && touch.y >= 5 && touch.y <= 100 && id(current_page) == 0) {
           ESP_LOGD("touch", "WiFi area touched at (%d, %d)", touch.x, touch.y);
           // execute the page toggle script 
           id(toggle_wifi_popup).execute();
           return; // Exit early if WiFi area touched
           }
-          if (touch.x >= 397 && touch.y >= 93 && touch.y <= 108 && id(current_page)==2) {
+          if (touch.x >= 397 && touch.y >= 93 && touch.y <= 108 && id(current_page) == 1) {
           ESP_LOGD("touch", "WiFi area touched at (%d, %d)", touch.x, touch.y);
           // go to the light settings Page
-          id(current_page) = 1;
-          id(settings_page)->set_hidden(true);
-          id(light_settings_page)->set_hidden(false);
-          return; // Exit early if WiFi area touched
+          //id(current_page) = 1;
+          //id(lvgl_comp).show_page(id(settings_page));
+          //id(lvgl_comp).show_page(id(light_settings_page));
+          id(lvgl_comp).show_page(2, LV_SCR_LOAD_ANIM_OVER_LEFT, 300);
+          return; // Exit early if light settings  area touched
           }
         if (!id(touch_active)) {
           // Store initial touch position
@@ -4179,7 +4033,7 @@ interval:
       - script.execute: calculate_irrigation_needs
       - lambda: |-
           // Update all display elements on the water pump settings page
-          if (id(current_page) == 2) {  // If on water pump settings page
+          if (id(current_page) == 1) {  // If on water pump settings page
             id(lvgl_comp).loop();
           }
   - interval: 20s
