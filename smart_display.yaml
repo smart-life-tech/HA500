@@ -1585,7 +1585,7 @@ lvgl:
                   text: !lambda |-
                     static char line1_text[60];
                     snprintf(line1_text, sizeof(line1_text), 
-                            "Field: %.1fm2 | Flow: %.1fL/min", 
+                            "Field: %.1f m2 | Flow: %.1f L/min", 
                             id(field_area_m2), id(valve_liters_per_minute));
                     return line1_text;
                   text_font: roboto
@@ -2796,7 +2796,7 @@ lvgl:
                   text: !lambda |-
                     static char rain_text[40];
                     float rainfall_liters = id(daily_rainfall_mm) * id(field_area_m2) / 1000.0;
-                    snprintf(rain_text, sizeof(rain_text), "%.1f L (%.1fmm)", rainfall_liters, id(daily_rainfall_mm));
+                    snprintf(rain_text, sizeof(rain_text), "%.1f L (%.1f mm)", rainfall_liters, id(daily_rainfall_mm));
                     return rain_text;
                   text_font: roboto
                   x: 80
