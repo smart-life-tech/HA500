@@ -2156,6 +2156,7 @@ lvgl:
             id: valve_training_btn
             x: 295
             y: 420
+            hidden: true
             width: 120
             height: 45
             styles: nav_button_style
@@ -2211,7 +2212,7 @@ lvgl:
                           text: "Valve: Winter (Rain-based)"
                       - lvgl.label.update:
                           id: sw3_button_label
-                          text: "Weather Light (Winter)"
+                          text: "Valve (Winter)"
                     else:
                       - lvgl.label.update:
                           id: sw3_mode_label
@@ -2237,21 +2238,7 @@ lvgl:
               then:
                 - lvgl.page.previous:
                 # In your existing settings page, add this button
-        - button:
-            id: light_automation_btn
-            x: 185
-            y: 420
-            width: 100
-            height: 45
-            styles: nav_button_style
-            widgets:
-              - label:
-                  text: "Next"
-                  text_font: roboto
-                  align: center
-            on_click:
-              then:
-                - lvgl.page.next:
+        
 
         # Light Automation Settings Page
     - id: light_settings_page
