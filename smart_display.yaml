@@ -1488,7 +1488,7 @@ lvgl:
         # Update Switch 1 - Light Control
         - button:
             id: sw1_button
-            width: 400
+            width: 340
             height: 70
             x: 40
             y: 50
@@ -1513,7 +1513,7 @@ lvgl:
         # Update Switch 2 - Water Pump
         - button:
             id: sw2_button
-            width: 400
+            width: 340
             height: 70
             x: 40
             y: 140
@@ -1537,7 +1537,7 @@ lvgl:
         # Update Switch 3 - Irrigation Valve
         - button:
             id: sw3_button
-            width: 400
+            width: 340
             height: 70
             x: 40
             y: 230
