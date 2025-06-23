@@ -999,17 +999,7 @@ lvgl:
             width: 480
             height: 480
             align: TOP_LEFT
-          # - image:
-          #     src: wifi_icon
-          #     x: 3
-          #     y: 10
-          #     width: 30
-          #     height: 30
-          #     bg_opa: 0%  # Transparent background
-          #     border_width: 0
-          # on_click:
-          #     then:
-          #       - script.execute: toggle_wifi_popup
+
         - obj:
             width: 50
             scrollable: false
@@ -1323,7 +1313,6 @@ lvgl:
                   y: 10
                   width: 380
 
-
               # WiFi Status
               - label:
                   text: "Status:"
@@ -1514,24 +1503,13 @@ lvgl:
                 - switch.toggle: sw1
                 - lambda: |-
                     id(sw1_manual_override_time) = id(time_comp).now().timestamp;
-        # - button:
-        #     id: sw1_setting_button
-        #     x: 380
-        #     y: 55
-        #     width: 50
-        #     height: 50
-        #     bg_color: 0xFFFFFF
-        #     #bg_opa: 0%
-        #     radius: 20
-        #     on_click:
-        #       then:
-        #         lvgl.widget.show: light_settings_page
+
         - image:
             src: settings_icon
             x: 380
             y: 50
-            width: 50
-            height: 50
+            width: 60
+            height: 60
         # Update Switch 2 - Water Pump
         - button:
             id: sw2_button
@@ -1554,8 +1532,8 @@ lvgl:
             src: settings_icon
             x: 380
             y: 140
-            width: 50
-            height: 50
+            width: 60
+            height: 60
         # Update Switch 3 - Irrigation Valve
         - button:
             id: sw3_button
@@ -1586,8 +1564,8 @@ lvgl:
             src: settings_icon
             x: 380
             y: 230
-            width: 50
-            height: 50
+            width: 60
+            height: 60
         # Add irrigation status display
         - obj:
             width: 460
@@ -1663,7 +1641,6 @@ lvgl:
                 - lambda: |-
                     // go to sttong page from control page
                     id(lvgl_comp).show_page(3, LV_SCR_LOAD_ANIM_OVER_LEFT, 300);
-                 
 
     # New Pump/Irrigation Settings Page
     - id: pump_settings_page
@@ -2061,7 +2038,7 @@ lvgl:
                   on_click:
                     then:
                       - lvgl.page.next:
-        
+
     # Settings Page
     - id: settings_page
       bg_color: 0x000000
@@ -3862,13 +3839,22 @@ touchscreen:
           id(toggle_wifi_popup).execute();
           return; // Exit early if WiFi area touched
           }
-          if (touch.x >= 397 && touch.y >= 93 && touch.y <= 108 && id(current_page) == 1) {
-          ESP_LOGD("touch", "WiFi area touched at (%d, %d)", touch.x, touch.y);
+          if (touch.x >= 390 && touch.y >= 60 && touch.y <= 110 && id(current_page) == 1) {
+          ESP_LOGD("touch", "light area touched at (%d, %d)", touch.x, touch.y);
           // go to the light settings Page
-          //id(current_page) = 1;
-          //id(lvgl_comp).show_page(id(settings_page));
-          //id(lvgl_comp).show_page(id(light_settings_page));
+          id(lvgl_comp).show_page(4, LV_SCR_LOAD_ANIM_OVER_LEFT, 300);
+          return; // Exit early if light settings  area touched
+          }
+          if (touch.x >= 390 && touch.y >= 150 && touch.y <= 200 && id(current_page) == 1) {
+          ESP_LOGD("touch", "pump area touched at (%d, %d)", touch.x, touch.y);
+          // go to the pump settings Page
           id(lvgl_comp).show_page(2, LV_SCR_LOAD_ANIM_OVER_LEFT, 300);
+          return; // Exit early if light settings  area touched
+          }
+          if (touch.x >= 390 && touch.y >= 240 && touch.y <= 290 && id(current_page) == 1) {
+          ESP_LOGD("touch", "WiFi area touched at (%d, %d)", touch.x, touch.y);
+          // go to the pump settings Page
+          id(lvgl_comp).show_page(5, LV_SCR_LOAD_ANIM_OVER_LEFT, 300);
           return; // Exit early if light settings  area touched
           }
         if (!id(touch_active)) {
@@ -3999,7 +3985,7 @@ image:
     type: RGB565
   - file: "images/settings.jpg"
     id: settings_icon
-    resize: 50x50
+    resize: 60x60
 
     type: RGB565
   - file: "images/pressure.png"
