@@ -1492,6 +1492,7 @@ lvgl:
         # Update Switch 1 - Light Control
         - button:
             id: sw1_button
+            radius: 40
             width: 340
             height: 70
             x: 40
@@ -1517,6 +1518,7 @@ lvgl:
         # Update Switch 2 - Water Pump
         - button:
             id: sw2_button
+            radius: 40
             width: 340
             height: 70
             x: 40
@@ -1541,6 +1543,7 @@ lvgl:
         # Update Switch 3 - Irrigation Valve
         - button:
             id: sw3_button
+            radius: 40
             width: 340
             height: 70
             x: 40
@@ -1576,7 +1579,7 @@ lvgl:
             height: 80
             bg_color: 0x000000
             bg_opa: 5%
-            radius: 30
+            radius: 40
             x: 40
             y: 315
             widgets:
