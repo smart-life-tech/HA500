@@ -2012,7 +2012,7 @@ lvgl:
                   x: 210
                   y: 70
                   width: 100
-                  height: 80
+                  height: 40
                   styles: nav_button_style
                   widgets:
                     - label:
