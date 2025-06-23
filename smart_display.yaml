@@ -123,7 +123,7 @@ sensor:
   - platform: template
     name: "Field Area"
     id: field_area_sensor
-    unit_of_measurement: "m^2"
+    unit_of_measurement: "m2"
     accuracy_decimals: 0
     lambda: "return id(field_area_m2);"
     update_interval: never
@@ -355,7 +355,7 @@ number:
               return text;
   - platform: template
     id: field_area_input
-    name: "Field Area (m^2)"
+    name: "Field Area (m2)"
     min_value: 1
     max_value: 1000
     step: 1
@@ -372,7 +372,7 @@ number:
             id: field_area_display
             text: !lambda |-
               static char text[20];
-              snprintf(text, sizeof(text), "%.0f m^2", id(field_area_m2));
+              snprintf(text, sizeof(text), "%.0f m2", id(field_area_m2));
               return text;
 
   - platform: template
@@ -700,6 +700,10 @@ globals:
     type: int
     restore_value: no
     initial_value: "0"
+
+  - id: last_touch_time
+    type: unsigned long
+    initial_value: '0'
 
   - id: irrigation_schedule_hour
     type: int
@@ -1568,12 +1572,12 @@ lvgl:
             height: 60
         # Add irrigation status display
         - obj:
-            width: 460
+            width: 340
             height: 80
             bg_color: 0x000000
             bg_opa: 5%
             radius: 10
-            x: 10
+            x: 40
             y: 315
             widgets:
               - label:
@@ -1581,7 +1585,7 @@ lvgl:
                   text: !lambda |-
                     static char line1_text[60];
                     snprintf(line1_text, sizeof(line1_text), 
-                            "Field: %.1fm^2 | Flow: %.1fL/min", 
+                            "Field: %.1fm2 | Flow: %.1fL/min", 
                             id(field_area_m2), id(valve_liters_per_minute));
                     return line1_text;
                   text_font: roboto
@@ -1720,7 +1724,7 @@ lvgl:
                   id: field_area_display
                   text: !lambda |-
                     static char text[20];
-                    snprintf(text, sizeof(text), "%.0f m^2", id(field_area_m2));
+                    snprintf(text, sizeof(text), "%.0f m2", id(field_area_m2));
                     return text;
                   text_font: roboto
                   text_color: 0xFFFFFF
@@ -2823,7 +2827,7 @@ lvgl:
                     if (id(irrigation_needed_liters) > 0) {
                       return lv_color_hex(0xFFA500);  // Orange
                     }
-                    return lv_color_hex(0x0000FF);  // Green - no Water needed
+                    return lv_color_hex(0x000000);  //  - no Water needed
               - label:
                   text: "Mode:"
                   text_font: roboto
@@ -3808,26 +3812,27 @@ touchscreen:
   on_touch:
     - lambda: |-
         ESP_LOGD("touch", "Touch at (%d, %d)", touch.x, touch.y);
+        id(last_touch_time) = millis();
         // Check if touch is in top-left WiFi area (x: 0-60, y: 50-100)
         if (touch.x <= 100 && touch.y >= 5 && touch.y <= 100 && id(current_page) == 0) {
           ESP_LOGD("touch", "WiFi area touched at (%d, %d)", touch.x, touch.y);
           // execute the page toggle script 
           id(toggle_wifi_popup).execute();
           return; // Exit early if WiFi area touched
-          }
-          if (touch.x >= 390 && touch.y >= 60 && touch.y <= 110 && id(current_page) == 1) {
+        }
+        if (touch.x >= 390 && touch.y >= 60 && touch.y <= 110 && id(current_page) == 1) {
           ESP_LOGD("touch", "light area touched at (%d, %d)", touch.x, touch.y);
           // go to the light settings Page
           id(lvgl_comp).show_page(4, LV_SCR_LOAD_ANIM_OVER_LEFT, 300);
           return; // Exit early if light settings  area touched
-          }
-          if (touch.x >= 390 && touch.y >= 150 && touch.y <= 200 && id(current_page) == 1) {
+        }
+        if (touch.x >= 390 && touch.y >= 150 && touch.y <= 200 && id(current_page) == 1) {
           ESP_LOGD("touch", "pump area touched at (%d, %d)", touch.x, touch.y);
           // go to the pump settings Page
           id(lvgl_comp).show_page(2, LV_SCR_LOAD_ANIM_OVER_LEFT, 300);
           return; // Exit early if light settings  area touched
-          }
-          if (touch.x >= 390 && touch.y >= 240 && touch.y <= 290 && id(current_page) == 1) {
+        }
+        if (touch.x >= 390 && touch.y >= 240 && touch.y <= 290 && id(current_page) == 1) {
           ESP_LOGD("touch", "WiFi area touched at (%d, %d)", touch.x, touch.y);
           // go to the pump settings Page
           id(lvgl_comp).show_page(5, LV_SCR_LOAD_ANIM_OVER_LEFT, 300);
@@ -3990,6 +3995,21 @@ image:
     type: RGB565
 
 interval:
+  - interval: 5s
+    then:
+      - lambda: |-
+          // Check if 60 seconds have passed since last touch
+          if (millis() - id(last_touch_time) > 60000) {
+            // Go to page 1 if not already there
+            if (id(lvgl_comp).get_current_page() != 0) {
+            id(current_page) = 1; // Update current page
+            ESP_LOGD("lvgl", "Switching to page 0 due to inactivity");
+              id(lvgl_comp).show_page(0, LV_SCR_LOAD_ANIM_FADE_ON, 300);
+            }
+            // Reset the timer to prevent constant page switching
+            //id(last_touch_time) = millis();
+          }
+
   - interval: 60s # Every 5 minutes
     then:
       - script.execute: calculate_irrigation_needs
