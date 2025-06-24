@@ -237,50 +237,30 @@ time:
         - logger.log: "TIME DEBUG: Time synchronized with Home Assistant"
         - script.execute: time_display_update # Changed from time_update
     on_time:
-      # Morning block - 6:00 AM
-      - seconds: 0
-        minutes: 0
-        hours: 6
-        then:
-          - script.execute: calculate_irrigation_needs
-          - lambda: |-
-              if (id(daily_runtime_blocks)[0] > 0) {
-                ESP_LOGI("irrigation", "Auto-starting morning irrigation");
-                // Trigger morning irrigation
-              }
-      
-      # Afternoon block - 12:00 PM  
-      - seconds: 0
-        minutes: 0
-        hours: 12
-        then:
-          - script.execute: calculate_irrigation_needs
-          - lambda: |-
-              if (id(daily_runtime_blocks)[1] > 0) {
-                ESP_LOGI("irrigation", "Auto-starting afternoon irrigation");
-                // Trigger afternoon irrigation
-              }
-
-      # Update clock display every minute (display only)
-      - minutes: "*"
-        seconds: 0
-        then:
-          - script.execute: time_display_update # Changed from time_update
-
-      # Run automation checks less frequently (every 5 minutes)
-      - minutes: "/5" # Changed from /1 to /5
-        seconds: 0
-        then:
-          - script.execute: check_light_schedules
       - seconds: 0
         then:
           - lambda: |-
+              if (!id(auto_irrigation_enabled)) return;
+              
               auto now = id(time_comp).now();
-              if (now.hour == id(irrigation_schedule_hour) && 
-                  now.minute == id(irrigation_schedule_minute)) {
-                ESP_LOGI("irrigation", "Irrigation schedule triggered at %02d:%02d", now.hour, now.minute);
-                id(run_scheduled_irrigation).execute();
+              int current_minutes = now.hour * 60 + now.minute;
+              
+              // Check if current time matches any block start time
+              int blocks[4][2] = {
+                {id(block1_start_hour) * 60 + id(block1_start_minute), 1},
+                {id(block2_start_hour) * 60 + id(block2_start_minute), 2},
+                {id(block3_start_hour) * 60 + id(block3_start_minute), 3},
+                {id(block4_start_hour) * 60 + id(block4_start_minute), 4}
+              };
+              
+              for (int i = 0; i < 4; i++) {
+                if (current_minutes == blocks[i][0]) {
+                  ESP_LOGI("irrigation", "Auto-starting irrigation block %d", blocks[i][1]);
+                  // Trigger irrigation calculation and execution
+                  id(calculate_irrigation_needs).execute();
+                  break;
                 }
+              }
 
   # Add SNTP as fallback when Home Assistant is unavailable
   - platform: sntp
@@ -316,6 +296,242 @@ sun:
 
 # Add this to update the sun component when location changes
 number:
+    # Block 1 times
+  - platform: template
+    id: block1_start_hour_input
+    min_value: 0
+    max_value: 23
+    step: 1
+    optimistic: true
+    initial_value: 6
+    on_value:
+      then:
+        - lambda: 'id(block1_start_hour) = (int)x;'
+        
+  - platform: template
+    id: block1_start_minute_input
+    min_value: 0
+    max_value: 59
+    step: 1
+    optimistic: true
+    initial_value: 0
+    on_value:
+      then:
+        - lambda: 'id(block1_start_minute) = (int)x;'
+        
+  - platform: template
+    id: block1_stop_hour_input
+    min_value: 0
+    max_value: 23
+    step: 1
+    optimistic: true
+    initial_value: 8
+    on_value:
+      then:
+        - lambda: 'id(block1_stop_hour) = (int)x;'
+        
+  - platform: template
+    id: block1_stop_minute_input
+    min_value: 0
+    max_value: 59
+    step: 1
+    optimistic: true
+    initial_value: 0
+    on_value:
+      then:
+        - lambda: 'id(block1_stop_minute) = (int)x;'
+
+  # Block 2 times
+  - platform: template
+    id: block2_start_hour_input
+    min_value: 0
+    max_value: 23
+    step: 1
+    optimistic: true
+    initial_value: 12
+    on_value:
+      then:
+        - lambda: 'id(block2_start_hour) = (int)x;'
+        
+  - platform: template
+    id: block2_start_minute_input
+    min_value: 0
+    max_value: 59
+    step: 1
+    optimistic: true
+    initial_value: 0
+    on_value:
+      then:
+        - lambda: 'id(block2_start_minute) = (int)x;'
+        
+  - platform: template
+    id: block2_stop_hour_input
+    min_value: 0
+    max_value: 23
+    step: 1
+    optimistic: true
+    initial_value: 14
+    on_value:
+      then:
+        - lambda: 'id(block2_stop_hour) = (int)x;'
+        
+  - platform: template
+    id: block2_stop_minute_input
+    min_value: 0
+    max_value: 59
+    step: 1
+    optimistic: true
+    initial_value: 0
+    on_value:
+      then:
+        - lambda: 'id(block2_stop_minute) = (int)x;'
+
+  # Block 3 times
+  - platform: template
+    id: block3_start_hour_input
+    min_value: 0
+    max_value: 23
+    step: 1
+    optimistic: true
+    initial_value: 16
+    on_value:
+      then:
+        - lambda: 'id(block3_start_hour) = (int)x;'
+        
+  - platform: template
+    id: block3_start_minute_input
+    min_value: 0
+    max_value: 59
+    step: 1
+    optimistic: true
+    initial_value: 0
+    on_value:
+      then:
+        - lambda: 'id(block3_start_minute) = (int)x;'
+        
+  - platform: template
+    id: block3_stop_hour_input
+    min_value: 0
+    max_value: 23
+    step: 1
+    optimistic: true
+    initial_value: 18
+    on_value:
+      then:
+        - lambda: 'id(block3_stop_hour) = (int)x;'
+        
+  - platform: template
+    id: block3_stop_minute_input
+    min_value: 0
+    max_value: 59
+    step: 1
+    optimistic: true
+    initial_value: 0
+    on_value:
+      then:
+        - lambda: 'id(block3_stop_minute) = (int)x;'
+
+  # Block 4 times
+  - platform: template
+    id: block4_start_hour_input
+    min_value: 0
+    max_value: 23
+    step: 1
+    optimistic: true
+    initial_value: 20
+    on_value:
+      then:
+        - lambda: 'id(block4_start_hour) = (int)x;'
+        
+  - platform: template
+    id: block4_start_minute_input
+    min_value: 0
+    max_value: 59
+    step: 1
+    initial_value: 0
+    optimistic: true
+    on_value:
+      then:
+        - lambda: 'id(block4_start_minute) = (int)x;'
+        
+  - platform: template
+    id: block4_stop_hour_input
+    min_value: 0
+    max_value: 23
+    step: 1
+    initial_value: 22
+    optimistic: true
+    on_value:
+      then:
+        - lambda: 'id(block4_stop_hour) = (int)x;'
+        
+  - platform: template
+    id: block4_stop_minute_input
+    min_value: 0
+    max_value: 59
+    optimistic: true
+    step: 1
+    initial_value: 0
+    on_value:
+      then:
+        - lambda: 'id(block4_stop_minute) = (int)x;'
+
+  # Runtime parameters
+  - platform: template
+    id: center_time_input
+    min_value: 0
+    max_value: 23
+    optimistic: true
+    step: 1
+    initial_value: 14
+    on_value:
+      then:
+        - lambda: 'id(center_time_minutes) = (int)x;'
+        
+  - platform: template
+    id: min_runtime_input
+    min_value: 1
+    max_value: 300
+    optimistic: true
+    step: 1
+    initial_value: 60
+    on_value:
+      then:
+        - lambda: 'id(min_runtime_minutes) = (int)x;'
+        
+  - platform: template
+    id: max_runtime_input
+    min_value: 60
+    max_value: 600
+    optimistic: true
+    step: 5
+    initial_value: 300
+    on_value:
+      then:
+        - lambda: 'id(max_runtime_minutes) = (int)x;'
+        
+  - platform: template
+    id: reference_temp_input
+    min_value: 10
+    max_value: 35
+    step: 0.5
+    initial_value: 22
+    optimistic: true
+    on_value:
+      then:
+        - lambda: 'id(reference_temperature) = x;'
+        
+  - platform: template
+    id: temp_rate_input
+    min_value: 0.1
+    max_value: 5.0
+    step: 0.1
+    initial_value: 1.0
+    optimistic: true
+    on_value:
+      then:
+        - lambda: 'id(temp_rate_percent) = x;'
+
   - platform: template
     id: daily_rainfall_input
     name: "Daily Rainfall (mm)"
@@ -331,12 +547,12 @@ number:
             id(daily_rainfall_mm) = x;
             ESP_LOGI("irrigation", "Daily rainfall updated to %.1f mm", x);
         - script.execute: calculate_irrigation_needs
-        - lvgl.label.update:
-            id: rainfall_manual_display
-            text: !lambda |-
-              static char text[20];
-              snprintf(text, sizeof(text), "%.1f mm", id(daily_rainfall_mm));
-              return text;
+        # - lvgl.label.update:
+        #     id: rainfall_manual_display
+        #     text: !lambda |-
+        #       static char text[20];
+        #       snprintf(text, sizeof(text), "%.1f mm", id(daily_rainfall_mm));
+        #       return text;
 
   - platform: template
     id: irrigation_schedule_hour_input
@@ -351,12 +567,12 @@ number:
       then:
         - lambda: |-
             id(irrigation_schedule_hour) = (int)x;
-        - lvgl.label.update:
-            id: schedule_time_display
-            text: !lambda |-
-              static char text[20];
-              snprintf(text, sizeof(text), "%02d:%02d", id(irrigation_schedule_hour), id(irrigation_schedule_minute));
-              return text;
+        # - lvgl.label.update:
+        #     id: schedule_time_display
+        #     text: !lambda |-
+        #       static char text[20];
+        #       snprintf(text, sizeof(text), "%02d:%02d", id(irrigation_schedule_hour), id(irrigation_schedule_minute));
+        #       return text;
 
   - platform: template
     id: irrigation_schedule_minute_input
@@ -371,12 +587,12 @@ number:
       then:
         - lambda: |-
             id(irrigation_schedule_minute) = (int)x;
-        - lvgl.label.update:
-            id: schedule_time_display
-            text: !lambda |-
-              static char text[20];
-              snprintf(text, sizeof(text), "%02d:%02d", id(irrigation_schedule_hour), id(irrigation_schedule_minute));
-              return text;
+        # - lvgl.label.update:
+        #     id: schedule_time_display
+        #     text: !lambda |-
+        #       static char text[20];
+        #       snprintf(text, sizeof(text), "%02d:%02d", id(irrigation_schedule_hour), id(irrigation_schedule_minute));
+        #       return text;
   - platform: template
     id: field_area_input
     name: "Field Area (m2)"
@@ -392,12 +608,12 @@ number:
             id(field_area_m2) = x;
             ESP_LOGI("irrigation", "Field area updated to %.0f m²", x);
         - script.execute: calculate_irrigation_needs
-        - lvgl.label.update:
-            id: field_area_display
-            text: !lambda |-
-              static char text[20];
-              snprintf(text, sizeof(text), "%.0f m2", id(field_area_m2));
-              return text;
+        # - lvgl.label.update:
+        #     id: field_area_display
+        #     text: !lambda |-
+        #       static char text[20];
+        #       snprintf(text, sizeof(text), "%.0f m2", id(field_area_m2));
+        #       return text;
 
   - platform: template
     id: valve_flow_rate_input
@@ -413,12 +629,12 @@ number:
         - lambda: |-
             id(valve_liters_per_minute) = x;
             ESP_LOGI("irrigation", "Valve flow rate updated to %.1f L/min", x);
-        - lvgl.label.update:
-            id: flow_rate_display
-            text: !lambda |-
-              static char text[20];
-              snprintf(text, sizeof(text), "%.1f L/min", id(valve_liters_per_minute));
-              return text;
+        # - lvgl.label.update:
+        #     id: flow_rate_display
+        #     text: !lambda |-
+        #       static char text[20];
+        #       snprintf(text, sizeof(text), "%.1f L/min", id(valve_liters_per_minute));
+        #       return text;
 
   - platform: template
     id: location_latitude
@@ -720,6 +936,76 @@ color:
 
 # Global variables for timer tracking and settings
 globals:
+  # Irrigation block start/stop times (4 blocks)
+  - id: block1_start_hour
+    type: int
+    initial_value: '6'
+  - id: block1_start_minute
+    type: int
+    initial_value: '0'
+  - id: block1_stop_hour
+    type: int
+    initial_value: '8'
+  - id: block1_stop_minute
+    type: int
+    initial_value: '0'
+    
+  - id: block2_start_hour
+    type: int
+    initial_value: '12'
+  - id: block2_start_minute
+    type: int
+    initial_value: '0'
+  - id: block2_stop_hour
+    type: int
+    initial_value: '14'
+  - id: block2_stop_minute
+    type: int
+    initial_value: '0'
+    
+  - id: block3_start_hour
+    type: int
+    initial_value: '16'
+  - id: block3_start_minute
+    type: int
+    initial_value: '0'
+  - id: block3_stop_hour
+    type: int
+    initial_value: '18'
+  - id: block3_stop_minute
+    type: int
+    initial_value: '0'
+    
+  - id: block4_start_hour
+    type: int
+    initial_value: '20'
+  - id: block4_start_minute
+    type: int
+    initial_value: '0'
+  - id: block4_stop_hour
+    type: int
+    initial_value: '22'
+  - id: block4_stop_minute
+    type: int
+    initial_value: '0'
+    
+  # Runtime parameters
+  - id: center_time_minutes
+    type: int
+    initial_value: '14' # 14:00 center time
+  - id: min_runtime_minutes
+    type: int
+    initial_value: '60'
+  - id: max_runtime_minutes
+    type: int
+    initial_value: '300'
+  - id: reference_temperature
+    type: float
+    initial_value: '22.0'
+  - id: temp_rate_percent
+    type: float
+    initial_value: '1.0' # 1% per degree
+
   - id: base_pump_runtime_minutes
     type: float
     initial_value: "0"
@@ -1122,6 +1408,7 @@ lvgl:
                   border_width: 0
                   width: 480
                   scrollable: false # Add this
+                  
 
         # Weather section - semi-transparent overlay
         - obj:
@@ -1719,211 +2006,476 @@ lvgl:
                   border_width: 0
                   x: 0
                   y: 5
+              - label:
+                  id: irrigation_status_display
+                  hidden: true
+                  text: "PUMP & WATER SET (Win/Sum)"
+                  text_font: roboto24
+                  align: center
+                  text_color: 0xFFFFFF
+                  border_width: 0
+                  x: 0
+                  y: 5
 
-        # Field Area Settings
+                # Irrigation Block 1 Settings
         - obj:
             scrollable: false
             width: 460
-            height: 80
+            height: 100
             bg_color: 0x000000
             bg_opa: 50%
             radius: 10
             x: 10
-            y: 70
+            y: 10
             widgets:
               - label:
-                  text: "Field Area Settings"
+                  text: "Block 1 Times"
                   text_font: roboto24
                   text_color: 0xFFFFFF
                   x: 10
                   y: 5
-
               - label:
-                  text: "Field area:"
+                  text: "Start:"
                   text_font: roboto
                   text_color: 0xCCCCCC
                   x: 10
                   y: 35
               - button:
-                  id: field_area_minus
-                  x: 150
+                  x: 60
                   y: 30
-                  width: 40
-                  height: 30
+                  width: 30
+                  height: 25
                   widgets:
                     - label:
                         text: "-"
                         align: center
                   on_click:
                     then:
-                      - number.decrement: field_area_input
+                      - number.decrement: block1_start_hour_input
               - label:
-                  id: field_area_display
+                  id: block1_start_display
                   text: !lambda |-
-                    static char text[20];
-                    snprintf(text, sizeof(text), "%.0f m2", id(field_area_m2));
+                    static char text[10];
+                    snprintf(text, sizeof(text), "%02d:%02d", id(block1_start_hour), id(block1_start_minute));
                     return text;
                   text_font: roboto
                   text_color: 0xFFFFFF
-                  x: 200
+                  x: 95
                   y: 35
               - button:
-                  id: field_area_plus
-                  x: 280
+                  x: 140
                   y: 30
-                  width: 40
-                  height: 30
+                  width: 30
+                  height: 25
                   widgets:
                     - label:
                         text: "+"
                         align: center
                   on_click:
                     then:
-                      - number.increment: field_area_input
-
-        # Flow Rate Settings
-        - obj:
-            scrollable: false
-            width: 460
-            height: 80
-            bg_color: 0x000000
-            bg_opa: 50%
-            radius: 10
-            x: 10
-            y: 160
-            widgets:
+                      - number.increment: block1_start_hour_input
               - label:
-                  text: "Valve Flow Rate Settings"
-                  text_font: roboto24
-                  text_color: 0xFFFFFF
-                  x: 10
-                  y: 5
-
-              - label:
-                  text: "Flow rate:"
+                  text: "Stop:"
                   text_font: roboto
                   text_color: 0xCCCCCC
-                  x: 10
+                  x: 180
                   y: 35
+                  
               - button:
-                  id: flow_rate_minus
-                  x: 150
+                  x: 220
                   y: 30
-                  width: 40
-                  height: 30
+                  width: 30
+                  height: 25
                   widgets:
                     - label:
                         text: "-"
                         align: center
                   on_click:
                     then:
-                      - number.decrement: valve_flow_rate_input
+                      - number.decrement: block1_stop_hour_input
               - label:
-                  id: flow_rate_display
+                  id: block1_stop_display
                   text: !lambda |-
-                    static char text[20];
-                    snprintf(text, sizeof(text), "%.1f L/min", id(valve_liters_per_minute));
+                    static char text[10];
+                    snprintf(text, sizeof(text), "%02d:%02d", id(block1_stop_hour), id(block1_stop_minute));
                     return text;
                   text_font: roboto
                   text_color: 0xFFFFFF
-                  x: 200
+                  x: 255
                   y: 35
               - button:
-                  id: flow_rate_plus
                   x: 300
                   y: 30
-                  width: 40
-                  height: 30
+                  width: 30
+                  height: 25
                   widgets:
                     - label:
                         text: "+"
                         align: center
                   on_click:
                     then:
-                      - number.increment: valve_flow_rate_input
-
-        # Manual Rainfall Input
-        - obj:
-            scrollable: false
-            width: 460
-            height: 80
-            bg_color: 0x000000
-            bg_opa: 50%
-            radius: 10
-            x: 10
-            y: 250
-            widgets:
-              - label:
-                  text: "Manual Rainfall Input"
-                  text_font: roboto24
-                  text_color: 0xFFFFFF
-                  x: 10
-                  y: 5
-
-              - label:
-                  text: "Today's rain:"
-                  text_font: roboto
-                  text_color: 0xCCCCCC
-                  x: 10
-                  y: 35
+                      - number.increment: block1_stop_hour_input
+              # Minute adjustment buttons
               - button:
-                  id: rainfall_minus
-                  x: 150
-                  y: 30
-                  width: 40
-                  height: 30
+                  x: 95
+                  y: 60
+                  width: 20
+                  height: 20
                   widgets:
                     - label:
                         text: "-"
-                        align: center
-                  on_click:
-                    then:
-                      - number.decrement: daily_rainfall_input
-              - label:
-                  id: rainfall_manual_display
-                  text: !lambda |-
-                    static char text[20];
-                    snprintf(text, sizeof(text), "%.1f mm", id(daily_rainfall_mm));
-                    return text;
-                  text_font: roboto
-                  text_color: 0xFFFFFF
-                  x: 200
-                  y: 35
-              - button:
-                  id: rainfall_plus
-                  x: 280
-                  y: 30
-                  width: 40
-                  height: 30
-                  widgets:
-                    - label:
-                        text: "+"
-                        align: center
-                  on_click:
-                    then:
-                      - number.increment: daily_rainfall_input
-              - button:
-                  id: rainfall_reset
-                  x: 330
-                  y: 30
-                  width: 60
-                  height: 30
-                  widgets:
-                    - label:
-                        text: "Reset"
                         text_font: roboto
                         align: center
                   on_click:
                     then:
-                      - number.set:
-                          id: daily_rainfall_input
-                          value: 0
+                      - number.decrement: block1_start_minute_input
+              - button:
+                  x: 150
+                  y: 60
+                  width: 20
+                  height: 20
+                  widgets:
+                    - label:
+                        text: "+"
+                        text_font: roboto
+                        align: center
+                  on_click:
+                    then:
+                      - number.increment: block1_start_minute_input
+              - button:
+                  x: 255
+                  y: 60
+                  width: 20
+                  height: 20
+                  widgets:
+                    - label:
+                        text: "-"
+                        text_font: roboto
+                        align: center
+                  on_click:
+                    then:
+                      - number.decrement: block1_stop_minute_input
+              - button:
+                  x: 310
+                  y: 60
+                  width: 20
+                  height: 20
+                  widgets:
+                    - label:
+                        text: "+"
+                        text_font: roboto
+                        align: center
+                  on_click:
+                    then:
+                      - number.increment: block1_stop_minute_input
 
-        # Irrigation Schedule Settings
+        # Irrigation Block 2 Settings
         - obj:
             scrollable: false
             width: 460
-            height: 130
+            height: 100
+            bg_color: 0x000000
+            bg_opa: 50%
+            radius: 10
+            x: 10
+            y: 120
+            widgets:
+              - label:
+                  text: "Block 2 Times"
+                  text_font: roboto24
+                  text_color: 0xFFFFFF
+                  x: 10
+                  y: 5
+              - label:
+                  text: "Start:"
+                  text_font: roboto
+                  text_color: 0xCCCCCC
+                  x: 10
+                  y: 35
+              - button:
+                  x: 60
+                  y: 30
+                  width: 30
+                  height: 25
+                  widgets:
+                    - label:
+                        text: "-"
+                        align: center
+                  on_click:
+                    then:
+                      - number.decrement: block2_start_hour_input
+              - label:
+                  id: block2_start_display
+                  text: !lambda |-
+                    static char text[10];
+                    snprintf(text, sizeof(text), "%02d:%02d", id(block2_start_hour), id(block2_start_minute));
+                    return text;
+                  text_font: roboto
+                  text_color: 0xFFFFFF
+                  x: 95
+                  y: 35
+              - button:
+                  x: 140
+                  y: 30
+                  width: 30
+                  height: 25
+                  widgets:
+                    - label:
+                        text: "+"
+                        align: center
+                  on_click:
+                    then:
+                      - number.increment: block2_start_hour_input
+              - label:
+                  text: "Stop:"
+                  text_font: roboto
+                  text_color: 0xCCCCCC
+                  x: 180
+                  y: 35
+              - button:
+                  x: 220
+                  y: 30
+                  width: 30
+                  height: 25
+                  widgets:
+                    - label:
+                        text: "-"
+                        align: center
+                  on_click:
+                    then:
+                      - number.decrement: block2_stop_hour_input
+              - label:
+                  id: block2_stop_display
+                  text: !lambda |-
+                    static char text[10];
+                    snprintf(text, sizeof(text), "%02d:%02d", id(block2_stop_hour), id(block2_stop_minute));
+                    return text;
+                  text_font: roboto
+                  text_color: 0xFFFFFF
+                  x: 255
+                  y: 35
+              - button:
+                  x: 300
+                  y: 30
+                  width: 30
+                  height: 25
+                  widgets:
+                    - label:
+                        text: "+"
+                        align: center
+                  on_click:
+                    then:
+                      - number.increment: block2_stop_hour_input
+              # Minute buttons for block 2
+              - button:
+                  x: 95
+                  y: 60
+                  width: 20
+                  height: 20
+                  widgets:
+                    - label:
+                        text: "-"
+                        text_font: roboto
+                        align: center
+                  on_click:
+                    then:
+                      - number.decrement: block2_start_minute_input
+              - button:
+                  x: 150
+                  y: 60
+                  width: 20
+                  height: 20
+                  widgets:
+                    - label:
+                        text: "+"
+                        text_font: roboto
+                        align: center
+                  on_click:
+                    then:
+                      - number.increment: block2_start_minute_input
+              - button:
+                  x: 255
+                  y: 60
+                  width: 20
+                  height: 20
+                  widgets:
+                    - label:
+                        text: "-"
+                        text_font: roboto
+                        align: center
+                  on_click:
+                    then:
+                      - number.decrement: block2_stop_minute_input
+              - button:
+                  x: 310
+                  y: 60
+                  width: 20
+                  height: 20
+                  widgets:
+                    - label:
+                        text: "+"
+                        text_font: roboto
+                        align: center
+                  on_click:
+                    then:
+                      - number.increment: block2_stop_minute_input
+
+        # Irrigation Block 3 Settings
+        - obj:
+            scrollable: false
+            width: 460
+            height: 100
+            bg_color: 0x000000
+            bg_opa: 50%
+            radius: 10
+            x: 10
+            y: 230
+            widgets:
+              - label:
+                  text: "Block 3 Times"
+                  text_font: roboto24
+                  text_color: 0xFFFFFF
+                  x: 10
+                  y: 5
+              - label:
+                  text: "Start:"
+                  text_font: roboto
+                  text_color: 0xCCCCCC
+                  x: 10
+                  y: 35
+              - button:
+                  x: 60
+                  y: 30
+                  width: 30
+                  height: 25
+                  widgets:
+                    - label:
+                        text: "-"
+                        align: center
+                  on_click:
+                    then:
+                      - number.decrement: block3_start_hour_input
+              - label:
+                  id: block3_start_display
+                  text: !lambda |-
+                    static char text[10];
+                    snprintf(text, sizeof(text), "%02d:%02d", id(block3_start_hour), id(block3_start_minute));
+                    return text;
+                  text_font: roboto
+                  text_color: 0xFFFFFF
+                  x: 95
+                  y: 35
+              - button:
+                  x: 140
+                  y: 30
+                  width: 30
+                  height: 25
+                  widgets:
+                    - label:
+                        text: "+"
+                        align: center
+                  on_click:
+                    then:
+                      - number.increment: block3_start_hour_input
+              - label:
+                  text: "Stop:"
+                  text_font: roboto
+                  text_color: 0xCCCCCC
+                  x: 180
+                  y: 35
+              - button:
+                  x: 220
+                  y: 30
+                  width: 30
+                  height: 25
+                  widgets:
+                    - label:
+                        text: "-"
+                        align: center
+                  on_click:
+                    then:
+                      - number.decrement: block3_stop_hour_input
+              - label:
+                  id: block3_stop_display
+                  text: !lambda |-
+                    static char text[10];
+                    snprintf(text, sizeof(text), "%02d:%02d", id(block3_stop_hour), id(block3_stop_minute));
+                    return text;
+                  text_font: roboto
+                  text_color: 0xFFFFFF
+                  x: 255
+                  y: 35
+              - button:
+                  x: 300
+                  y: 30
+                  width: 30
+                  height: 25
+                  widgets:
+                    - label:
+                        text: "+"
+                        align: center
+                  on_click:
+                    then:
+                      - number.increment: block3_stop_hour_input
+              # Minute buttons for block 3
+              - button:
+                  x: 95
+                  y: 60
+                  width: 20
+                  height: 20
+                  widgets:
+                    - label:
+                        text: "-"
+                        text_font: roboto
+                        align: center
+                  on_click:
+                    then:
+                      - number.decrement: block3_start_minute_input
+              - button:
+                  x: 150
+                  y: 60
+                  width: 20
+                  height: 20
+                  widgets:
+                    - label:
+                        text: "+"
+                        text_font: roboto
+                        align: center
+                  on_click:
+                    then:
+                      - number.increment: block3_start_minute_input
+              - button:
+                  x: 255
+                  y: 60
+                  width: 20
+                  height: 20
+                  widgets:
+                    - label:
+                        text: "-"
+                        text_font: roboto
+                        align: center
+                  on_click:
+                    then:
+                      - number.decrement: block3_stop_minute_input
+              - button:
+                  x: 310
+                  y: 60
+                  width: 20
+                  height: 20
+                  widgets:
+                    - label:
+                        text: "+"
+                        text_font: roboto
+                        align: center
+                  on_click:
+                    then:
+                      - number.increment: block3_stop_minute_input
+
+        # Irrigation Block 4 Settings
+        - obj:
+            scrollable: false
+            width: 460
+            height: 100
             bg_color: 0x000000
             bg_opa: 50%
             radius: 10
@@ -1931,91 +2483,389 @@ lvgl:
             y: 340
             widgets:
               - label:
-                  text: "Watering Schedule"
+                  text: "Block 4 Times"
                   text_font: roboto24
                   text_color: 0xFFFFFF
                   x: 10
                   y: 5
-
               - label:
-                  text: "Auto Watering time:"
+                  text: "Start:"
                   text_font: roboto
                   text_color: 0xCCCCCC
                   x: 10
                   y: 35
               - button:
-                  id: schedule_hour_minus
-                  x: 180
+                  x: 60
                   y: 30
                   width: 30
-                  height: 30
+                  height: 25
                   widgets:
                     - label:
                         text: "-"
                         align: center
                   on_click:
                     then:
-                      - number.decrement: irrigation_schedule_hour_input
+                      - number.decrement: block4_start_hour_input
               - label:
-                  id: schedule_time_display
+                  id: block4_start_display
                   text: !lambda |-
-                    static char text[20];
-                    snprintf(text, sizeof(text), "%02d:%02d", id(irrigation_schedule_hour), id(irrigation_schedule_minute));
+                    static char text[10];
+                    snprintf(text, sizeof(text), "%02d:%02d", id(block4_start_hour), id(block4_start_minute));
                     return text;
                   text_font: roboto
                   text_color: 0xFFFFFF
-                  x: 220
+                  x: 95
                   y: 35
-              - label:
-                  id: irrigation_status_display
-                  hidden: true
-                  text: "Irrigation Status: OFF"
-                  align: center
               - button:
-                  id: schedule_hour_plus
-                  x: 280
+                  x: 140
                   y: 30
                   width: 30
-                  height: 30
+                  height: 25
                   widgets:
                     - label:
                         text: "+"
                         align: center
                   on_click:
                     then:
-                      - number.increment: irrigation_schedule_hour_input
+                      - number.increment: block4_start_hour_input
+              - label:
+                  text: "Stop:"
+                  text_font: roboto
+                  text_color: 0xCCCCCC
+                  x: 180
+                  y: 35
               - button:
-                  id: schedule_minute_minus
-                  x: 320
+                  x: 220
                   y: 30
                   width: 30
-                  height: 30
+                  height: 25
                   widgets:
                     - label:
                         text: "-"
                         align: center
                   on_click:
                     then:
-                      - number.decrement: irrigation_schedule_minute_input
+                      - number.decrement: block4_stop_hour_input
+              - label:
+                  id: block4_stop_display
+                  text: !lambda |-
+                    static char text[10];
+                    snprintf(text, sizeof(text), "%02d:%02d", id(block4_stop_hour), id(block4_stop_minute));
+                    return text;
+                  text_font: roboto
+                  text_color: 0xFFFFFF
+                  x: 255
+                  y: 35
               - button:
-                  id: schedule_minute_plus
-                  x: 360
+                  x: 300
                   y: 30
                   width: 30
-                  height: 30
+                  height: 25
                   widgets:
                     - label:
                         text: "+"
                         align: center
                   on_click:
                     then:
-                      - number.increment: irrigation_schedule_minute_input
+                      - number.increment: block4_stop_hour_input
+              # Minute buttons for block 4
+              - button:
+                  x: 95
+                  y: 60
+                  width: 20
+                  height: 20
+                  widgets:
+                    - label:
+                        text: "-"
+                        text_font: roboto
+                        align: center
+                  on_click:
+                    then:
+                      - number.decrement: block4_start_minute_input
+              - button:
+                  x: 150
+                  y: 60
+                  width: 20
+                  height: 20
+                  widgets:
+                    - label:
+                        text: "+"
+                        text_font: roboto
+                        align: center
+                  on_click:
+                    then:
+                      - number.increment: block4_start_minute_input
+              - button:
+                  x: 255
+                  y: 60
+                  width: 20
+                  height: 20
+                  widgets:
+                    - label:
+                        text: "-"
+                        text_font: roboto
+                        align: center
+                  on_click:
+                    then:
+                      - number.decrement: block4_stop_minute_input
+              - button:
+                  x: 310
+                  y: 60
+                  width: 20
+                  height: 20
+                  widgets:
+                    - label:
+                        text: "+"
+                        text_font: roboto
+                        align: center
+                  on_click:
+                    then:
+                      - number.increment: block4_stop_minute_input
 
-              # Auto irrigation toggle
+        # Runtime Parameters Settings
+        - obj:
+            scrollable: false
+            width: 460
+            height: 120
+            bg_color: 0x000000
+            bg_opa: 50%
+            radius: 10
+            x: 10
+            y: 450
+            widgets:
+              - label:
+                  text: "Runtime Parameters"
+                  text_font: roboto24
+                  text_color: 0xFFFFFF
+                  x: 10
+                  y: 5
+
+              # Center Time
+              - label:
+                  text: "Center time:"
+                  text_font: roboto
+                  text_color: 0xCCCCCC
+                  x: 10
+                  y: 35
+              - button:
+                  x: 100
+                  y: 30
+                  width: 30
+                  height: 25
+                  widgets:
+                    - label:
+                        text: "-"
+                        align: center
+                  on_click:
+                    then:
+                      - number.decrement: center_time_input
+              - label:
+                  id: center_time_display
+                  text: !lambda |-
+                    static char text[10];
+                    snprintf(text, sizeof(text), "%02d:00", id(center_time_minutes));
+                    return text;
+                  text_font: roboto
+                  text_color: 0xFFFFFF
+                  x: 135
+                  y: 35
+              - button:
+                  x: 180
+                  y: 30
+                  width: 30
+                  height: 25
+                  widgets:
+                    - label:
+                        text: "+"
+                        align: center
+                  on_click:
+                    then:
+                      - number.increment: center_time_input
+
+              # Min Runtime
+              - label:
+                  text: "Min:"
+                  text_font: roboto
+                  text_color: 0xCCCCCC
+                  x: 220
+                  y: 35
+              - button:
+                  x: 250
+                  y: 30
+                  width: 25
+                  height: 25
+                  widgets:
+                    - label:
+                        text: "-"
+                        align: center
+                  on_click:
+                    then:
+                      - number.decrement: min_runtime_input
+              - label:
+                  id: min_runtime_display
+                  text: !lambda |-
+                    static char text[10];
+                    snprintf(text, sizeof(text), "%dm", id(min_runtime_minutes));
+                    return text;
+                  text_font: roboto
+                  text_color: 0xFFFFFF
+                  x: 280
+                  y: 35
+              - button:
+                  x: 315
+                  y: 30
+                  width: 25
+                  height: 25
+                  widgets:
+                    - label:
+                        text: "+"
+                        align: center
+                  on_click:
+                    then:
+                      - number.increment: min_runtime_input
+
+              # Max Runtime
+              - label:
+                  text: "Max runtime:"
+                  text_font: roboto
+                  text_color: 0xCCCCCC
+                  x: 10
+                  y: 65
+              - button:
+                  x: 100
+                  y: 60
+                  width: 30
+                  height: 25
+                  widgets:
+                    - label:
+                        text: "-"
+                        align: center
+                  on_click:
+                    then:
+                      - number.decrement: max_runtime_input
+              - label:
+                  id: max_runtime_display
+                  text: !lambda |-
+                    static char text[15];
+                    snprintf(text, sizeof(text), "%d min", id(max_runtime_minutes));
+                    return text;
+                  text_font: roboto
+                  text_color: 0xFFFFFF
+                  x: 135
+                  y: 65
+              - button:
+                  x: 200
+                  y: 60
+                  width: 30
+                  height: 25
+                  widgets:
+                    - label:
+                        text: "+"
+                        align: center
+                  on_click:
+                    then:
+                      - number.increment: max_runtime_input
+
+              # Reference Temperature
+              - label:
+                  text: "Ref temp:"
+                  text_font: roboto
+                  text_color: 0xCCCCCC
+                  x: 240
+                  y: 65
+              - button:
+                  x: 310
+                  y: 60
+                  width: 25
+                  height: 25
+                  widgets:
+                    - label:
+                        text: "-"
+                        align: center
+                  on_click:
+                    then:
+                      - number.decrement: reference_temp_input
+              - label:
+                  id: ref_temp_display
+                  text: !lambda |-
+                    static char text[10];
+                    snprintf(text, sizeof(text), "%.1f°C", id(reference_temperature));
+                    return text;
+                  text_font: roboto
+                  text_color: 0xFFFFFF
+                  x: 340
+                  y: 65
+              - button:
+                  x: 390
+                  y: 60
+                  width: 25
+                  height: 25
+                  widgets:
+                    - label:
+                        text: "+"
+                        align: center
+                  on_click:
+                    then:
+                      - number.increment: reference_temp_input
+
+              # Temperature Rate
+              - label:
+                  text: "Temp rate:"
+                  text_font: roboto
+                  text_color: 0xCCCCCC
+                  x: 10
+                  y: 95
+              - button:
+                  x: 80
+                  y: 90
+                  width: 25
+                  height: 25
+                  widgets:
+                    - label:
+                        text: "-"
+                        align: center
+                  on_click:
+                    then:
+                      - number.decrement: temp_rate_input
+              - label:
+                  id: temp_rate_display
+                  text: !lambda |-
+                    static char text[15];
+                    snprintf(text, sizeof(text), "%.1f%%/°C", id(temp_rate_percent));
+                    return text;
+                  text_font: roboto
+                  text_color: 0xFFFFFF
+                  x: 110
+                  y: 95
+              - button:
+                  x: 170
+                  y: 90
+                  width: 25
+                  height: 25
+                  widgets:
+                    - label:
+                        text: "+"
+                        align: center
+                  on_click:
+                    then:
+                      - number.increment: temp_rate_input
+
+        # Control Buttons Section
+        - obj:
+            scrollable: false
+            width: 460
+            height: 80
+            bg_color: 0x000000
+            bg_opa: 50%
+            radius: 10
+            x: 10
+            y: 580
+            widgets:
+              # Auto irrigation toggle (keeping original)
               - button:
                   id: auto_irrigation_toggle
-                  x: 2
-                  y: 70
+                  x: 10
+                  y: 20
                   width: 200
                   height: 40
                   checkable: true
@@ -2047,11 +2897,12 @@ lvgl:
                             - lvgl.label.update:
                                 id: auto_irrigation_label
                                 text: "Auto Irrigation: OFF"
-              # Navigation buttons
+
+              # Done button (keeping original)
               - button:
                   id: back_back_button
-                  x: 210
-                  y: 70
+                  x: 250
+                  y: 20
                   width: 100
                   height: 40
                   styles: nav_button_style
@@ -2063,8 +2914,28 @@ lvgl:
                   on_click:
                     then:
                       - lambda: |-
-                          // go to sttong page from control page
+                          // go to settings page from control page
                           id(lvgl_comp).show_page(1, LV_SCR_LOAD_ANIM_OVER_RIGHT, 300);
+
+              # Test Current Block button
+              - button:
+                  id: test_irrigation_button
+                  x: 370
+                  y: 20
+                  width: 80
+                  height: 40
+                  widgets:
+                    - label:
+                        text: "Test"
+                        text_font: roboto
+                        align: center
+                  on_click:
+                    then:
+                      - script.execute: calculate_irrigation_needs
+                      - lambda: |-
+                          ESP_LOGI("irrigation", "Manual test irrigation triggered");
+
+
 
     # Settings Page
     - id: settings_page
@@ -3342,72 +4213,56 @@ script:
       - lambda: |-
           // Get current date for seasonal calculation
           auto now = id(time_comp).now();
-
+          
           // Calculate seasonal base runtime (1 hour winter to 5 hours summer)
-          // December 21 (day 355) = 1 hour, June 21 (day 172) = 5 hours
           int day_of_year = now.day_of_year;
           float seasonal_factor;
-
+          
           if (day_of_year <= 80 || day_of_year >= 355) {
-            // Winter period (Dec 21 - Mar 21)
-            seasonal_factor = 1.0; // 1 hour base
+            seasonal_factor = 1.0; // Winter
           } else if (day_of_year >= 172 && day_of_year <= 264) {
-            // Summer period (Jun 21 - Sep 21)
-            seasonal_factor = 5.0; // 5 hours base
+            seasonal_factor = 5.0; // Summer
           } else if (day_of_year < 172) {
-            // Spring transition (Mar 21 - Jun 21)
-            float progress = (day_of_year - 80) / 92.0; // 92 days in spring
-            seasonal_factor = 1.0 + (4.0 * progress); // 1 to 5 hours
+            float progress = (day_of_year - 80) / 92.0;
+            seasonal_factor = 1.0 + (4.0 * progress);
           } else {
-            // Fall transition (Sep 21 - Dec 21)
-            float progress = (day_of_year - 264) / 91.0; // 91 days in fall
-            seasonal_factor = 5.0 - (4.0 * progress); // 5 to 1 hours
+            float progress = (day_of_year - 264) / 91.0;
+            seasonal_factor = 5.0 - (4.0 * progress);
           }
-
-          // Base runtime in minutes (at 22°C)
-          float base_runtime = seasonal_factor * 60.0; // Convert hours to minutes
-
-          // Temperature adjustment (base temperature 22°C)
+          
+          // Time-based runtime calculation (center at 14:00)
+          float current_hour = now.hour + (now.minute / 60.0);
+          float center_hour = id(center_time_minutes);
+          float time_diff = abs(current_hour - center_hour);
+          
+          // Calculate runtime based on time distance from center
+          // Max runtime at center time, min runtime at furthest time
+          float time_factor = 1.0 - (time_diff / 12.0); // 12 hours max distance
+          if (time_factor < 0) time_factor = 0;
+          
+          float base_runtime = id(min_runtime_minutes) + 
+                              (id(max_runtime_minutes) - id(min_runtime_minutes)) * time_factor;
+          
+          // Apply seasonal multiplier
+          base_runtime *= seasonal_factor;
+          
+          // Temperature adjustment (1% per degree from reference)
           float temp_multiplier = 1.0;
           if (id(owm_temperature).has_state()) {
             float temp = id(owm_temperature).state;
-            float temp_diff = temp - 22.0;
-            
-            if (temp_diff > 0) {
-              // Each degree above 22°C adds 2 minutes per hour of base runtime
-              temp_multiplier = 1.0 + (temp_diff * 2.0) / (seasonal_factor * 60.0);
-            } else if (temp_diff < 0) {
-              // Each degree below 22°C halves the runtime per degree
-              temp_multiplier = pow(0.5, abs(temp_diff));
-            }
+            float temp_diff = temp - id(reference_temperature);
+            temp_multiplier = 1.0 + (temp_diff * id(temp_rate_percent) / 100.0);
           }
-
+          
           // Calculate final runtime
           float total_runtime = base_runtime * temp_multiplier;
-          id(base_pump_runtime_minutes) = total_runtime;
-
-          // Example: Divide into 4 blocks (you can customize this)
-          // Block 1: 6-9 AM, Block 2: 12-15 PM, Block 3: 18-21 PM, Block 4: 0-3 AM
-          // For summer: distribute 5 hours across blocks
-          // For winter: valve removes water, pump runs less
-
-          if (seasonal_factor >= 3.0) { // Summer mode - add water
-            id(daily_runtime_blocks)[0] = (int)(total_runtime * 0.3); // Morning 30%
-            id(daily_runtime_blocks)[1] = (int)(total_runtime * 0.4); // Afternoon 40%
-            id(daily_runtime_blocks)[2] = (int)(total_runtime * 0.2); // Evening 20%
-            id(daily_runtime_blocks)[3] = (int)(total_runtime * 0.1); // Night 10%
-          } else { // Winter mode - remove water
-            id(daily_runtime_blocks)[0] = (int)(total_runtime * 0.4); // Morning 40%
-            id(daily_runtime_blocks)[1] = (int)(total_runtime * 0.3); // Afternoon 30%
-            id(daily_runtime_blocks)[2] = (int)(total_runtime * 0.2); // Evening 20%
-            id(daily_runtime_blocks)[3] = (int)(total_runtime * 0.1); // Night 10%
-          }
-
-          ESP_LOGI("irrigation", "Season factor: %.1f, Temp multiplier: %.2f, Total runtime: %.1f min", 
-                   seasonal_factor, temp_multiplier, total_runtime);
-          ESP_LOGI("irrigation", "Runtime blocks: %d, %d, %d, %d minutes", 
-                   id(daily_runtime_blocks)[0], id(daily_runtime_blocks)[1], 
-                   id(daily_runtime_blocks)[2], id(daily_runtime_blocks)[3]);
+          if (total_runtime < id(min_runtime_minutes)) total_runtime = id(min_runtime_minutes);
+          if (total_runtime > id(max_runtime_minutes)) total_runtime = id(max_runtime_minutes);
+          
+          id(irrigation_duration_remaining) = (int)total_runtime;
+          
+          ESP_LOGI("irrigation", "Calculated runtime: %.1f min (seasonal: %.1f, time: %.1f, temp: %.2f)", 
+                   total_runtime, seasonal_factor, time_factor, temp_multiplier);
 
   - id: start_valve_training
     then:
@@ -3514,25 +4369,49 @@ script:
             - logger.log: "Starting scheduled irrigation"
             - script.execute: calculate_irrigation_needs
             - lambda: |-
-                // Determine current time block
+                // Check if current time is within any irrigation block
                 auto now = id(time_comp).now();
-                int current_block = -1;
+                int current_minutes = now.hour * 60 + now.minute;
+                bool in_irrigation_block = false;
+                int active_block = -1;
                 
-                if (now.hour >= 6 && now.hour < 9) current_block = 0;      // Morning
-                else if (now.hour >= 12 && now.hour < 15) current_block = 1; // Afternoon  
-                else if (now.hour >= 18 && now.hour < 21) current_block = 2; // Evening
-                else if (now.hour >= 0 && now.hour < 3) current_block = 3;   // Night
-                
-                if (current_block >= 0) {
-                  id(current_block_runtime) = id(daily_runtime_blocks)[current_block];
-                  id(irrigation_duration_remaining) = id(current_block_runtime);
+                // Check each block
+                for (int block = 0; block < 4; block++) {
+                  int start_minutes, stop_minutes;
                   
-                  ESP_LOGI("irrigation", "Starting block %d irrigation: %d minutes", 
-                           current_block, id(current_block_runtime));
-                } else {
-                  ESP_LOGW("irrigation", "Outside irrigation time blocks");
+                  switch(block) {
+                    case 0:
+                      start_minutes = id(block1_start_hour) * 60 + id(block1_start_minute);
+                      stop_minutes = id(block1_stop_hour) * 60 + id(block1_stop_minute);
+                      break;
+                    case 1:
+                      start_minutes = id(block2_start_hour) * 60 + id(block2_start_minute);
+                      stop_minutes = id(block2_stop_hour) * 60 + id(block2_stop_minute);
+                      break;
+                    case 2:
+                      start_minutes = id(block3_start_hour) * 60 + id(block3_start_minute);
+                      stop_minutes = id(block3_stop_hour) * 60 + id(block3_stop_minute);
+                      break;
+                    case 3:
+                      start_minutes = id(block4_start_hour) * 60 + id(block4_start_minute);
+                      stop_minutes = id(block4_stop_hour) * 60 + id(block4_stop_minute);
+                      break;
+                  }
+                  
+                  if (current_minutes >= start_minutes && current_minutes <= stop_minutes) {
+                    in_irrigation_block = true;
+                    active_block = block + 1;
+                    break;
+                  }
+                }
+                
+                if (!in_irrigation_block) {
+                  ESP_LOGW("irrigation", "Current time not in any irrigation block");
                   return;
                 }
+                
+                ESP_LOGI("irrigation", "Starting irrigation block %d for %d minutes", 
+                         active_block, id(irrigation_duration_remaining));
                 
                 // Check if it's summer (add water) or winter (remove water)
                 bool is_summer = (now.month >= 4 && now.month <= 9);
@@ -3547,29 +4426,24 @@ script:
                   - switch.turn_on: sw3  # Irrigation Valve
                   - delay: 2s
                   - switch.turn_on: sw2  # Water Pump
-                  - lambda: |-
-                      ESP_LOGI("irrigation", "Summer mode: Adding water for %d minutes", id(irrigation_duration_remaining));
                 else:
-                  # Winter: Turn on pump only to REMOVE water (valve closed)
+                  # Winter: Turn on pump only to REMOVE water
                   - switch.turn_off: sw3  # Ensure valve is closed
                   - switch.turn_on: sw2   # Water Pump only
-                  - lambda: |-
-                      ESP_LOGI("irrigation", "Winter mode: Removing water for %d minutes", id(irrigation_duration_remaining));
                       
             - while:
                 condition:
                   lambda: "return id(irrigation_duration_remaining) > 0 && id(sw2).state;"
                 then:
-                  - delay: 60s # Wait 1 minute
+                  - delay: 60s
                   - lambda: |-
                       id(irrigation_duration_remaining)--;
                       ESP_LOGD("irrigation", "Irrigation remaining: %d minutes", id(irrigation_duration_remaining));
                       
             # Turn off both pump and valve
-            - switch.turn_off: sw2  # Water Pump
-            - switch.turn_off: sw3  # Irrigation Valve
-            - lambda: |-
-                ESP_LOGI("irrigation", "Irrigation cycle completed");
+            - switch.turn_off: sw2
+            - switch.turn_off: sw3
+
 
   - id: time_display_update
     then:
