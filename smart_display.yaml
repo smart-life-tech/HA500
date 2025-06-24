@@ -1666,7 +1666,7 @@ lvgl:
 
         - button:
             id: settings_nav_button2
-            x: 120
+            x: 400
             y: 430
             width: 120
             height: 45
@@ -2211,53 +2211,10 @@ lvgl:
                     then:
                       - script.execute: start_valve_training
 
-        # SW3 Mode Toggle
-        - button:
-            id: sw3_mode_toggle
-            width: 460
-            height: 60
-            x: 10
-            y: 320
-            checkable: true
-            state:
-              checked: !lambda "return id(sw3_winter_mode);"
-            widgets:
-              - label:
-                  id: sw3_mode_label
-                  text: !lambda |-
-                    if (id(sw3_winter_mode)) {
-                      return "Valve: Winter (Rain-based)";
-                    } else {
-                      return "Valve: Summer (Temperature-based)";
-                    }
-                  text_font: roboto
-                  align: center
-            on_click:
-              then:
-                - lambda: |-
-                    id(sw3_winter_mode) = !id(sw3_winter_mode);
-                - if:
-                    condition:
-                      lambda: "return id(sw3_winter_mode);"
-                    then:
-                      - lvgl.label.update:
-                          id: sw3_mode_label
-                          text: "Valve: Winter (Rain-based)"
-                      - lvgl.label.update:
-                          id: sw3_button_label
-                          text: "Valve (Winter)"
-                    else:
-                      - lvgl.label.update:
-                          id: sw3_mode_label
-                          text: "Summer (Temperature-based)"
-                      - lvgl.label.update:
-                          id: sw3_button_label
-                          text: "Light (Summer)"
-
         # Navigation buttons
         - button:
             id: home_button
-            x: 60
+            x: 30
             y: 420
             width: 120
             height: 45
@@ -2866,7 +2823,48 @@ lvgl:
                   x: 60
                   y: 110
                   text_color: 0xFFFFFF
-
+        # SW3 Mode Toggle
+        - button:
+            id: sw3_mode_toggle
+            width: 460
+            height: 60
+            x: 10
+            y: 230
+            checkable: true
+            state:
+              checked: !lambda "return id(sw3_winter_mode);"
+            widgets:
+              - label:
+                  id: sw3_mode_label
+                  text: !lambda |-
+                    if (id(sw3_winter_mode)) {
+                      return "Valve: Winter (Rain-based)";
+                    } else {
+                      return "Valve: Summer (Temperature-based)";
+                    }
+                  text_font: roboto
+                  align: center
+            on_click:
+              then:
+                - lambda: |-
+                    id(sw3_winter_mode) = !id(sw3_winter_mode);
+                - if:
+                    condition:
+                      lambda: "return id(sw3_winter_mode);"
+                    then:
+                      - lvgl.label.update:
+                          id: sw3_mode_label
+                          text: "Valve: Winter (Rain-based)"
+                      - lvgl.label.update:
+                          id: sw3_button_label
+                          text: "Valve (Winter)"
+                    else:
+                      - lvgl.label.update:
+                          id: sw3_mode_label
+                          text: "Summer (Temperature-based)"
+                      - lvgl.label.update:
+                          id: sw3_button_label
+                          text: "Light (Summer)"
         # Weather Impact Section
         - obj:
             width: 460
@@ -2877,7 +2875,7 @@ lvgl:
             border_width: 0
             radius: 10
             x: 10
-            y: 230
+            y: 300
             widgets:
               - label:
                   text: "Weather Impact"
@@ -2885,46 +2883,6 @@ lvgl:
                   text_color: 0xFFFFFF
                   x: 10
                   y: 5
-              - label:
-                  text: "Temperature:"
-                  text_font: roboto
-                  x: 10
-                  y: 35
-                  text_color: 0xCCCCCC
-              - label:
-                  id: temp_impact_display
-                  text: !lambda |-
-                    static char temp_text[40];
-                    if (id(owm_temperature).has_state()) {
-                      snprintf(temp_text, sizeof(temp_text), "%.1f°C", id(owm_temperature).state);
-                    } else {
-                      snprintf(temp_text, sizeof(temp_text), "--°C");
-                    }
-                    return temp_text;
-                  text_font: roboto
-                  x: 120
-                  y: 35
-                  text_color: 0xFFFFFF
-              - label:
-                  text: "Humidity:"
-                  text_font: roboto
-                  x: 200
-                  y: 35
-                  text_color: 0xCCCCCC
-              - label:
-                  id: humidity_impact_display
-                  text: !lambda |-
-                    static char hum_text[40];
-                    if (id(owm_humidity).has_state()) {
-                      snprintf(hum_text, sizeof(hum_text), "%.0f%%", id(owm_humidity).state);
-                    } else {
-                      snprintf(hum_text, sizeof(hum_text), "--%");
-                    }
-                    return hum_text;
-                  text_font: roboto
-                  x: 270
-                  y: 35
-                  text_color: 0xFFFFFF
               - label:
                   id: weather_recommendation
                   text: !lambda |-
