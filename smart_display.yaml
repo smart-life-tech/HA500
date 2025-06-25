@@ -2880,7 +2880,7 @@ lvgl:
             bg_opa: 30%
             radius: 10
             x: 10
-            y: 430
+            y: 420
             widgets:
               # Auto irrigation toggle (keeping original)
               - button:
