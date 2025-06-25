@@ -1949,7 +1949,11 @@ lvgl:
                   align: center
             on_click:
               then:
-                - lvgl.page.previous:
+                #- lvgl.page.previous:
+                - lambda: |-
+                    // go to main page from control page
+                    id(current_page) = 0;
+                    id(lvgl_comp).show_page(0, LV_SCR_LOAD_ANIM_OVER_LEFT, 300);
 
         - button:
             id: settings_nav_button2
