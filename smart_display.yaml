@@ -222,7 +222,7 @@ wifi:
       - logger.log: "WiFi connected, starting web server"
       #- script.execute: update_qr_display  # Update QR code
       - delay: 1s
-      #- script.execute: notify_web_portal
+      - script.execute: notify_web_portal
   on_disconnect:
     then:
       - logger.log: "WiFi disconnected, attempting to reconnect"
@@ -283,7 +283,7 @@ time:
 web_server:
   port: 80
   version: 2
-  include_internal: true
+  include_internal: false
   local: true
 
 captive_portal:
@@ -4355,6 +4355,9 @@ script:
                   }
                   return "Getting IP address...";
           else:
+            - lvgl.image.update:
+                id: wifi_space
+                src: wifi_icon_offline
             - lvgl.label.update:
                 id: status_label
                 text: "No internet. Connect to AP: PhiJo Smart Products"
@@ -4366,7 +4369,7 @@ script:
                 text: "http://192.168.4.1/"
             - lvgl.label.update:
                 id: qr_url_label
-                text: "http://192.168.4.1/ (AP Mode)"
+                text: "http://192.168.4.1/"
 
       - lvgl.label.update:
           id: ip_address_label
