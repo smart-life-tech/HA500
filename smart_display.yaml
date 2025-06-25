@@ -201,17 +201,23 @@ http_request:
 
 wifi:
   networks:
-    - ssid: !secret wifi_ssid3
-      password: !secret wifi_password3
-    - ssid: !secret wifi_ssid2
-      password: !secret wifi_password2
     - ssid: !secret wifi_ssid
       password: !secret wifi_password
+      priority: 100
+    - ssid: !secret wifi_ssid2
+      password: !secret wifi_password2
+      priority: 90
+    - ssid: !secret wifi_ssid3
+      password: !secret wifi_password3
+      priority: 80
 
   # Added parameters for better connection reliability
   power_save_mode: NONE
-  # fast_connect: true
+  fast_connect: false  # Disable for better reliability with multiple networks
   reboot_timeout: 0s
+  output_power: 20.0
+  enable_rrm: true
+  enable_btm: true
 
   # Existing fallback AP configuration
   ap:
