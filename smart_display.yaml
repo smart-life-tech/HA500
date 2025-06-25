@@ -2037,7 +2037,7 @@ lvgl:
                   text_font: roboto24
                   text_color: 0xFFFFFF
                   x: 10
-                  y: -5
+                  y: -10
               - label:
                   text: "Start:"
                   text_font: roboto
@@ -2193,7 +2193,7 @@ lvgl:
                   text_font: roboto24
                   text_color: 0xFFFFFF
                   x: 10
-                  y: -5
+                  y: -10
               - label:
                   text: "Start:"
                   text_font: roboto
@@ -2348,7 +2348,7 @@ lvgl:
                   text_font: roboto24
                   text_color: 0xFFFFFF
                   x: 10
-                  y: -5
+                  y: -10
               - label:
                   text: "Start:"
                   text_font: roboto
@@ -2503,7 +2503,7 @@ lvgl:
                   text_font: roboto24
                   text_color: 0xFFFFFF
                   x: 10
-                  y: -5
+                  y: -10
               - label:
                   text: "Start:"
                   text_font: roboto
@@ -2658,7 +2658,7 @@ lvgl:
                   text_font: roboto24
                   text_color: 0xFFFFFF
                   x: 10
-                  y: -5
+                  y: -10
 
               # Center Time
               - label:
@@ -2666,10 +2666,10 @@ lvgl:
                   text_font: roboto
                   text_color: 0xCCCCCC
                   x: 10
-                  y: 10
+                  y: 15
               - button:
                   x: 100
-                  y: 10
+                  y: 15
                   width: 30
                   height: 25
                   widgets:
@@ -2688,10 +2688,10 @@ lvgl:
                   text_font: roboto
                   text_color: 0xFFFFFF
                   x: 135
-                  y: 10
+                  y: 15
               - button:
                   x: 180
-                  y: 10
+                  y: 15
                   width: 30
                   height: 25
                   widgets:
@@ -2708,10 +2708,10 @@ lvgl:
                   text_font: roboto
                   text_color: 0xCCCCCC
                   x: 220
-                  y: 10
+                  y: 15
               - button:
                   x: 250
-                  y: 10
+                  y: 15
                   width: 25
                   height: 25
                   widgets:
@@ -2730,10 +2730,10 @@ lvgl:
                   text_font: roboto
                   text_color: 0xFFFFFF
                   x: 280
-                  y: 10
+                  y: 15
               - button:
                   x: 315
-                  y: 10
+                  y: 15
                   width: 25
                   height: 25
                   widgets:
