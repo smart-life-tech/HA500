@@ -280,11 +280,11 @@ time:
             then:
               - script.execute: time_display_update
 
-# web_server:
-#   port: 80
-#   version: 2
-#   include_internal: false
-#   local: true
+web_server:
+  port: 80
+  version: 2
+  include_internal: false
+  local: true
 
 captive_portal:
 
@@ -1953,7 +1953,7 @@ lvgl:
 
         - button:
             id: settings_nav_button2
-            x: 400
+            x: 380
             y: 430
             width: 120
             height: 45
@@ -1999,7 +1999,7 @@ lvgl:
             scrollable: false
             widgets:
               - label:
-                  text: "PUMP & WATER SET (Win/Sum)"
+                  text: "PUMP"
                   text_font: roboto24
                   align: center
                   text_color: 0xFFFFFF
@@ -2026,23 +2026,23 @@ lvgl:
             bg_opa: 50%
             radius: 10
             x: 10
-            y: 50
+            y: 60
             widgets:
               - label:
-                  text: "Block 1 Times"
+                  text: "Pump Time 1"
                   text_font: roboto24
                   text_color: 0xFFFFFF
                   x: 10
-                  y: 0
+                  y: -5
               - label:
                   text: "Start:"
                   text_font: roboto
                   text_color: 0xCCCCCC
                   x: 10
-                  y: 10
+                  y: 15
               - button:
                   x: 60
-                  y: 10
+                  y: 15
                   width: 30
                   height: 25
                   widgets:
@@ -2061,10 +2061,10 @@ lvgl:
                   text_font: roboto
                   text_color: 0xFFFFFF
                   x: 95
-                  y: 10
+                  y: 15
               - button:
                   x: 140
-                  y: 10
+                  y: 15
                   width: 30
                   height: 25
                   widgets:
@@ -2079,11 +2079,11 @@ lvgl:
                   text_font: roboto
                   text_color: 0xCCCCCC
                   x: 180
-                  y: 10
+                  y: 15
                   
               - button:
                   x: 220
-                  y: 10
+                  y: 15
                   width: 30
                   height: 25
                   widgets:
@@ -2102,10 +2102,10 @@ lvgl:
                   text_font: roboto
                   text_color: 0xFFFFFF
                   x: 255
-                  y: 10
+                  y: 15
               - button:
                   x: 300
-                  y: 10
+                  y: 15
                   width: 30
                   height: 25
                   widgets:
@@ -2185,20 +2185,20 @@ lvgl:
             y: 120
             widgets:
               - label:
-                  text: "Block 2 Times"
+                  text: "Pump Time 2"
                   text_font: roboto24
                   text_color: 0xFFFFFF
                   x: 10
-                  y: 0
+                  y: -5
               - label:
                   text: "Start:"
                   text_font: roboto
                   text_color: 0xCCCCCC
                   x: 10
-                  y: 10
+                  y: 15
               - button:
                   x: 60
-                  y: 10
+                  y: 15
                   width: 30
                   height: 25
                   widgets:
@@ -2217,10 +2217,10 @@ lvgl:
                   text_font: roboto
                   text_color: 0xFFFFFF
                   x: 95
-                  y: 10
+                  y: 15
               - button:
                   x: 140
-                  y: 10
+                  y: 15
                   width: 30
                   height: 25
                   widgets:
@@ -2235,10 +2235,10 @@ lvgl:
                   text_font: roboto
                   text_color: 0xCCCCCC
                   x: 180
-                  y: 10
+                  y: 15
               - button:
                   x: 220
-                  y: 10
+                  y: 15
                   width: 30
                   height: 25
                   widgets:
@@ -2257,10 +2257,10 @@ lvgl:
                   text_font: roboto
                   text_color: 0xFFFFFF
                   x: 255
-                  y: 10
+                  y: 15
               - button:
                   x: 300
-                  y: 10
+                  y: 15
                   width: 30
                   height: 25
                   widgets:
@@ -2340,20 +2340,20 @@ lvgl:
             y: 180
             widgets:
               - label:
-                  text: "Block 3 Times"
+                  text: "Pump Time 3"
                   text_font: roboto24
                   text_color: 0xFFFFFF
                   x: 10
-                  y: 0
+                  y: -5
               - label:
                   text: "Start:"
                   text_font: roboto
                   text_color: 0xCCCCCC
                   x: 10
-                  y: 10
+                  y: 15
               - button:
                   x: 60
-                  y: 10
+                  y: 15
                   width: 30
                   height: 25
                   widgets:
@@ -2372,10 +2372,10 @@ lvgl:
                   text_font: roboto
                   text_color: 0xFFFFFF
                   x: 95
-                  y: 10
+                  y: 15
               - button:
                   x: 140
-                  y: 10
+                  y: 15
                   width: 30
                   height: 25
                   widgets:
@@ -2390,10 +2390,10 @@ lvgl:
                   text_font: roboto
                   text_color: 0xCCCCCC
                   x: 180
-                  y: 10
+                  y: 15
               - button:
                   x: 220
-                  y: 10
+                  y: 15
                   width: 30
                   height: 25
                   widgets:
@@ -2412,10 +2412,10 @@ lvgl:
                   text_font: roboto
                   text_color: 0xFFFFFF
                   x: 255
-                  y: 10
+                  y: 15
               - button:
                   x: 300
-                  y: 10
+                  y: 15
                   width: 30
                   height: 25
                   widgets:
@@ -2495,20 +2495,20 @@ lvgl:
             y: 240
             widgets:
               - label:
-                  text: "Block 4 Times"
+                  text: "Pump Time 4"
                   text_font: roboto24
                   text_color: 0xFFFFFF
                   x: 10
-                  y: 0
+                  y: -5
               - label:
                   text: "Start:"
                   text_font: roboto
                   text_color: 0xCCCCCC
                   x: 10
-                  y: 10
+                  y: 15
               - button:
                   x: 60
-                  y: 10
+                  y: 15
                   width: 30
                   height: 25
                   widgets:
@@ -2527,10 +2527,10 @@ lvgl:
                   text_font: roboto
                   text_color: 0xFFFFFF
                   x: 95
-                  y: 10
+                  y: 15
               - button:
                   x: 140
-                  y: 10
+                  y: 15
                   width: 30
                   height: 25
                   widgets:
@@ -2545,10 +2545,10 @@ lvgl:
                   text_font: roboto
                   text_color: 0xCCCCCC
                   x: 180
-                  y: 10
+                  y: 15
               - button:
                   x: 220
-                  y: 10
+                  y: 15
                   width: 30
                   height: 25
                   widgets:
@@ -2567,10 +2567,10 @@ lvgl:
                   text_font: roboto
                   text_color: 0xFFFFFF
                   x: 255
-                  y: 10
+                  y: 15
               - button:
                   x: 300
-                  y: 10
+                  y: 15
                   width: 30
                   height: 25
                   widgets:
@@ -2642,7 +2642,7 @@ lvgl:
         - obj:
             scrollable: false
             width: 460
-            height: 100
+            height: 120
             bg_color: 0x000000
             bg_opa: 50%
             radius: 10
@@ -2654,7 +2654,7 @@ lvgl:
                   text_font: roboto24
                   text_color: 0xFFFFFF
                   x: 10
-                  y: 0
+                  y: -5
 
               # Center Time
               - label:
@@ -2704,10 +2704,10 @@ lvgl:
                   text_font: roboto
                   text_color: 0xCCCCCC
                   x: 220
-                  y: 30
+                  y: 10
               - button:
                   x: 250
-                  y: 30
+                  y: 10
                   width: 25
                   height: 25
                   widgets:
@@ -2726,10 +2726,10 @@ lvgl:
                   text_font: roboto
                   text_color: 0xFFFFFF
                   x: 280
-                  y: 30
+                  y: 10
               - button:
                   x: 315
-                  y: 30
+                  y: 10
                   width: 25
                   height: 25
                   widgets:
@@ -2746,10 +2746,10 @@ lvgl:
                   text_font: roboto
                   text_color: 0xCCCCCC
                   x: 10
-                  y: 60
+                  y: 50
               - button:
                   x: 100
-                  y: 60
+                  y: 50
                   width: 30
                   height: 25
                   widgets:
@@ -2768,10 +2768,10 @@ lvgl:
                   text_font: roboto
                   text_color: 0xFFFFFF
                   x: 135
-                  y: 65
+                  y: 50
               - button:
                   x: 200
-                  y: 60
+                  y: 50
                   width: 30
                   height: 25
                   widgets:
@@ -2788,10 +2788,10 @@ lvgl:
                   text_font: roboto
                   text_color: 0xCCCCCC
                   x: 240
-                  y: 60
+                  y: 50
               - button:
                   x: 310
-                  y: 60
+                  y: 50
                   width: 25
                   height: 25
                   widgets:
@@ -2810,10 +2810,10 @@ lvgl:
                   text_font: roboto
                   text_color: 0xFFFFFF
                   x: 340
-                  y: 60
+                  y: 50
               - button:
                   x: 390
-                  y: 60
+                  y: 50
                   width: 25
                   height: 25
                   widgets:
@@ -2830,10 +2830,10 @@ lvgl:
                   text_font: roboto
                   text_color: 0xCCCCCC
                   x: 10
-                  y: 90
+                  y: 80
               - button:
                   x: 80
-                  y: 90
+                  y: 80
                   width: 25
                   height: 25
                   widgets:
@@ -2852,10 +2852,10 @@ lvgl:
                   text_font: roboto
                   text_color: 0xFFFFFF
                   x: 110
-                  y: 90
+                  y: 80
               - button:
                   x: 170
-                  y: 90
+                  y: 80
                   width: 25
                   height: 25
                   widgets:
@@ -2871,8 +2871,9 @@ lvgl:
             scrollable: false
             width: 460
             height: 50
+            border_width: 0
             # bg_color: 0x000000
-            bg_opa: 50%
+            bg_opa: 30%
             radius: 10
             x: 10
             y: 430
@@ -2881,7 +2882,7 @@ lvgl:
               - button:
                   id: auto_irrigation_toggle
                   x: 10
-                  y: 0
+                  y: -5
                   width: 200
                   height: 40
                   checkable: true
@@ -2917,8 +2918,8 @@ lvgl:
               # Done button (keeping original)
               - button:
                   id: back_back_button
-                  x: 250
-                  y: 10
+                  x: 230
+                  y: 0
                   width: 100
                   height: 40
                   styles: nav_button_style
@@ -2936,8 +2937,8 @@ lvgl:
               # Test Current Block button
               - button:
                   id: test_irrigation_button
-                  x: 370
-                  y: 10
+                  x: 350
+                  y: 0
                   width: 80
                   height: 40
                   widgets:
@@ -3751,7 +3752,7 @@ lvgl:
                           text: "Summer (Temperature-based)"
                       - lvgl.label.update:
                           id: sw3_button_label
-                          text: "Light (Summer)"
+                          text: "Valve (Summer)"
         # Weather Impact Section
         - obj:
             width: 460
