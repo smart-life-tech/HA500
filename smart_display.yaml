@@ -2673,7 +2673,7 @@ lvgl:
                   text: "Center time:"
                   text_font: roboto
                   text_color: 0xCCCCCC
-                  x: 10
+                  x: 2
                   y: 15
               - button:
                   x: 100
@@ -2740,7 +2740,7 @@ lvgl:
                   x: 280
                   y: 15
               - button:
-                  x: 315
+                  x: 320
                   y: 15
                   width: 25
                   height: 25
@@ -2757,7 +2757,7 @@ lvgl:
                   text: "Max runtime:"
                   text_font: roboto
                   text_color: 0xCCCCCC
-                  x: 10
+                  x: 2
                   y: 50
               - button:
                   x: 100
@@ -2802,7 +2802,7 @@ lvgl:
                   x: 240
                   y: 50
               - button:
-                  x: 310
+                  x: 320
                   y: 50
                   width: 25
                   height: 25
@@ -2821,10 +2821,10 @@ lvgl:
                     return text;
                   text_font: roboto
                   text_color: 0xFFFFFF
-                  x: 340
+                  x: 350
                   y: 50
               - button:
-                  x: 390
+                  x: 400
                   y: 50
                   width: 25
                   height: 25
@@ -2841,7 +2841,7 @@ lvgl:
                   text: "Temp rate:"
                   text_font: roboto
                   text_color: 0xCCCCCC
-                  x: 10
+                  x: 2
                   y: 80
               - button:
                   x: 80
@@ -2866,7 +2866,7 @@ lvgl:
                   x: 110
                   y: 80
               - button:
-                  x: 170
+                  x: 180
                   y: 80
                   width: 25
                   height: 25
@@ -2882,7 +2882,7 @@ lvgl:
         - obj:
             scrollable: false
             width: 460
-            height: 50
+            height: 70
             border_width: 0
             # bg_color: 0x000000
             bg_opa: 30%
@@ -4749,7 +4749,7 @@ touchscreen:
           id(lvgl_comp).show_page(4, LV_SCR_LOAD_ANIM_OVER_LEFT, 300);
           return; // Exit early if light settings  area touched
         }
-        if (touch.x >= 390 && touch.y >= 150 && touch.y <= 200 && id(current_page) == 1) {
+        if (touch.x >= 390 && touch.y >= 150 && touch.y <= 200 && (id(lvgl_comp).get_current_page()) == 0) {
           ESP_LOGD("touch", "pump area touched at (%d, %d)", touch.x, touch.y);
           // go to the pump settings Page
           id(lvgl_comp).show_page(2, LV_SCR_LOAD_ANIM_OVER_LEFT, 300);
