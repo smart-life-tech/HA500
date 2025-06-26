@@ -3797,7 +3797,7 @@ lvgl:
                     }
                   text_font: roboto
                   x: 10
-                  y: 60
+                  y: 20
                   text_color: 0xFFFFFF
                   width: 440
 
