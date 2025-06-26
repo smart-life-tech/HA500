@@ -288,11 +288,11 @@ time:
             then:
               - script.execute: time_display_update
 
-web_server:
-  port: 80
-  version: 2
-  include_internal: false
-  local: false
+# web_server:
+#   port: 80
+#   version: 2
+#   include_internal: false
+#   local: false
 
 captive_portal:
 
