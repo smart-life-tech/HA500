@@ -1618,9 +1618,10 @@ lvgl:
                   align: center
             on_click:
               then:
-                - lvgl.page.next:
                 - lambda: |-
                     id(current_page) = 1;
+                - lvgl.page.next:
+                
         - obj:
             id: wifi_popup_obj
             hidden: true
@@ -1966,7 +1967,7 @@ lvgl:
         - button:
             id: settings_nav_button2
             x: 380
-            y: 430
+            y: 400
             width: 120
             height: 45
             styles: nav_button_style
@@ -3126,7 +3127,10 @@ lvgl:
                   align: center
             on_click:
               then:
-                - lvgl.page.previous:
+                #- lvgl.page.previous:
+                - lambda: |-
+                   // go to settings page from control page
+                    id(lvgl_comp).show_page(3, LV_SCR_LOAD_ANIM_OVER_RIGHT, 300);
                 # In your existing settings page, add this button
 
         # Light Automation Settings Page
@@ -4749,14 +4753,14 @@ touchscreen:
           id(lvgl_comp).show_page(4, LV_SCR_LOAD_ANIM_OVER_LEFT, 300);
           return; // Exit early if light settings  area touched
         }
-        if (touch.x >= 390 && touch.y >= 150 && touch.y <= 200 && (id(lvgl_comp).get_current_page()) == 0) {
+        if (touch.x >= 390 && touch.y >= 150 && touch.y <= 200 && (id(lvgl_comp).get_current_page()) == 1) {
           ESP_LOGD("touch", "pump area touched at (%d, %d)", touch.x, touch.y);
           // go to the pump settings Page
           id(lvgl_comp).show_page(2, LV_SCR_LOAD_ANIM_OVER_LEFT, 300);
           return; // Exit early if light settings  area touched
         }
         if (touch.x >= 390 && touch.y >= 240 && touch.y <= 290 && id(current_page) == 1) {
-          ESP_LOGD("touch", "WiFi area touched at (%d, %d)", touch.x, touch.y);
+          ESP_LOGD("touch", "valve area touched at (%d, %d)", touch.x, touch.y);
           // go to the pump settings Page
           id(lvgl_comp).show_page(5, LV_SCR_LOAD_ANIM_OVER_LEFT, 300);
           return; // Exit early if light settings  area touched
