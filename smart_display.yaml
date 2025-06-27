@@ -1966,8 +1966,8 @@ lvgl:
 
         - button:
             id: settings_nav_button2
-            x: 380
-            y: 400
+            x: 350
+            y: 430
             width: 120
             height: 45
             styles: nav_button_style
@@ -4159,6 +4159,7 @@ script:
   - id: toggle_wifi_popup
     then:
       - lambda: |-
+          id(current_page) = 0;  // Set current page to main screen settings
           id(wifi_popup_visible) = !id(wifi_popup_visible);
       - if:
           condition:
