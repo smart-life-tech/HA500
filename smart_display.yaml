@@ -3130,8 +3130,8 @@ lvgl:
                 #- lvgl.page.previous:
                 - lambda: |-
                    // go to settings page from control page
-                    id(lvgl_comp).show_page(3, LV_SCR_LOAD_ANIM_OVER_RIGHT, 300);
-                # In your existing settings page, add this button
+                    id(lvgl_comp).show_page(1, LV_SCR_LOAD_ANIM_OVER_RIGHT, 300);
+                
 
         # Light Automation Settings Page
     - id: light_settings_page
