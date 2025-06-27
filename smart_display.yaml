@@ -2995,7 +2995,7 @@ lvgl:
             y: 10
             widgets:
               - label:
-                  text: "DEVICE SETTINGS"
+                  text: "DEVICE INTERNET SETTINGS"
                   text_font: roboto24
                   align: center
                   text_color: 0xFFFFFF
@@ -3077,9 +3077,11 @@ lvgl:
                   id: settings_qr
                   x: 170
                   y: 10
+                  border_width: 10
+                  border_color: 0xFFFFFF
                   light_color: whitesmoke
                   dark_color: steelblue
-                  size: 100
+                  size: 150
                   text: !lambda |-
                     if (id(ip_address).has_state() && !id(ip_address).state.empty()) {
                      return "phijo-smart-device.local/";
