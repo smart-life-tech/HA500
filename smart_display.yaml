@@ -3057,7 +3057,7 @@ lvgl:
                     }
                     return "Waiting for IP address...";
                   text_font: roboto
-                  x: 80
+                  x: 90
                   y: 50
                   text_color: 0xFFFFFF
                   width: 320
@@ -3077,7 +3077,7 @@ lvgl:
                   id: settings_qr
                   align: center
                   x: 0
-                  y: 10
+                  y: 20
                   border_width: 10
                   border_color: 0xFFFFFF
                   light_color: whitesmoke
