@@ -105,7 +105,7 @@ sensor:
     update_interval: 300s
 
   - platform: template
-    name: "Irrigation Needed"
+    name: "Watering Needed"
     id: irrigation_needed_sensor
     unit_of_measurement: "L"
     accuracy_decimals: 1
@@ -564,7 +564,7 @@ number:
 
   - platform: template
     id: irrigation_schedule_hour_input
-    name: "Irrigation Schedule Hour"
+    name: "Watering Schedule Hour"
     min_value: 0
     max_value: 23
     step: 1
@@ -584,7 +584,7 @@ number:
 
   - platform: template
     id: irrigation_schedule_minute_input
-    name: "Irrigation Schedule Minute"
+    name: "Watering Schedule Minute"
     min_value: 0
     max_value: 59
     step: 15
@@ -774,7 +774,7 @@ number:
 # binary sensors for irrigation status
 binary_sensor:
   - platform: template
-    name: "Irrigation Required"
+    name: "Watering Required"
     id: irrigation_required
     lambda: "return id(irrigation_needed_liters) > 5.0;"
 
@@ -866,7 +866,7 @@ text_sensor:
     lambda: |-
       return {id(location_name_str)};
   - platform: template
-    name: "Irrigation Status"
+    name: "Watering Status"
     id: irrigation_status
     lambda: |-
       if (id(valve_training_mode)) {
@@ -874,7 +874,7 @@ text_sensor:
       } else if (id(sw3).state) {
         return {"Irrigating"};
       } else if (id(irrigation_needed_liters) > 10) {
-        return {"Irrigation Needed"};
+        return {"Watering Needed"};
       } else if (id(daily_rainfall_mm) > 5) {
         return {"Recently Watered by Rain"};
       } else {
@@ -883,7 +883,7 @@ text_sensor:
     update_interval: 60s
 
   - platform: template
-    name: "Next Irrigation Time"
+    name: "Next Watering Time"
     id: next_irrigation_time
     lambda: |-
       auto now = id(time_comp).now();
@@ -944,7 +944,7 @@ color:
 
 # Global variables for timer tracking and settings
 globals:
-  # Irrigation block start/stop times (4 blocks)
+  # Watering block start/stop times (4 blocks)
   - id: block1_start_hour
     type: int
     initial_value: '6'
@@ -1047,7 +1047,7 @@ globals:
     type: bool
     restore_value: yes
     initial_value: "true"
-  # Irrigation system globals
+  # Watering system globals
   - id: field_area_m2
     type: float
     restore_value: yes
@@ -1204,7 +1204,7 @@ button:
         - script.execute: start_valve_training
 
   - platform: template
-    name: "Calculate Irrigation Needs"
+    name: "Calculate Watering Needs"
     id: calc_irrigation_button
     on_press:
       then:
@@ -1222,7 +1222,7 @@ button:
 # Add select for irrigation mode
 select:
   - platform: template
-    name: "Irrigation Mode"
+    name: "Watering Mode"
     id: irrigation_mode_select
     optimistic: true # Add this line
     options:
@@ -1870,7 +1870,7 @@ lvgl:
             y: 140
             width: 60
             height: 60
-        # Update Switch 3 - Irrigation Valve
+        # Update Switch 3 - Watering Valve
         - button:
             id: sw3_button
             radius: 40
@@ -1983,7 +1983,7 @@ lvgl:
                     // go to sttong page from control page
                     id(lvgl_comp).show_page(3, LV_SCR_LOAD_ANIM_OVER_LEFT, 300);
 
-    # New Pump/Irrigation Settings Page
+    # New Pump/Watering Settings Page
     - id: pump_settings_page
       bg_color: 0x000000
       bg_opa: cover
@@ -2030,7 +2030,7 @@ lvgl:
                   x: 0
                   y: 5
 
-                # Irrigation Block 1 Settings
+                # Watering Block 1 Settings
         - obj:
             scrollable: false
             width: 460
@@ -2186,7 +2186,7 @@ lvgl:
                     then:
                       - number.increment: block1_stop_minute_input
 
-        # Irrigation Block 2 Settings
+        # Watering Block 2 Settings
         - obj:
             scrollable: false
             width: 460
@@ -2341,7 +2341,7 @@ lvgl:
                     then:
                       - number.increment: block2_stop_minute_input
 
-        # Irrigation Block 3 Settings
+        # Watering Block 3 Settings
         - obj:
             scrollable: false
             width: 460
@@ -2496,7 +2496,7 @@ lvgl:
                     then:
                       - number.increment: block3_stop_minute_input
 
-        # Irrigation Block 4 Settings
+        # Watering  Block 4 Settings
         - obj:
             scrollable: false
             width: 460
@@ -3064,7 +3064,7 @@ lvgl:
                   align: center
         - obj:
             width: 460
-            height: 120
+            height: 200
             bg_color: 0x000000
             bg_opa: 0%
             border_width: 0
@@ -3075,7 +3075,8 @@ lvgl:
             widgets:
               - qrcode:
                   id: settings_qr
-                  x: 170
+                  align: center
+                  x: 0
                   y: 10
                   border_width: 10
                   border_color: 0xFFFFFF
@@ -3927,20 +3928,20 @@ light:
 switch:
   - platform: output
     id: pump_relay
-    name: "Irrigation Pump"
+    name: "Watering Pump"
     output: internal_relay_3
     on_turn_on:
       then:
         - lvgl.label.update:
             id: irrigation_status_display
             text: "Pump ON - Irrigating..."
-        - logger.log: "Irrigation pump turned ON"
+        - logger.log: "Watering pump turned ON"
     on_turn_off:
       then:
         - lvgl.label.update:
             id: irrigation_status_display
-            text: "Pump OFF - Irrigation stopped"
-        - logger.log: "Irrigation pump turned OFF"
+            text: "Pump OFF - Watering stopped"
+        - logger.log: "Watering pump turned OFF"
 
   - platform: output
     id: sw1
@@ -3994,14 +3995,14 @@ switch:
 
   - platform: output
     id: sw3
-    name: "Irrigation Valve"
+    name: "Watering Valve"
     output: internal_relay_3
     on_turn_on:
       then:
         - lvgl.label.update:
             id: irrigation_status_display
             text: " Pump ON - Irrigating..."
-        - logger.log: "Irrigation pump turned ON"
+        - logger.log: "Watering pump turned ON"
         - if:
             condition:
               lambda: "return id(valve_training_mode);"
@@ -4036,8 +4037,8 @@ switch:
       then:
         - lvgl.label.update:
             id: irrigation_status_display
-            text: "⏹️ Pump OFF - Irrigation stopped"
-        - logger.log: "Irrigation pump turned OFF"
+            text: "⏹️ Pump OFF - Watering stopped"
+        - logger.log: "Watering pump turned OFF"
 
         - if:
             condition:
@@ -4074,10 +4075,10 @@ switch:
                   text_color: blue_color
             else:
               - lambda: |-
-                  ESP_LOGI("irrigation", "Watering stopped");
+                  ESP_LOGI("irrigation", "Watering  stopped");
               - lvgl.label.update:
                   id: status_label
-                  text: "Watering Valve OFF"
+                  text: "Watering  Valve OFF"
                   text_color: red_color
         - lvgl.widget.update:
             id: sw3_button
@@ -4156,7 +4157,7 @@ script:
       - lvgl.label.update:
           id: irrigation_status_display
           text: "Settings reset to defaults"
-      - logger.log: "Irrigation settings reset to defaults"
+      - logger.log: "Watering settings reset to defaults"
 
   - id: toggle_wifi_popup
     then:
@@ -4463,7 +4464,7 @@ script:
                     return (now.month >= 4 && now.month <= 9); // Summer months
                 then:
                   # Summer: Turn on valve to ADD water
-                  - switch.turn_on: sw3  # Irrigation Valve
+                  - switch.turn_on: sw3  # Watering Valve
                   - delay: 2s
                   - switch.turn_on: sw2  # Water Pump
                 else:
@@ -4478,7 +4479,7 @@ script:
                   - delay: 60s
                   - lambda: |-
                       id(irrigation_duration_remaining)--;
-                      ESP_LOGD("irrigation", "Irrigation remaining: %d minutes", id(irrigation_duration_remaining));
+                      ESP_LOGD("irrigation", "Watering remaining: %d minutes", id(irrigation_duration_remaining));
                       
             # Turn off both pump and valve
             - switch.turn_off: sw2
@@ -4668,10 +4669,10 @@ script:
             if (id(sw3).state && now.timestamp >= id(sw3_off_time) && id(sw3_off_time) > 0) {
               id(sw3).turn_off();
               id(sw3_off_time) = 0;
-              // Reset irrigation needs after watering
+              // Reset irrigation needs after Watering 
               id(irrigation_needed_liters) = std::max(0.0f, id(irrigation_needed_liters) - 
                                                       (id(valve_liters_per_minute) * ((now.timestamp - (id(sw3_off_time) - 1800)) / 60.0f)));
-              ESP_LOGI("automation", "SW3 watering completed");
+              ESP_LOGI("automation", "SW3 Watering  completed");
             }
           }
 
