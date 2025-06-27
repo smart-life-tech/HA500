@@ -3129,7 +3129,8 @@ lvgl:
               then:
                 #- lvgl.page.previous:
                 - lambda: |-
-                   // go to settings page from control page
+                    // go to settings page from control page
+                    id(current_page)=1;
                     id(lvgl_comp).show_page(1, LV_SCR_LOAD_ANIM_OVER_RIGHT, 300);
                 
 
