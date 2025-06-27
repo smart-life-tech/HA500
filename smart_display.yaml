@@ -3790,7 +3790,7 @@ lvgl:
                   text_font: roboto24
                   text_color: 0xFFFFFF
                   x: 10
-                  y: 5
+                  y: 0
               - label:
                   id: weather_recommendation
                   text: !lambda |-
@@ -3805,8 +3805,8 @@ lvgl:
                     }
                   text_font: roboto
                   x: 10
-                  y: 20
-                  text_color: 0xFFFFFF
+                  y: 30
+                  text_color: 0x00FFFF
                   width: 440
 
         # Control Buttons Section
