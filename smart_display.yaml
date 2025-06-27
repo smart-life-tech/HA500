@@ -3076,7 +3076,7 @@ lvgl:
               - qrcode:
                   id: settings_qr
                   align: center
-                  x: -20
+                  x: -5
                   y: 20
                   border_width: 10
                   border_color: 0xFFFFFF
