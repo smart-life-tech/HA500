@@ -522,13 +522,13 @@ number:
   - platform: template
     id: max_runtime_input
     min_value: 60
-    max_value: 600
+    max_value: 300
     optimistic: true
-    step: 5
-    initial_value: 300
+    step: 1
+    initial_value: 10
     on_value:
       then:
-        - lambda: 'id(max_runtime_minutes) = (int)x;'
+        - lambda: 'id(max_runtime_minutes) = (int)x; id(irrigation_duration_remaining) = (int)x'
         
   - platform: template
     id: reference_temp_input
@@ -2958,6 +2958,7 @@ lvgl:
 
               # Min Runtime
               - label:
+                  hidden: true
                   text: "Min:"
                   text_font: roboto
                   text_color: 0xCCCCCC
@@ -2965,6 +2966,7 @@ lvgl:
                   y: 15
               - button:
                   x: 250
+                  hidden: true
                   y: 15
                   width: 25
                   height: 25
@@ -2982,6 +2984,7 @@ lvgl:
                             snprintf(text, sizeof(text), "%dm", id(min_runtime_minutes));
                             return text;
               - label:
+                  hidden: true
                   id: min_runtime_display
                   text: !lambda |-
                     static char text[10];
@@ -2994,6 +2997,7 @@ lvgl:
               - button:
                   x: 320
                   y: 15
+                  hidden: true
                   width: 25
                   height: 25
                   widgets:
@@ -3012,7 +3016,7 @@ lvgl:
 
               # Max Runtime
               - label:
-                  text: "Max runtime:"
+                  text: "Runtime:"
                   text_font: roboto
                   text_color: 0xCCCCCC
                   x: 2
@@ -3245,6 +3249,7 @@ lvgl:
                   id: test_irrigation_button
                   x: 350
                   y: 0
+                  hidden: true
                   width: 80
                   height: 40
                   widgets:
@@ -4674,7 +4679,7 @@ script:
           if (total_runtime < id(min_runtime_minutes)) total_runtime = id(min_runtime_minutes);
           if (total_runtime > id(max_runtime_minutes)) total_runtime = id(max_runtime_minutes);
           
-          id(irrigation_duration_remaining) = (int)total_runtime;
+          //id(irrigation_duration_remaining) = (int)total_runtime;
           
           ESP_LOGI("irrigation", "Calculated runtime: %.1f min (seasonal: %.1f, time: %.1f, temp: %.2f)", 
                    total_runtime, seasonal_factor, time_factor, temp_multiplier);
