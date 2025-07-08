@@ -4010,6 +4010,84 @@ script:
                   return "N/A";
           else:
             - lvgl.widget.hide: wifi_popup_obj
+
+  - id: update_wifi_details
+    then:
+      - if:
+          condition:
+            lambda: "return (wifi::global_wifi_component->is_connected());"
+          then:
+            - lvgl.widget.show: wifi_popup_obj
+            # Update all WiFi info when showing popup
+            - lvgl.label.update:
+                id: wifi_status_text
+                text: !lambda |-
+                  if (wifi::global_wifi_component->is_connected()) {
+                    return "Connected";
+                  } else {
+                    return "Disconnected";
+                  }
+            - lvgl.label.update:
+                id: wifi_ssid_text
+                text: !lambda |-
+                  if (id(wifi_ssid).has_state()) {
+                    return id(wifi_ssid).state.c_str();
+                  }
+                  return "N/A";
+            - lvgl.label.update:
+                id: wifi_bssid_text
+                text: !lambda |-
+                  if (id(wifi_bssid).has_state()) {
+                    return id(wifi_bssid).state.c_str();
+                  }
+                  return "N/A";
+            - lvgl.label.update:
+                id: wifi_rssi_text
+                text: !lambda |-
+                  if (id(wifi_rssi).has_state()) {
+                    static char rssi_text[20];
+                    snprintf(rssi_text, sizeof(rssi_text), "%.0f dBm", id(wifi_rssi).state);
+                    return rssi_text;
+                  }
+                  return "N/A";
+            - lvgl.label.update:
+                id: wifi_ip_text
+                text: !lambda |-
+                  if (id(ip_address).has_state()) {
+                    return id(ip_address).state.c_str();
+                  }
+                  return "N/A";
+            - lvgl.label.update:
+                id: wifi_gateway_text
+                text: !lambda |-
+                  if (id(wifi_gateway).has_state()) {
+                    return id(wifi_gateway).state.c_str();
+                  }
+                  return "N/A";
+            - lvgl.label.update:
+                id: wifi_subnet_text
+                text: !lambda |-
+                  if (id(wifi_subnet).has_state()) {
+                    return id(wifi_subnet).state.c_str();
+                  }
+                  return "N/A";
+            - lvgl.label.update:
+                id: wifi_dns_text
+                text: !lambda |-
+                  if (id(wifi_dns).has_state()) {
+                    return id(wifi_dns).state.c_str();
+                  }
+                  return "N/A";
+            - lvgl.label.update:
+                id: wifi_mac_text
+                text: !lambda |-
+                  if (id(wifi_mac).has_state()) {
+                    return id(wifi_mac).state.c_str();
+                  }
+                  return "N/A";
+          else:
+            - lvgl.widget.hide: wifi_popup_obj
+
   - id: goto_settings
     then:
       - delay: 1000ms
@@ -4729,6 +4807,9 @@ image:
     type: RGB565
 
 interval:
+  - interval: 10
+    then:
+      - script.execute: update_wifi_details
   - interval: 5s
     then:
       - lambda: |-
