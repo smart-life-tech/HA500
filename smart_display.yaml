@@ -1885,6 +1885,14 @@ lvgl:
     # New Pump/Watering Settings Page
     - id: pump_settings_page
       widgets:
+        # Background image for controls page
+        - image:
+            src: background_image
+            x: 0
+            y: 0
+            width: 480
+            height: 480
+            align: TOP_LEFT
         # Seasonal Pump Settings Toggle
         - obj:
             scrollable: false
@@ -1904,13 +1912,12 @@ lvgl:
                   y: 5
               - button:
                   id: seasonal_toggle
-                  x: 250
-                  y: 15
+                  x: 350
+                  y: 5
                   width: 100
-                  height: 30
+                  height: 40
                   checkable: true
-                  state:
-                    checked: !lambda "return id(seasonal_pump_enabled);"
+                  
                   widgets:
                     - label:
                         id: seasonal_label
@@ -1933,35 +1940,38 @@ lvgl:
                             - lvgl.label.update:
                                 id: seasonal_label
                                 text: "ON"
+                            - lambda: |-
+
                           else:
                             - lvgl.label.update:
                                 id: seasonal_label
                                 text: "OFF"
-
+                  state:
+                    checked: !lambda "return id(seasonal_pump_enabled);"
         # Runtime Settings
         - obj:
             scrollable: false
-            width: 460
-            height: 100
+            width: 470
+            height: 110
             bg_color: 0x000000
             bg_opa: 50%
             radius: 10
-            x: 10
+            x: 0
             y: 80
             widgets:
               - label:
                   text: "Runtime Settings"
                   text_font: roboto24
                   text_color: 0xFFFFFF
-                  x: 10
-                  y: 5
+                  x: 0
+                  y: 0
 
               # Winter Min Runtime
               - label:
                   text: "Winter min:"
                   text_font: roboto
                   text_color: 0xCCCCCC
-                  x: 10
+                  x: 0
                   y: 35
               - button:
                   x: 90
@@ -2003,7 +2013,7 @@ lvgl:
                   text: "Summer max:"
                   text_font: roboto
                   text_color: 0xCCCCCC
-                  x: 220
+                  x: 200
                   y: 35
               - button:
                   x: 310
@@ -2028,7 +2038,7 @@ lvgl:
                   x: 345
                   y: 35
               - button:
-                  x: 400
+                  x: 410
                   y: 30
                   width: 30
                   height: 25
@@ -2045,7 +2055,7 @@ lvgl:
                   text: "Ref temp:"
                   text_font: roboto
                   text_color: 0xCCCCCC
-                  x: 10
+                  x: 0
                   y: 65
               - button:
                   x: 80
@@ -2132,14 +2142,14 @@ lvgl:
             bg_color: 0x000000
             bg_opa: 50%
             radius: 10
-            x: 10
+            x: 0
             y: 190
             widgets:
               - label:
                   text: "Center Time & Runtime Blocks"
                   text_font: roboto24
                   text_color: 0xFFFFFF
-                  x: 10
+                  x: 0
                   y: 5
 
               # Center Time
@@ -2147,7 +2157,7 @@ lvgl:
                   text: "Center time:"
                   text_font: roboto
                   text_color: 0xCCCCCC
-                  x: 10
+                  x: 0
                   y: 35
               - button:
                   x: 100
