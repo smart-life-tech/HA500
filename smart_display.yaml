@@ -4807,7 +4807,7 @@ image:
     type: RGB565
 
 interval:
-  - interval: 10
+  - interval: 10s
     then:
       - script.execute: update_wifi_details
   - interval: 5s
