@@ -229,7 +229,7 @@ wifi:
 
   # Added parameters for better connection reliability
   power_save_mode: NONE
-  fast_connect: false  # Disable for better reliability with multiple networks
+  fast_connect: false # Disable for better reliability with multiple networks
   reboot_timeout: 0s
   output_power: 20.0
   enable_rrm: true
@@ -261,6 +261,7 @@ time:
         - logger.log: "TIME DEBUG: Time synchronized with Home Assistant"
         - script.execute: time_display_update # Changed from time_update
     on_time:
+      # Check every minute if we should start irrigation
       - seconds: 0
         then:
           - lambda: |-
@@ -268,22 +269,39 @@ time:
               
               auto now = id(time_comp).now();
               int current_minutes = now.hour * 60 + now.minute;
+              bool should_start = false;
               
-              // Check if current time matches any block start time
-              int blocks[4][2] = {
-                {id(block1_start_hour) * 60 + id(block1_start_minute), 1},
-                {id(block2_start_hour) * 60 + id(block2_start_minute), 2},
-                {id(block3_start_hour) * 60 + id(block3_start_minute), 3},
-                {id(block4_start_hour) * 60 + id(block4_start_minute), 4}
-              };
+              // Recalculate daily runtime first
+              id(calculate_irrigation_needs).execute();
               
-              for (int i = 0; i < 4; i++) {
-                if (current_minutes == blocks[i][0]) {
-                  ESP_LOGI("irrigation", "Auto-starting irrigation block %d", blocks[i][1]);
-                  // Trigger irrigation calculation and execution
-                  id(calculate_irrigation_needs).execute();
-                  break;
-                }
+              // Check center block timing
+              int center_half_time = id(center_block_runtime) / 2;
+              int center_start = (id(center_pump_time_hour) * 60) - center_half_time;
+              int center_end = (id(center_pump_time_hour) * 60) + center_half_time;
+              
+              if (current_minutes == center_start) {
+                ESP_LOGI("irrigation", "Starting center block irrigation");
+                should_start = true;
+              }
+              
+              // Check free blocks
+              if (id(pump_runtime_blocks) >= 2 && current_minutes == (id(free_block2_start_hour) * 60 + id(free_block2_start_minute))) {
+                ESP_LOGI("irrigation", "Starting free block 2 irrigation");
+                should_start = true;
+              }
+              
+              if (id(pump_runtime_blocks) >= 3 && current_minutes == (id(free_block3_start_hour) * 60 + id(free_block3_start_minute))) {
+                ESP_LOGI("irrigation", "Starting free block 3 irrigation");
+                should_start = true;
+              }
+              
+              if (id(pump_runtime_blocks) >= 4 && current_minutes == (id(free_block4_start_hour) * 60 + id(free_block4_start_minute))) {
+                ESP_LOGI("irrigation", "Starting free block 4 irrigation");
+                should_start = true;
+              }
+              
+              if (should_start && !id(sw2).state) {
+                id(run_scheduled_irrigation).execute();
               }
 
   # Add SNTP as fallback when Home Assistant is unavailable
@@ -304,8 +322,6 @@ time:
             then:
               - script.execute: time_display_update
 
-
-
 captive_portal:
 
 # For the sun component, we need to use fixed values initially
@@ -316,31 +332,76 @@ sun:
 
 # Add this to update the sun component when location changes
 number:
-    # Block 1 times
+  # Seasonal settings
   - platform: template
-    id: block1_start_hour_input
-    min_value: 0
-    max_value: 23
-    step: 1
+    id: winter_min_input
+    min_value: 30
+    max_value: 180
+    step: 5
     optimistic: true
-    initial_value: 6
+    initial_value: 60
     on_value:
       then:
-        - lambda: 'id(block1_start_hour) = (int)x;'
-        
+        - lambda: "id(winter_min_runtime) = (int)x;"
+
   - platform: template
-    id: block1_start_minute_input
-    min_value: 0
-    max_value: 59
-    step: 1
+    id: summer_max_input
+    min_value: 120
+    max_value: 600
+    step: 15
     optimistic: true
-    initial_value: 0
+    initial_value: 300
     on_value:
       then:
-        - lambda: 'id(block1_start_minute) = (int)x;'
-        
+        - lambda: "id(summer_max_runtime) = (int)x;"
+
   - platform: template
-    id: block1_stop_hour_input
+    id: center_time_hour_input
+    min_value: 10
+    max_value: 18
+    step: 1
+    optimistic: true
+    initial_value: 14
+    on_value:
+      then:
+        - lambda: "id(center_pump_time_hour) = (int)x;"
+
+  - platform: template
+    id: reference_temp_input
+    min_value: 15
+    max_value: 30
+    step: 0.5
+    optimistic: true
+    initial_value: 22
+    on_value:
+      then:
+        - lambda: "id(reference_temperature) = x;"
+
+  - platform: template
+    id: temp_rate_input
+    min_value: 0.5
+    max_value: 3.0
+    step: 0.1
+    optimistic: true
+    initial_value: 1.0
+    on_value:
+      then:
+        - lambda: "id(temp_rate_percent) = x;"
+
+  - platform: template
+    id: runtime_blocks_input
+    min_value: 1
+    max_value: 4
+    step: 1
+    optimistic: true
+    initial_value: 1
+    on_value:
+      then:
+        - lambda: "id(pump_runtime_blocks) = (int)x;"
+
+  # Free block start times
+  - platform: template
+    id: free_block2_hour_input
     min_value: 0
     max_value: 23
     step: 1
@@ -348,89 +409,21 @@ number:
     initial_value: 8
     on_value:
       then:
-        - lambda: 'id(block1_stop_hour) = (int)x;'
-        
-  - platform: template
-    id: block1_stop_minute_input
-    min_value: 0
-    max_value: 59
-    step: 1
-    optimistic: true
-    initial_value: 0
-    on_value:
-      then:
-        - lambda: 'id(block1_stop_minute) = (int)x;'
+        - lambda: "id(free_block2_start_hour) = (int)x;"
 
-  # Block 2 times
   - platform: template
-    id: block2_start_hour_input
-    min_value: 0
-    max_value: 23
-    step: 1
-    optimistic: true
-    initial_value: 12
-    on_value:
-      then:
-        - lambda: 'id(block2_start_hour) = (int)x;'
-        
-  - platform: template
-    id: block2_start_minute_input
+    id: free_block2_minute_input
     min_value: 0
     max_value: 59
-    step: 1
+    step: 15
     optimistic: true
     initial_value: 0
     on_value:
       then:
-        - lambda: 'id(block2_start_minute) = (int)x;'
-        
-  - platform: template
-    id: block2_stop_hour_input
-    min_value: 0
-    max_value: 23
-    step: 1
-    optimistic: true
-    initial_value: 14
-    on_value:
-      then:
-        - lambda: 'id(block2_stop_hour) = (int)x;'
-        
-  - platform: template
-    id: block2_stop_minute_input
-    min_value: 0
-    max_value: 59
-    step: 1
-    optimistic: true
-    initial_value: 0
-    on_value:
-      then:
-        - lambda: 'id(block2_stop_minute) = (int)x;'
+        - lambda: "id(free_block2_start_minute) = (int)x;"
 
-  # Block 3 times
   - platform: template
-    id: block3_start_hour_input
-    min_value: 0
-    max_value: 23
-    step: 1
-    optimistic: true
-    initial_value: 16
-    on_value:
-      then:
-        - lambda: 'id(block3_start_hour) = (int)x;'
-        
-  - platform: template
-    id: block3_start_minute_input
-    min_value: 0
-    max_value: 59
-    step: 1
-    optimistic: true
-    initial_value: 0
-    on_value:
-      then:
-        - lambda: 'id(block3_start_minute) = (int)x;'
-        
-  - platform: template
-    id: block3_stop_hour_input
+    id: free_block3_hour_input
     min_value: 0
     max_value: 23
     step: 1
@@ -438,119 +431,40 @@ number:
     initial_value: 18
     on_value:
       then:
-        - lambda: 'id(block3_stop_hour) = (int)x;'
-        
-  - platform: template
-    id: block3_stop_minute_input
-    min_value: 0
-    max_value: 59
-    step: 1
-    optimistic: true
-    initial_value: 0
-    on_value:
-      then:
-        - lambda: 'id(block3_stop_minute) = (int)x;'
+        - lambda: "id(free_block3_start_hour) = (int)x;"
 
-  # Block 4 times
   - platform: template
-    id: block4_start_hour_input
-    min_value: 0
-    max_value: 23
-    step: 1
-    optimistic: true
-    initial_value: 20
-    on_value:
-      then:
-        - lambda: 'id(block4_start_hour) = (int)x;'
-        
-  - platform: template
-    id: block4_start_minute_input
+    id: free_block3_minute_input
     min_value: 0
     max_value: 59
-    step: 1
-    initial_value: 0
+    step: 15
     optimistic: true
-    on_value:
-      then:
-        - lambda: 'id(block4_start_minute) = (int)x;'
-        
-  - platform: template
-    id: block4_stop_hour_input
-    min_value: 0
-    max_value: 23
-    step: 1
-    initial_value: 22
-    optimistic: true
-    on_value:
-      then:
-        - lambda: 'id(block4_stop_hour) = (int)x;'
-        
-  - platform: template
-    id: block4_stop_minute_input
-    min_value: 0
-    max_value: 59
-    optimistic: true
-    step: 1
     initial_value: 0
     on_value:
       then:
-        - lambda: 'id(block4_stop_minute) = (int)x;'
+        - lambda: "id(free_block3_start_minute) = (int)x;"
 
-  # Runtime parameters
   - platform: template
-    id: center_time_input
+    id: free_block4_hour_input
     min_value: 0
     max_value: 23
-    optimistic: true
     step: 1
-    initial_value: 14
-    on_value:
-      then:
-        - lambda: 'id(center_time_minutes) = (int)x;'
-        
-  - platform: template
-    id: min_runtime_input
-    min_value: 1
-    max_value: 300
     optimistic: true
-    step: 1
-    initial_value: 60
+    initial_value: 21
     on_value:
       then:
-        - lambda: 'id(min_runtime_minutes) = (int)x;'
-        
+        - lambda: "id(free_block4_start_hour) = (int)x;"
+
   - platform: template
-    id: max_runtime_input
-    min_value: 60
-    max_value: 300
+    id: free_block4_minute_input
+    min_value: 0
+    max_value: 59
+    step: 15
     optimistic: true
-    step: 1
-    initial_value: 10
+    initial_value: 0
     on_value:
       then:
-        - lambda: 'id(max_runtime_minutes) = (int)x; id(irrigation_duration_remaining) = (int)x'
-        
-  - platform: template
-    id: reference_temp_input
-    min_value: 10
-    max_value: 35
-    step: 0.5
-    initial_value: 22
-    optimistic: true
-    on_value:
-      then:
-        - lambda: 'id(reference_temperature) = x;'
-        
-  - platform: template
-    id: temp_rate_input
-    min_value: 0.1
-    max_value: 5.0
-    step: 0.1
-    initial_value: 1.0
-    optimistic: true
-    on_value:
-      then:
-        - lambda: 'id(temp_rate_percent) = x;'
+        - lambda: "id(free_block4_start_minute) = (int)x;"
 
   - platform: template
     id: daily_rainfall_input
@@ -956,83 +870,57 @@ color:
 
 # Global variables for timer tracking and settings
 globals:
-  # Watering block start/stop times (4 blocks)
-  - id: block1_start_hour
+  # Seasonal settings
+  - id: seasonal_pump_enabled
+    type: bool
+    initial_value: "true"
+  - id: winter_min_runtime
     type: int
-    initial_value: '6'
-  - id: block1_start_minute
+    initial_value: "60"
+  - id: summer_max_runtime
     type: int
-    initial_value: '0'
-  - id: block1_stop_hour
+    initial_value: "300"
+  - id: center_pump_time_hour
     type: int
-    initial_value: '8'
-  - id: block1_stop_minute
-    type: int
-    initial_value: '0'
-    
-  - id: block2_start_hour
-    type: int
-    initial_value: '12'
-  - id: block2_start_minute
-    type: int
-    initial_value: '0'
-  - id: block2_stop_hour
-    type: int
-    initial_value: '14'
-  - id: block2_stop_minute
-    type: int
-    initial_value: '0'
-    
-  - id: block3_start_hour
-    type: int
-    initial_value: '16'
-  - id: block3_start_minute
-    type: int
-    initial_value: '0'
-  - id: block3_stop_hour
-    type: int
-    initial_value: '18'
-  - id: block3_stop_minute
-    type: int
-    initial_value: '0'
-    
-  - id: block4_start_hour
-    type: int
-    initial_value: '20'
-  - id: block4_start_minute
-    type: int
-    initial_value: '0'
-  - id: block4_stop_hour
-    type: int
-    initial_value: '22'
-  - id: block4_stop_minute
-    type: int
-    initial_value: '0'
-    
-  # Runtime parameters
-  - id: center_time_minutes
-    type: int
-    initial_value: '14' # 14:00 center time
-  - id: min_runtime_minutes
-    type: int
-    initial_value: '60'
-  - id: max_runtime_minutes
-    type: int
-    initial_value: '300'
+    initial_value: "14"
   - id: reference_temperature
     type: float
-    initial_value: '22.0'
+    initial_value: "22.0"
   - id: temp_rate_percent
     type: float
-    initial_value: '1.0' # 1% per degree
+    initial_value: "1.0"
 
-  - id: base_pump_runtime_minutes
-    type: float
+  # Runtime scheduling
+  - id: pump_runtime_blocks
+    type: int
+    initial_value: "1" # 1, 2, 3, or 4 blocks
+  - id: calculated_daily_runtime
+    type: int
     initial_value: "0"
-  - id: daily_runtime_blocks
-    type: int[4] # 4 time blocks per day
-    initial_value: "{0, 0, 0, 0}"
-  - id: current_block_runtime
+  - id: center_block_runtime
+    type: int
+    initial_value: "0"
+  - id: free_block_runtime
+    type: int
+    initial_value: "0"
+
+  # Free schedulable block times (blocks 2, 3, 4)
+  - id: free_block2_start_hour
+    type: int
+    initial_value: "8"
+  - id: free_block2_start_minute
+    type: int
+    initial_value: "0"
+  - id: free_block3_start_hour
+    type: int
+    initial_value: "18"
+  - id: free_block3_start_minute
+    type: int
+    initial_value: "0"
+  - id: free_block4_start_hour
+    type: int
+    initial_value: "21"
+  - id: free_block4_start_minute
     type: int
     initial_value: "0"
 
@@ -1428,7 +1316,6 @@ lvgl:
                   border_width: 0
                   width: 480
                   scrollable: false # Add this
-                  
 
         # Weather section - semi-transparent overlay
         - obj:
@@ -1633,7 +1520,7 @@ lvgl:
                 - lambda: |-
                     id(current_page) = 1;
                 - lvgl.page.next:
-                
+
         - obj:
             id: wifi_popup_obj
             hidden: true
@@ -1997,77 +1884,88 @@ lvgl:
 
     # New Pump/Watering Settings Page
     - id: pump_settings_page
-      bg_color: 0x000000
-      bg_opa: cover
-      pad_all: 0
-      border_width: 0
-      scrollable: false
       widgets:
-        # Background image
-        - image:
-            src: background_image
-            x: 0
-            y: 0
-            width: 480
-            height: 480
-            align: TOP_LEFT
-
-        # Title bar
+        # Seasonal Pump Settings Toggle
         - obj:
+            scrollable: false
             width: 460
-            height: 40
-            bg_color: 0x1E3A8A
+            height: 60
+            bg_color: 0x000000
             bg_opa: 50%
             radius: 10
             x: 10
             y: 10
-            scrollable: false
             widgets:
               - label:
-                  text: "PUMP"
+                  text: "Seasonal Pump Settings"
                   text_font: roboto24
-                  align: center
                   text_color: 0xFFFFFF
-                  border_width: 0
-                  x: 0
-                  y: 0
+                  x: 10
+                  y: 5
+              - button:
+                  id: seasonal_toggle
+                  x: 250
+                  y: 15
+                  width: 100
+                  height: 30
+                  checkable: true
+                  state:
+                    checked: !lambda "return id(seasonal_pump_enabled);"
+                  widgets:
+                    - label:
+                        id: seasonal_label
+                        text: !lambda |-
+                          if (id(seasonal_pump_enabled)) {
+                            return "ON";
+                          } else {
+                            return "OFF";
+                          }
+                        text_font: roboto
+                        align: center
+                  on_click:
+                    then:
+                      - lambda: |-
+                          id(seasonal_pump_enabled) = !id(seasonal_pump_enabled);
+                      - if:
+                          condition:
+                            lambda: "return id(seasonal_pump_enabled);"
+                          then:
+                            - lvgl.label.update:
+                                id: seasonal_label
+                                text: "ON"
+                          else:
+                            - lvgl.label.update:
+                                id: seasonal_label
+                                text: "OFF"
+
+        # Runtime Settings
+        - obj:
+            scrollable: false
+            width: 460
+            height: 100
+            bg_color: 0x000000
+            bg_opa: 50%
+            radius: 10
+            x: 10
+            y: 80
+            widgets:
               - label:
-                  id: irrigation_status_display
-                  hidden: true
-                  text: "PUMP & WATER SET (Win/Sum)"
+                  text: "Runtime Settings"
                   text_font: roboto24
-                  align: center
                   text_color: 0xFFFFFF
-                  border_width: 0
-                  x: 0
+                  x: 10
                   y: 5
 
-                # Watering Block 1 Settings
-        - obj:
-            scrollable: false
-            width: 460
-            height: 60
-            bg_color: 0x000000
-            bg_opa: 50%
-            radius: 10
-            x: 10
-            y: 60
-            widgets:
+              # Winter Min Runtime
               - label:
-                  text: "Pump Time 1"
-                  text_font: roboto24
-                  text_color: 0xFFFFFF
-                  x: 10
-                  y: -10
-              - label:
-                  text: "Start:"
+                  text: "Winter min:"
                   text_font: roboto
                   text_color: 0xCCCCCC
                   x: 10
-                  y: 15
+                  y: 35
               - button:
-                  x: 60
-                  y: 15
+                  x: 90
+                  y: 30
                   width: 30
                   height: 25
                   widgets:
@@ -2076,982 +1974,20 @@ lvgl:
                         align: center
                   on_click:
                     then:
-                      - number.decrement: block1_start_hour_input
-                      - lvgl.label.update:
-                          id: block1_start_display
-                          text: !lambda |-
-                            static char text[10];
-                            // if the set number is less than 10, add a leading zero and make sure its within 0 to 24 hours
-                            if ((id(block1_start_hour) < 10) && (id(block1_start_hour) >= 0) 
-                                && (id(block1_start_hour) < 24)) {
-                              snprintf(text, sizeof(text), "0%d:%02d", id(block1_start_hour), id(block1_start_minute));
-                            } else {
-                              snprintf(text, sizeof(text), "%02d:%02d", id(block1_start_hour), id(block1_start_minute));
-                            }
-                            snprintf(text, sizeof(text), "%02d:%02d", id(block1_start_hour), id(block1_start_minute));
-                            return text;
+                      - number.decrement: winter_min_input
               - label:
-                  id: block1_start_display
-                  text: !lambda |-
-                    static char text[10];
-                    snprintf(text, sizeof(text), "%02d:%02d", id(block1_start_hour), id(block1_start_minute));
-                    return text;
-                  text_font: roboto
-                  text_color: 0xFFFFFF
-                  x: 95
-                  y: 15
-              - button:
-                  x: 140
-                  y: 15
-                  width: 30
-                  height: 25
-                  widgets:
-                    - label:
-                        text: "+"
-                        align: center
-                  on_click:
-                    then:
-                      - number.increment: block1_start_hour_input
-                      - lvgl.label.update:
-                          id: block1_start_display
-                          text: !lambda |-
-                            static char text[10];
-                            // if the set number is less than 10, add a leading zero and make sure its within 0 to 24 hours
-                            if ((id(block1_start_hour) < 10) && (id(block1_start_hour) >= 0) 
-                                && (id(block1_start_hour) < 24)) {
-                              snprintf(text, sizeof(text), "0%d:%02d", id(block1_start_hour), id(block1_start_minute));
-                            } else {
-                              snprintf(text, sizeof(text), "%02d:%02d", id(block1_start_hour), id(block1_start_minute));
-                            }
-                            snprintf(text, sizeof(text), "%02d:%02d", id(block1_start_hour), id(block1_start_minute));
-                            return text;
-              - label:
-                  text: "Stop:"
-                  text_font: roboto
-                  text_color: 0xCCCCCC
-                  x: 180
-                  y: 15
-                  
-              - button:
-                  x: 220
-                  y: 15
-                  width: 30
-                  height: 25
-                  widgets:
-                    - label:
-                        text: "-"
-                        align: center
-                  on_click:
-                    then:
-                      - number.decrement: block1_stop_hour_input
-                      - lvgl.label.update:
-                          id: block1_stop_display
-                          text: !lambda |-
-                            static char text[10];
-                            // if the set number is less than 10, add a leading zero and make sure its within 0 to 24 hours
-                            if ((id(block1_stop_hour) < 10) && (id(block1_stop_hour) >= 0) 
-                                && (id(block1_stop_hour) < 24)) {
-                              snprintf(text, sizeof(text), "0%d:%02d", id(block1_stop_hour), id(block1_stop_minute));
-                            } else {
-                              snprintf(text, sizeof(text), "%02d:%02d", id(block1_stop_hour), id(block1_stop_minute));
-                            }
-                            snprintf(text, sizeof(text), "%02d:%02d", id(block1_stop_hour), id(block1_stop_minute));
-                            return text;
-              - label:
-                  id: block1_stop_display
-                  text: !lambda |-
-                    static char text[10];
-                    snprintf(text, sizeof(text), "%02d:%02d", id(block1_stop_hour), id(block1_stop_minute));
-                    return text;
-                  text_font: roboto
-                  text_color: 0xFFFFFF
-                  x: 255
-                  y: 15
-              - button:
-                  x: 300
-                  y: 15
-                  width: 30
-                  height: 25
-                  widgets:
-                    - label:
-                        text: "+"
-                        align: center
-                  on_click:
-                    then:
-                      - number.increment: block1_stop_hour_input
-                      - lvgl.label.update:
-                          id: block1_stop_display
-                          text: !lambda |-
-                            static char text[10];
-                            // if the set number is less than 10, add a leading zero and make sure its within 0 to 24 hours
-                            if ((id(block1_stop_hour) < 10) && (id(block1_stop_hour) >= 0) 
-                                && (id(block1_stop_hour) < 24)) {
-                              snprintf(text, sizeof(text), "0%d:%02d", id(block1_stop_hour), id(block1_stop_minute));
-                            } else {
-                              snprintf(text, sizeof(text), "%02d:%02d", id(block1_stop_hour), id(block1_stop_minute));
-                            }
-                            snprintf(text, sizeof(text), "%02d:%02d", id(block1_stop_hour), id(block1_stop_minute));
-                            return text;
-              # Minute adjustment buttons
-              - button:
-                  x: 95
-                  y: 60
-                  width: 20
-                  hidden: true
-                  height: 20
-                  widgets:
-                    - label:
-                        text: "-"
-                        text_font: roboto
-                        align: center
-                  on_click:
-                    then:
-                      - number.decrement: block1_start_minute_input
-              - button:
-                  x: 150
-                  y: 60
-                  width: 20
-                  hidden: true
-                  height: 20
-                  widgets:
-                    - label:
-                        text: "+"
-                        text_font: roboto
-                        align: center
-                  on_click:
-                    then:
-                      - number.increment: block1_start_minute_input
-              - button:
-                  x: 255
-                  y: 60
-                  hidden: true
-                  width: 20
-                  height: 20
-                  widgets:
-                    - label:
-                        text: "-"
-                        text_font: roboto
-                        align: center
-                  on_click:
-                    then:
-                      - number.decrement: block1_stop_minute_input
-              - button:
-                  x: 310
-                  y: 60
-                  hidden: true
-                  width: 20
-                  height: 20
-                  widgets:
-                    - label:
-                        text: "+"
-                        text_font: roboto
-                        align: center
-                  on_click:
-                    then:
-                      - number.increment: block1_stop_minute_input
-
-        # Watering Block 2 Settings
-        - obj:
-            scrollable: false
-            width: 460
-            height: 60
-            bg_color: 0x000000
-            bg_opa: 50%
-            radius: 10
-            x: 10
-            y: 120
-            widgets:
-              - label:
-                  text: "Pump Time 2"
-                  text_font: roboto24
-                  text_color: 0xFFFFFF
-                  x: 10
-                  y: -10
-              - label:
-                  text: "Start:"
-                  text_font: roboto
-                  text_color: 0xCCCCCC
-                  x: 10
-                  y: 15
-              - button:
-                  x: 60
-                  y: 15
-                  width: 30
-                  height: 25
-                  widgets:
-                    - label:
-                        text: "-"
-                        align: center
-                  on_click:
-                    then:
-                      - number.decrement: block2_start_hour_input
-                      - lvgl.label.update:
-                          id: block2_start_display
-                          text: !lambda |-
-                            static char text[10];
-                            // if the set number is less than 10, add a leading zero and make sure its within 0 to 24 hours
-                            if ((id(block2_start_hour) < 10) && (id(block2_start_hour) >= 0) 
-                                && (id(block2_start_hour) < 24)) {
-                              snprintf(text, sizeof(text), "0%d:%02d", id(block2_start_hour), id(block2_start_minute));
-                            } else {
-                              snprintf(text, sizeof(text), "%02d:%02d", id(block2_start_hour), id(block2_start_minute));
-                            }
-                            snprintf(text, sizeof(text), "%02d:%02d", id(block2_start_hour), id(block2_start_minute));
-                            return text;
-              - label:
-                  id: block2_start_display
-                  text: !lambda |-
-                    static char text[10];
-                    snprintf(text, sizeof(text), "%02d:%02d", id(block2_start_hour), id(block2_start_minute));
-                    return text;
-                  text_font: roboto
-                  text_color: 0xFFFFFF
-                  x: 95
-                  y: 15
-              - button:
-                  x: 140
-                  y: 15
-                  width: 30
-                  height: 25
-                  widgets:
-                    - label:
-                        text: "+"
-                        align: center
-                  on_click:
-                    then:
-                      - number.increment: block2_start_hour_input
-                      - lvgl.label.update:
-                          id: block2_start_display
-                          text: !lambda |-
-                            static char text[10];
-                            // if the set number is less than 10, add a leading zero and make sure its within 0 to 24 hours
-                            if ((id(block2_start_hour) < 10) && (id(block2_start_hour) >= 0) 
-                                && (id(block2_start_hour) < 24)) {
-                              snprintf(text, sizeof(text), "0%d:%02d", id(block2_start_hour), id(block2_start_minute));
-                            } else {
-                              snprintf(text, sizeof(text), "%02d:%02d", id(block2_start_hour), id(block2_start_minute));
-                            }
-                            snprintf(text, sizeof(text), "%02d:%02d", id(block2_start_hour), id(block2_start_minute));
-                            return text;
-              - label:
-                  text: "Stop:"
-                  text_font: roboto
-                  text_color: 0xCCCCCC
-                  x: 180
-                  y: 15
-              - button:
-                  x: 220
-                  y: 15
-                  width: 30
-                  height: 25
-                  widgets:
-                    - label:
-                        text: "-"
-                        align: center
-                  on_click:
-                    then:
-                      - number.decrement: block2_stop_hour_input
-                      - lvgl.label.update:
-                          id: block2_stop_display
-                          text: !lambda |-
-                            static char text[10];
-                            // if the set number is less than 10, add a leading zero and make sure its within 0 to 24 hours
-                            if ((id(block2_stop_hour) < 10) && (id(block2_stop_hour) >= 0) 
-                                && (id(block2_stop_hour) < 24)) {
-                              snprintf(text, sizeof(text), "0%d:%02d", id(block2_stop_hour), id(block2_stop_minute));
-                            } else {
-                              snprintf(text, sizeof(text), "%02d:%02d", id(block2_stop_hour), id(block2_stop_minute));
-                            }
-                            snprintf(text, sizeof(text), "%02d:%02d", id(block2_stop_hour), id(block2_stop_minute));
-                            return text;
-              - label:
-                  id: block2_stop_display
-                  text: !lambda |-
-                    static char text[10];
-                    snprintf(text, sizeof(text), "%02d:%02d", id(block2_stop_hour), id(block2_stop_minute));
-                    return text;
-                  text_font: roboto
-                  text_color: 0xFFFFFF
-                  x: 255
-                  y: 15
-              - button:
-                  x: 300
-                  y: 15
-                  width: 30
-                  height: 25
-                  widgets:
-                    - label:
-                        text: "+"
-                        align: center
-                  on_click:
-                    then:
-                      - number.increment: block2_stop_hour_input
-                      - lvgl.label.update:
-                          id: block2_stop_display
-                          text: !lambda |-
-                            static char text[10];
-                            // if the set number is less than 10, add a leading zero and make sure its within 0 to 24 hours
-                            if ((id(block2_stop_hour) < 10) && (id(block2_stop_hour) >= 0) 
-                                && (id(block2_stop_hour) < 24)) {
-                              snprintf(text, sizeof(text), "0%d:%02d", id(block2_stop_hour), id(block2_stop_minute));
-                            } else {
-                              snprintf(text, sizeof(text), "%02d:%02d", id(block2_stop_hour), id(block2_stop_minute));
-                            }
-                            snprintf(text, sizeof(text), "%02d:%02d", id(block2_stop_hour), id(block2_stop_minute));
-                            return text;
-              # Minute buttons for block 2
-              - button:
-                  x: 95
-                  y: 60
-                  width: 20
-                  hidden: true
-                  height: 20
-                  widgets:
-                    - label:
-                        text: "-"
-                        text_font: roboto
-                        align: center
-                  on_click:
-                    then:
-                      - number.decrement: block2_start_minute_input
-              - button:
-                  x: 150
-                  y: 60
-                  hidden: true
-                  width: 20
-                  height: 20
-                  widgets:
-                    - label:
-                        text: "+"
-                        text_font: roboto
-                        align: center
-                  on_click:
-                    then:
-                      - number.increment: block2_start_minute_input
-              - button:
-                  x: 255
-                  y: 60
-                  width: 20
-                  height: 20
-                  hidden: true
-                  widgets:
-                    - label:
-                        text: "-"
-                        text_font: roboto
-                        align: center
-                  on_click:
-                    then:
-                      - number.decrement: block2_stop_minute_input
-              - button:
-                  x: 310
-                  y: 60
-                  width: 20
-                  height: 20
-                  hidden: true
-                  widgets:
-                    - label:
-                        text: "+"
-                        text_font: roboto
-                        align: center
-                  on_click:
-                    then:
-                      - number.increment: block2_stop_minute_input
-
-        # Watering Block 3 Settings
-        - obj:
-            scrollable: false
-            width: 460
-            height: 60
-            bg_color: 0x000000
-            bg_opa: 50%
-            radius: 10
-            x: 10
-            y: 180
-            widgets:
-              - label:
-                  text: "Pump Time 3"
-                  text_font: roboto24
-                  text_color: 0xFFFFFF
-                  x: 10
-                  y: -10
-              - label:
-                  text: "Start:"
-                  text_font: roboto
-                  text_color: 0xCCCCCC
-                  x: 10
-                  y: 15
-              - button:
-                  x: 60
-                  y: 15
-                  width: 30
-                  height: 25
-                  widgets:
-                    - label:
-                        text: "-"
-                        align: center
-                  on_click:
-                    then:
-                      - number.decrement: block3_start_hour_input
-                      - lvgl.label.update:
-                          id: block3_start_display
-                          text: !lambda |-
-                            static char text[10];
-                            // if the set number is less than 10, add a leading zero and make sure its within 0 to 24 hours
-                            if ((id(block3_start_hour) < 10) && (id(block3_start_hour) >= 0) 
-                                && (id(block3_start_hour) < 24)) {
-                              snprintf(text, sizeof(text), "0%d:%02d", id(block3_start_hour), id(block3_start_minute));
-                            } else {
-                              snprintf(text, sizeof(text), "%02d:%02d", id(block3_start_hour), id(block3_start_minute));
-                            }
-                            snprintf(text, sizeof(text), "%02d:%02d", id(block3_start_hour), id(block3_start_minute));
-                            return text;
-              - label:
-                  id: block3_start_display
-                  text: !lambda |-
-                    static char text[10];
-                    snprintf(text, sizeof(text), "%02d:%02d", id(block3_start_hour), id(block3_start_minute));
-                    return text;
-                  text_font: roboto
-                  text_color: 0xFFFFFF
-                  x: 95
-                  y: 15
-              - button:
-                  x: 140
-                  y: 15
-                  width: 30
-                  height: 25
-                  widgets:
-                    - label:
-                        text: "+"
-                        align: center
-                  on_click:
-                    then:
-                      - number.increment: block3_start_hour_input
-                      - lvgl.label.update:
-                          id: block3_start_display
-                          text: !lambda |-
-                            static char text[10];
-                            // if the set number is less than 10, add a leading zero and make sure its within 0 to 24 hours
-                            if ((id(block3_start_hour) < 10) && (id(block3_start_hour) >= 0) 
-                                && (id(block3_start_hour) < 24)) {
-                              snprintf(text, sizeof(text), "0%d:%02d", id(block3_start_hour), id(block3_start_minute));
-                            } else {
-                              snprintf(text, sizeof(text), "%02d:%02d", id(block3_start_hour), id(block3_start_minute));
-                            }
-                            snprintf(text, sizeof(text), "%02d:%02d", id(block3_start_hour), id(block3_start_minute));
-                            return text;
-              - label:
-                  text: "Stop:"
-                  text_font: roboto
-                  text_color: 0xCCCCCC
-                  x: 180
-                  y: 15
-              - button:
-                  x: 220
-                  y: 15
-                  width: 30
-                  height: 25
-                  widgets:
-                    - label:
-                        text: "-"
-                        align: center
-                  on_click:
-                    then:
-                      - number.decrement: block3_stop_hour_input
-                      - lvgl.label.update:
-                          id: block3_stop_display
-                          text: !lambda |-
-                            static char text[10];
-                            // if the set number is less than 10, add a leading zero and make sure its within 0 to 24 hours
-                            if ((id(block3_stop_hour) < 10) && (id(block3_stop_hour) >= 0) 
-                                && (id(block3_stop_hour) < 24)) {
-                              snprintf(text, sizeof(text), "0%d:%02d", id(block3_stop_hour), id(block3_stop_minute));
-                            } else {
-                              snprintf(text, sizeof(text), "%02d:%02d", id(block3_stop_hour), id(block3_stop_minute));
-                            }
-                            snprintf(text, sizeof(text), "%02d:%02d", id(block3_stop_hour), id(block3_stop_minute));
-                            return text;
-              - label:
-                  id: block3_stop_display
-                  text: !lambda |-
-                    static char text[10];
-                    snprintf(text, sizeof(text), "%02d:%02d", id(block3_stop_hour), id(block3_stop_minute));
-                    return text;
-                  text_font: roboto
-                  text_color: 0xFFFFFF
-                  x: 255
-                  y: 15
-              - button:
-                  x: 300
-                  y: 15
-                  width: 30
-                  height: 25
-                  widgets:
-                    - label:
-                        text: "+"
-                        align: center
-                  on_click:
-                    then:
-                      - number.increment: block3_stop_hour_input
-                      - lvgl.label.update:
-                          id: block3_stop_display
-                          text: !lambda |-
-                            static char text[10];
-                            // if the set number is less than 10, add a leading zero and make sure its within 0 to 24 hours
-                            if ((id(block3_stop_hour) < 10) && (id(block3_stop_hour) >= 0) 
-                                && (id(block3_stop_hour) < 24)) {
-                              snprintf(text, sizeof(text), "0%d:%02d", id(block3_stop_hour), id(block3_stop_minute));
-                            } else {
-                              snprintf(text, sizeof(text), "%02d:%02d", id(block3_stop_hour), id(block3_stop_minute));
-                            }
-                            snprintf(text, sizeof(text), "%02d:%02d", id(block3_stop_hour), id(block3_stop_minute));
-                            return text;
-              # Minute buttons for block 3
-              - button:
-                  x: 95
-                  y: 60
-                  hidden: true
-                  width: 20
-                  height: 20
-                  widgets:
-                    - label:
-                        text: "-"
-                        text_font: roboto
-                        align: center
-                  on_click:
-                    then:
-                      - number.decrement: block3_start_minute_input
-
-              - button:
-                  x: 150
-                  y: 60
-                  hidden: true
-                  width: 20
-                  height: 20
-                  widgets:
-                    - label:
-                        text: "+"
-                        text_font: roboto
-                        align: center
-                  on_click:
-                    then:
-                      - number.increment: block3_start_minute_input
-              - button:
-                  x: 255
-                  y: 60
-                  hidden: true
-                  width: 20
-                  height: 20
-                  widgets:
-                    - label:
-                        text: "-"
-                        text_font: roboto
-                        align: center
-                  on_click:
-                    then:
-                      - number.decrement: block3_stop_minute_input
-              - button:
-                  x: 310
-                  y: 60
-                  hidden: true
-                  width: 20
-                  height: 20
-                  widgets:
-                    - label:
-                        text: "+"
-                        text_font: roboto
-                        align: center
-                  on_click:
-                    then:
-                      - number.increment: block3_stop_minute_input
-
-        # Watering  Block 4 Settings
-        - obj:
-            scrollable: false
-            width: 460
-            height: 60
-            bg_color: 0x000000
-            bg_opa: 50%
-            radius: 10
-            x: 10
-            y: 240
-            widgets:
-              - label:
-                  text: "Pump Time 4"
-                  text_font: roboto24
-                  text_color: 0xFFFFFF
-                  x: 10
-                  y: -10
-              - label:
-                  text: "Start:"
-                  text_font: roboto
-                  text_color: 0xCCCCCC
-                  x: 10
-                  y: 15
-              - button:
-                  x: 60
-                  y: 15
-                  width: 30
-                  height: 25
-                  widgets:
-                    - label:
-                        text: "-"
-                        align: center
-                  on_click:
-                    then:
-                      - number.decrement: block4_start_hour_input
-                      - lvgl.label.update:
-                          id: block4_start_display
-                          text: !lambda |-
-                            static char text[10];
-                            // if the set number is less than 10, add a leading zero and make sure its within 0 to 24 hours
-                            if ((id(block4_start_hour) < 10) && (id(block4_start_hour) >= 0) 
-                                && (id(block4_start_hour) < 24)) {
-                              snprintf(text, sizeof(text), "0%d:%02d", id(block4_start_hour), id(block4_start_minute));
-                            } else {
-                              snprintf(text, sizeof(text), "%02d:%02d", id(block4_start_hour), id(block4_start_minute));
-                            }
-                            snprintf(text, sizeof(text), "%02d:%02d", id(block4_start_hour), id(block4_start_minute));
-                            return text;
-              - label:
-                  id: block4_start_display
-                  text: !lambda |-
-                    static char text[10];
-                    snprintf(text, sizeof(text), "%02d:%02d", id(block4_start_hour), id(block4_start_minute));
-                    return text;
-                  text_font: roboto
-                  text_color: 0xFFFFFF
-                  x: 95
-                  y: 15
-              - button:
-                  x: 140
-                  y: 15
-                  width: 30
-                  height: 25
-                  widgets:
-                    - label:
-                        text: "+"
-                        align: center
-                  on_click:
-                    then:
-                      - number.increment: block4_start_hour_input
-                      - lvgl.label.update:
-                          id: block4_start_display
-                          text: !lambda |-
-                            static char text[10];
-                            // if the set number is less than 10, add a leading zero and make sure its within 0 to 24 hours
-                            if ((id(block4_start_hour) < 10) && (id(block4_start_hour) >= 0) 
-                                && (id(block4_start_hour) < 24)) {
-                              snprintf(text, sizeof(text), "0%d:%02d", id(block4_start_hour), id(block4_start_minute));
-                            } else {
-                              snprintf(text, sizeof(text), "%02d:%02d", id(block4_start_hour), id(block4_start_minute));
-                            }
-                            snprintf(text, sizeof(text), "%02d:%02d", id(block4_start_hour), id(block4_start_minute));
-                            return text;
-              - label:
-                  text: "Stop:"
-                  text_font: roboto
-                  text_color: 0xCCCCCC
-                  x: 180
-                  y: 15
-              - button:
-                  x: 220
-                  y: 15
-                  width: 30
-                  height: 25
-                  widgets:
-                    - label:
-                        text: "-"
-                        align: center
-                  on_click:
-                    then:
-                      - number.decrement: block4_stop_hour_input
-                      - lvgl.label.update:
-                          id: block4_stop_display
-                          text: !lambda |-
-                            static char text[10];
-                            // if the set number is less than 10, add a leading zero and make sure its within 0 to 24 hours
-                            if ((id(block4_stop_hour) < 10) && (id(block4_stop_hour) >= 0) 
-                                && (id(block4_stop_hour) < 24)) {
-                              snprintf(text, sizeof(text), "0%d:%02d", id(block4_stop_hour), id(block4_stop_minute));
-                            } else {
-                              snprintf(text, sizeof(text), "%02d:%02d", id(block4_stop_hour), id(block4_stop_minute));
-                            }
-                            snprintf(text, sizeof(text), "%02d:%02d", id(block4_stop_hour), id(block4_stop_minute));
-                            return text;
-              - label:
-                  id: block4_stop_display
-                  text: !lambda |-
-                    static char text[10];
-                    snprintf(text, sizeof(text), "%02d:%02d", id(block4_stop_hour), id(block4_stop_minute));
-                    return text;
-                  text_font: roboto
-                  text_color: 0xFFFFFF
-                  x: 255
-                  y: 15
-              - button:
-                  x: 300
-                  y: 15
-                  width: 30
-                  height: 25
-                  widgets:
-                    - label:
-                        text: "+"
-                        align: center
-                  on_click:
-                    then:
-                      - number.increment: block4_stop_hour_input
-                      - lvgl.label.update:
-                          id: block4_stop_display
-                          text: !lambda |-
-                            static char text[10];
-                            // if the set number is less than 10, add a leading zero and make sure its within 0 to 24 hours
-                            if ((id(block4_stop_hour) < 10) && (id(block4_stop_hour) >= 0) 
-                                && (id(block4_stop_hour) < 24)) {
-                              snprintf(text, sizeof(text), "0%d:%02d", id(block4_stop_hour), id(block4_stop_minute));
-                            } else {
-                              snprintf(text, sizeof(text), "%02d:%02d", id(block4_stop_hour), id(block4_stop_minute));
-                            }
-                            snprintf(text, sizeof(text), "%02d:%02d", id(block4_stop_hour), id(block4_stop_minute));
-                            return text;
-              # Minute buttons for block 4
-              - button:
-                  x: 95
-                  y: 60
-                  hidden: true
-                  width: 20
-                  height: 20
-                  widgets:
-                    - label:
-                        text: "-"
-                        text_font: roboto
-                        align: center
-                  on_click:
-                    then:
-                      - number.decrement: block4_start_minute_input
-              - button:
-                  x: 150
-                  y: 60
-                  hidden: true
-                  width: 20
-                  height: 20
-                  widgets:
-                    - label:
-                        text: "+"
-                        text_font: roboto
-                        align: center
-                  on_click:
-                    then:
-                      - number.increment: block4_start_minute_input
-              - button:
-                  x: 255
-                  y: 60
-                  hidden: true
-                  width: 20
-                  height: 20
-                  widgets:
-                    - label:
-                        text: "-"
-                        text_font: roboto
-                        align: center
-                  on_click:
-                    then:
-                      - number.decrement: block4_stop_minute_input
-              - button:
-                  x: 310
-                  y: 60
-                  hidden: true
-                  width: 20
-                  height: 20
-                  widgets:
-                    - label:
-                        text: "+"
-                        text_font: roboto
-                        align: center
-                  on_click:
-                    then:
-                      - number.increment: block4_stop_minute_input
-
-        # Runtime Parameters Settings
-        - obj:
-            scrollable: false
-            width: 460
-            height: 120
-            bg_color: 0x000000
-            bg_opa: 50%
-            radius: 10
-            x: 10
-            y: 300
-            widgets:
-              - label:
-                  text: "Runtime Parameters"
-                  text_font: roboto24
-                  text_color: 0xFFFFFF
-                  x: 10
-                  y: -10
-
-              # Center Time
-              - label:
-                  text: "Center time:"
-                  text_font: roboto
-                  text_color: 0xCCCCCC
-                  x: 2
-                  y: 15
-              - button:
-                  x: 100
-                  y: 15
-                  width: 30
-                  height: 25
-                  widgets:
-                    - label:
-                        text: "-"
-                        align: center
-                  on_click:
-                    then:
-                      - number.decrement: center_time_input
-                      - lvgl.label.update:
-                          id: center_time_display
-                          text: !lambda |-
-                            static char text[10];
-                            // if the set number is less than 10, add a leading zero and make sure its within 0 to 24 hours
-                            if ((id(center_time_minutes) < 10) && (id(center_time_minutes) >= 0) 
-                                && (id(center_time_minutes) < 60)) {
-                              snprintf(text, sizeof(text), "0%d:00", id(center_time_minutes));
-                            } else {
-                              snprintf(text, sizeof(text), "%02d:00", id(center_time_minutes));
-                            }
-                            return text;
-              - label:
-                  id: center_time_display
-                  text: !lambda |-
-                    static char text[10];
-                    snprintf(text, sizeof(text), "%02d:00", id(center_time_minutes));
-                    return text;
-                  text_font: roboto
-                  text_color: 0xFFFFFF
-                  x: 135
-                  y: 15
-              - button:
-                  x: 180
-                  y: 15
-                  width: 30
-                  height: 25
-                  widgets:
-                    - label:
-                        text: "+"
-                        align: center
-                  on_click:
-                    then:
-                      - number.increment: center_time_input
-                      - lvgl.label.update:
-                          id: center_time_display
-                          text: !lambda |-
-                            static char text[10];
-                            // if the set number is less than 10, add a leading zero and make sure its within 0 to 24 hours
-                            if ((id(center_time_minutes) < 10) && (id(center_time_minutes) >= 0) 
-                                && (id(center_time_minutes) < 60)) {
-                              snprintf(text, sizeof(text), "0%d:00", id(center_time_minutes));
-                            } else {
-                              snprintf(text, sizeof(text), "%02d:00", id(center_time_minutes));
-                            }
-                            return text;
-
-              # Min Runtime
-              - label:
-                  hidden: true
-                  text: "Min:"
-                  text_font: roboto
-                  text_color: 0xCCCCCC
-                  x: 220
-                  y: 15
-              - button:
-                  x: 250
-                  hidden: true
-                  y: 15
-                  width: 25
-                  height: 25
-                  widgets:
-                    - label:
-                        text: "-"
-                        align: center
-                  on_click:
-                    then:
-                      - number.decrement: min_runtime_input
-                      - lvgl.label.update:
-                          id: min_runtime_display
-                          text: !lambda |-
-                            static char text[10];
-                            snprintf(text, sizeof(text), "%dm", id(min_runtime_minutes));
-                            return text;
-              - label:
-                  hidden: true
-                  id: min_runtime_display
-                  text: !lambda |-
-                    static char text[10];
-                    snprintf(text, sizeof(text), "%dm", id(min_runtime_minutes));
-                    return text;
-                  text_font: roboto
-                  text_color: 0xFFFFFF
-                  x: 280
-                  y: 15
-              - button:
-                  x: 320
-                  y: 15
-                  hidden: true
-                  width: 25
-                  height: 25
-                  widgets:
-                    - label:
-                        text: "+"
-                        align: center
-                  on_click:
-                    then:
-                      - number.increment: min_runtime_input
-                      - lvgl.label.update:
-                          id: min_runtime_display
-                          text: !lambda |-
-                            static char text[10];
-                            snprintf(text, sizeof(text), "%dm", id(min_runtime_minutes));
-                            return text;
-
-              # Max Runtime
-              - label:
-                  text: "Runtime:"
-                  text_font: roboto
-                  text_color: 0xCCCCCC
-                  x: 2
-                  y: 50
-              - button:
-                  x: 100
-                  y: 50
-                  width: 30
-                  height: 25
-                  widgets:
-                    - label:
-                        text: "-"
-                        align: center
-                  on_click:
-                    then:
-                      - number.decrement: max_runtime_input
-                      - lvgl.label.update:
-                          id: max_runtime_display
-                          text: !lambda |-
-                            static char text[15];
-                            snprintf(text, sizeof(text), "%d min", id(max_runtime_minutes));
-                            return text;
-              - label:
-                  id: max_runtime_display
+                  id: winter_min_display
                   text: !lambda |-
                     static char text[15];
-                    snprintf(text, sizeof(text), "%d min", id(max_runtime_minutes));
+                    snprintf(text, sizeof(text), "%d min", id(winter_min_runtime));
                     return text;
                   text_font: roboto
                   text_color: 0xFFFFFF
-                  x: 135
-                  y: 50
+                  x: 125
+                  y: 35
               - button:
-                  x: 200
-                  y: 50
+                  x: 180
+                  y: 30
                   width: 30
                   height: 25
                   widgets:
@@ -3060,24 +1996,60 @@ lvgl:
                         align: center
                   on_click:
                     then:
-                      - number.increment: max_runtime_input
-                      - lvgl.label.update:
-                          id: max_runtime_display
-                          text: !lambda |-
-                            static char text[15];
-                            snprintf(text, sizeof(text), "%d min", id(max_runtime_minutes));
-                            return text;
+                      - number.increment: winter_min_input
+
+              # Summer Max Runtime
+              - label:
+                  text: "Summer max:"
+                  text_font: roboto
+                  text_color: 0xCCCCCC
+                  x: 220
+                  y: 35
+              - button:
+                  x: 310
+                  y: 30
+                  width: 30
+                  height: 25
+                  widgets:
+                    - label:
+                        text: "-"
+                        align: center
+                  on_click:
+                    then:
+                      - number.decrement: summer_max_input
+              - label:
+                  id: summer_max_display
+                  text: !lambda |-
+                    static char text[15];
+                    snprintf(text, sizeof(text), "%d min", id(summer_max_runtime));
+                    return text;
+                  text_font: roboto
+                  text_color: 0xFFFFFF
+                  x: 345
+                  y: 35
+              - button:
+                  x: 400
+                  y: 30
+                  width: 30
+                  height: 25
+                  widgets:
+                    - label:
+                        text: "+"
+                        align: center
+                  on_click:
+                    then:
+                      - number.increment: summer_max_input
 
               # Reference Temperature
               - label:
                   text: "Ref temp:"
                   text_font: roboto
                   text_color: 0xCCCCCC
-                  x: 240
-                  y: 50
+                  x: 10
+                  y: 65
               - button:
-                  x: 320
-                  y: 50
+                  x: 80
+                  y: 60
                   width: 25
                   height: 25
                   widgets:
@@ -3087,12 +2059,6 @@ lvgl:
                   on_click:
                     then:
                       - number.decrement: reference_temp_input
-                      - lvgl.label.update:
-                          id: ref_temp_display
-                          text: !lambda |-
-                            static char text[10];
-                            snprintf(text, sizeof(text), "%.1f°C", id(reference_temperature));
-                            return text;
               - label:
                   id: ref_temp_display
                   text: !lambda |-
@@ -3101,11 +2067,11 @@ lvgl:
                     return text;
                   text_font: roboto
                   text_color: 0xFFFFFF
-                  x: 350
-                  y: 50
+                  x: 110
+                  y: 65
               - button:
-                  x: 400
-                  y: 50
+                  x: 160
+                  y: 60
                   width: 25
                   height: 25
                   widgets:
@@ -3115,23 +2081,17 @@ lvgl:
                   on_click:
                     then:
                       - number.increment: reference_temp_input
-                      - lvgl.label.update:
-                          id: ref_temp_display
-                          text: !lambda |-
-                            static char text[10];
-                            snprintf(text, sizeof(text), "%.1f°C", id(reference_temperature));
-                            return text;
 
               # Temperature Rate
               - label:
                   text: "Temp rate:"
                   text_font: roboto
                   text_color: 0xCCCCCC
-                  x: 2
-                  y: 80
+                  x: 200
+                  y: 65
               - button:
-                  x: 80
-                  y: 80
+                  x: 280
+                  y: 60
                   width: 25
                   height: 25
                   widgets:
@@ -3141,12 +2101,6 @@ lvgl:
                   on_click:
                     then:
                       - number.decrement: temp_rate_input
-                      - lvgl.label.update:
-                          id: temp_rate_display
-                          text: !lambda |-
-                            static char text[15];
-                            snprintf(text, sizeof(text), "%.1f%%/°C", id(temp_rate_percent));
-                            return text;
               - label:
                   id: temp_rate_display
                   text: !lambda |-
@@ -3155,11 +2109,11 @@ lvgl:
                     return text;
                   text_font: roboto
                   text_color: 0xFFFFFF
-                  x: 110
-                  y: 80
+                  x: 310
+                  y: 65
               - button:
-                  x: 180
-                  y: 80
+                  x: 380
+                  y: 60
                   width: 25
                   height: 25
                   widgets:
@@ -3169,31 +2123,436 @@ lvgl:
                   on_click:
                     then:
                       - number.increment: temp_rate_input
-                      - lvgl.label.update:
-                          id: temp_rate_display
-                          text: !lambda |-
-                            static char text[15];
-                            snprintf(text, sizeof(text), "%.1f%%/°C", id(temp_rate_percent));
-                            return text;
 
-        # Control Buttons Section
+        # Center Time and Runtime Blocks
         - obj:
             scrollable: false
             width: 460
-            height: 70
-            border_width: 0
-            # bg_color: 0x000000
-            bg_opa: 30%
+            height: 80
+            bg_color: 0x000000
+            bg_opa: 50%
+            radius: 10
+            x: 10
+            y: 190
+            widgets:
+              - label:
+                  text: "Center Time & Runtime Blocks"
+                  text_font: roboto24
+                  text_color: 0xFFFFFF
+                  x: 10
+                  y: 5
+
+              # Center Time
+              - label:
+                  text: "Center time:"
+                  text_font: roboto
+                  text_color: 0xCCCCCC
+                  x: 10
+                  y: 35
+              - button:
+                  x: 100
+                  y: 30
+                  width: 30
+                  height: 25
+                  widgets:
+                    - label:
+                        text: "-"
+                        align: center
+                  on_click:
+                    then:
+                      - number.decrement: center_time_hour_input
+              - label:
+                  id: center_time_display
+                  text: !lambda |-
+                    static char text[10];
+                    snprintf(text, sizeof(text), "%02d:00", id(center_pump_time_hour));
+                    return text;
+                  text_font: roboto
+                  text_color: 0xFFFFFF
+                  x: 135
+                  y: 35
+              - button:
+                  x: 180
+                  y: 30
+                  width: 30
+                  height: 25
+                  widgets:
+                    - label:
+                        text: "+"
+                        align: center
+                  on_click:
+                    then:
+                      - number.increment: center_time_hour_input
+
+              # Runtime Blocks
+              - label:
+                  text: "Runtime blocks:"
+                  text_font: roboto
+                  text_color: 0xCCCCCC
+                  x: 230
+                  y: 35
+              - button:
+                  x: 340
+                  y: 30
+                  width: 30
+                  height: 25
+                  widgets:
+                    - label:
+                        text: "-"
+                        align: center
+                  on_click:
+                    then:
+                      - number.decrement: runtime_blocks_input
+              - label:
+                  id: runtime_blocks_display
+                  text: !lambda |-
+                    static char text[5];
+                    snprintf(text, sizeof(text), "%d", id(pump_runtime_blocks));
+                    return text;
+                  text_font: roboto
+                  text_color: 0xFFFFFF
+                  x: 375
+                  y: 35
+              - button:
+                  x: 395
+                  y: 30
+                  width: 30
+                  height: 25
+                  widgets:
+                    - label:
+                        text: "+"
+                        align: center
+                  on_click:
+                    then:
+                      - number.increment: runtime_blocks_input
+
+              # Runtime Info Display
+              - label:
+                  id: runtime_info_display
+                  text: !lambda |-
+                    static char text[80];
+                    int blocks = id(pump_runtime_blocks);
+                    int center_runtime = id(calculated_daily_runtime) / blocks;
+                    int free_runtime = (blocks > 1) ? id(calculated_daily_runtime) / blocks : 0;
+                    
+                    if (blocks == 1) {
+                      snprintf(text, sizeof(text), "1 Run: All %d min centered at %02d:00", 
+                               id(calculated_daily_runtime), id(center_pump_time_hour));
+                    } else {
+                      snprintf(text, sizeof(text), "%d Runs: Center %d min, Free blocks %d min each", 
+                               blocks, center_runtime, free_runtime);
+                    }
+                    return text;
+                  text_font: roboto
+                  text_color: 0x00FF00
+                  x: 10
+                  y: 60
+
+        # Free Block 2 Settings (only show if blocks >= 2)
+        - obj:
+            id: free_block2_settings
+            scrollable: false
+            width: 460
+            height: 60
+            bg_color: 0x000000
+            bg_opa: 50%
+            radius: 10
+            x: 10
+            y: 280
+            hidden: !lambda "return id(pump_runtime_blocks) < 2;"
+            widgets:
+              - label:
+                  text: "Free Block 2 Start Time"
+                  text_font: roboto24
+                  text_color: 0xFFFFFF
+                  x: 10
+                  y: 5
+              - button:
+                  x: 200
+                  y: 25
+                  width: 30
+                  height: 25
+                  widgets:
+                    - label:
+                        text: "-"
+                        align: center
+                  on_click:
+                    then:
+                      - number.decrement: free_block2_hour_input
+              - label:
+                  id: free_block2_display
+                  text: !lambda |-
+                    static char text[10];
+                    snprintf(text, sizeof(text), "%02d:%02d", id(free_block2_start_hour), id(free_block2_start_minute));
+                    return text;
+                  text_font: roboto
+                  text_color: 0xFFFFFF
+                  x: 235
+                  y: 30
+              - button:
+                  x: 280
+                  y: 25
+                  width: 30
+                  height: 25
+                  widgets:
+                    - label:
+                        text: "+"
+                        align: center
+                  on_click:
+                    then:
+                      - number.increment: free_block2_hour_input
+              - button:
+                  x: 320
+                  y: 25
+                  width: 25
+                  height: 25
+                  widgets:
+                    - label:
+                        text: "-"
+                        text_font: roboto
+                        align: center
+                  on_click:
+                    then:
+                      - number.decrement: free_block2_minute_input
+              - button:
+                  x: 350
+                  y: 25
+                  width: 25
+                  height: 25
+                  widgets:
+                    - label:
+                        text: "+"
+                        text_font: roboto
+                        align: center
+                  on_click:
+                    then:
+                      - number.increment: free_block2_minute_input
+
+        # Free Block 3 Settings (only show if blocks >= 3)
+        - obj:
+            id: free_block3_settings
+            scrollable: false
+            width: 460
+            height: 60
+            bg_color: 0x000000
+            bg_opa: 50%
+            radius: 10
+            x: 10
+            y: 350
+            hidden: !lambda "return id(pump_runtime_blocks) < 3;"
+            widgets:
+              - label:
+                  text: "Free Block 3 Start Time"
+                  text_font: roboto24
+                  text_color: 0xFFFFFF
+                  x: 10
+                  y: 5
+              - button:
+                  x: 200
+                  y: 25
+                  width: 30
+                  height: 25
+                  widgets:
+                    - label:
+                        text: "-"
+                        align: center
+                  on_click:
+                    then:
+                      - number.decrement: free_block3_hour_input
+              - label:
+                  id: free_block3_display
+                  text: !lambda |-
+                    static char text[10];
+                    snprintf(text, sizeof(text), "%02d:%02d", id(free_block3_start_hour), id(free_block3_start_minute));
+                    return text;
+                  text_font: roboto
+                  text_color: 0xFFFFFF
+                  x: 235
+                  y: 30
+              - button:
+                  x: 280
+                  y: 25
+                  width: 30
+                  height: 25
+                  widgets:
+                    - label:
+                        text: "+"
+                        align: center
+                  on_click:
+                    then:
+                      - number.increment: free_block3_hour_input
+              - button:
+                  x: 320
+                  y: 25
+                  width: 25
+                  height: 25
+                  widgets:
+                    - label:
+                        text: "-"
+                        text_font: roboto
+                        align: center
+                  on_click:
+                    then:
+                      - number.decrement: free_block3_minute_input
+              - button:
+                  x: 350
+                  y: 25
+                  width: 25
+                  height: 25
+                  widgets:
+                    - label:
+                        text: "+"
+                        text_font: roboto
+                        align: center
+                  on_click:
+                    then:
+                      - number.increment: free_block3_minute_input
+
+        # Free Block 4 Settings (only show if blocks >= 4)
+        - obj:
+            id: free_block4_settings
+            scrollable: false
+            width: 460
+            height: 60
+            bg_color: 0x000000
+            bg_opa: 50%
             radius: 10
             x: 10
             y: 420
+            hidden: !lambda "return id(pump_runtime_blocks) < 4;"
             widgets:
-              # Auto irrigation toggle (keeping original)
+              - label:
+                  text: "Free Block 4 Start Time"
+                  text_font: roboto24
+                  text_color: 0xFFFFFF
+                  x: 10
+                  y: 5
+              - button:
+                  x: 200
+                  y: 25
+                  width: 30
+                  height: 25
+                  widgets:
+                    - label:
+                        text: "-"
+                        align: center
+                  on_click:
+                    then:
+                      - number.decrement: free_block4_hour_input
+              - label:
+                  id: free_block4_display
+                  text: !lambda |-
+                    static char text[10];
+                    snprintf(text, sizeof(text), "%02d:%02d", id(free_block4_start_hour), id(free_block4_start_minute));
+                    return text;
+                  text_font: roboto
+                  text_color: 0xFFFFFF
+                  x: 235
+                  y: 30
+              - button:
+                  x: 280
+                  y: 25
+                  width: 30
+                  height: 25
+                  widgets:
+                    - label:
+                        text: "+"
+                        align: center
+                  on_click:
+                    then:
+                      - number.increment: free_block4_hour_input
+              - button:
+                  x: 320
+                  y: 25
+                  width: 25
+                  height: 25
+                  widgets:
+                    - label:
+                        text: "-"
+                        text_font: roboto
+                        align: center
+                  on_click:
+                    then:
+                      - number.decrement: free_block4_minute_input
+              - button:
+                  x: 350
+                  y: 25
+                  width: 25
+                  height: 25
+                  widgets:
+                    - label:
+                        text: "+"
+                        text_font: roboto
+                        align: center
+                  on_click:
+                    then:
+                      - number.increment: free_block4_minute_input
+
+        # Current Status Display
+        - obj:
+            scrollable: false
+            width: 460
+            height: 100
+            bg_color: 0x000000
+            bg_opa: 50%
+            radius: 10
+            x: 10
+            y: 490
+            widgets:
+              - label:
+                  text: "Current Status"
+                  text_font: roboto24
+                  text_color: 0xFFFFFF
+                  x: 10
+                  y: 5
+              - label:
+                  id: current_status_display
+                  text: !lambda |-
+                    static char text[200];
+                    auto now = id(time_comp).now();
+                    
+                    // Calculate today's runtime
+                    int daily_runtime = id(calculated_daily_runtime);
+                    if (daily_runtime == 0) {
+                      // Trigger calculation if not done yet
+                      return "Calculating runtime...";
+                    }
+                    
+                    int center_runtime = daily_runtime / id(pump_runtime_blocks);
+                    int free_runtime = (id(pump_runtime_blocks) > 1) ? daily_runtime / id(pump_runtime_blocks) : 0;
+                    
+                    snprintf(text, sizeof(text), 
+                             "Today: %d min total\nCenter block: %d min (%02d:00 ±%d min)\nFree blocks: %d min each\nTemp: %.1f°C (ref: %.1f°C)", 
+                             daily_runtime, 
+                             center_runtime, 
+                             id(center_pump_time_hour), 
+                             center_runtime/2,
+                             free_runtime,
+                             id(owm_temperature).has_state() ? id(owm_temperature).state : 0.0,
+                             id(reference_temperature));
+                    return text;
+                  text_font: roboto
+                  text_color: 0x00FFFF
+                  x: 10
+                  y: 30
+
+        # Control Buttons
+        - obj:
+            scrollable: false
+            width: 460
+            height: 80
+            bg_color: 0x000000
+            bg_opa: 50%
+            radius: 10
+            x: 10
+            y: 600
+            widgets:
+              # Auto irrigation toggle
               - button:
                   id: auto_irrigation_toggle
                   x: 10
-                  y: -5
-                  width: 200
+                  y: 20
+                  width: 150
                   height: 40
                   checkable: true
                   state:
@@ -3203,9 +2562,9 @@ lvgl:
                         id: auto_irrigation_label
                         text: !lambda |-
                           if (id(auto_irrigation_enabled)) {
-                            return "(Auto) Seasonal: ON";
+                            return "Auto: ON";
                           } else {
-                            return "(Auto) Seasonal: OFF";
+                            return "Auto: OFF";
                           }
                         text_font: roboto
                         align: center
@@ -3219,37 +2578,37 @@ lvgl:
                           then:
                             - lvgl.label.update:
                                 id: auto_irrigation_label
-                                text: "Auto Irrigation: ON"
+                                text: "Auto: ON"
                           else:
                             - lvgl.label.update:
                                 id: auto_irrigation_label
-                                text: "Auto Irrigation: OFF"
+                                text: "Auto: OFF"
 
-              # Done button (keeping original)
+              # Calculate button
               - button:
-                  id: back_back_button
-                  x: 230
-                  y: 0
-                  width: 100
+                  id: calculate_button
+                  x: 170
+                  y: 20
+                  width: 80
                   height: 40
-                  styles: nav_button_style
                   widgets:
                     - label:
-                        text: "Done"
+                        text: "Calc"
                         text_font: roboto
                         align: center
                   on_click:
                     then:
-                      - lambda: |-
-                          // go to settings page from control page
-                          id(lvgl_comp).show_page(1, LV_SCR_LOAD_ANIM_OVER_RIGHT, 300);
+                      - script.execute: calculate_irrigation_needs
+                      - lvgl.widget.update:
+                          id: current_status_display
+                      - lvgl.widget.update:
+                          id: runtime_info_display
 
-              # Test Current Block button
+              # Test button
               - button:
                   id: test_irrigation_button
-                  x: 350
-                  y: 0
-                  hidden: true
+                  x: 260
+                  y: 20
                   width: 80
                   height: 40
                   widgets:
@@ -3262,9 +2621,41 @@ lvgl:
                       - script.execute: calculate_irrigation_needs
                       - lambda: |-
                           ESP_LOGI("irrigation", "Manual test irrigation triggered");
+                          id(irrigation_duration_remaining) = 5; // 5 minute test
+                      - switch.turn_on: sw3  # Irrigation Valve
+                      - delay: 2s
+                      - switch.turn_on: sw2  # Water Pump
+                      - while:
+                          condition:
+                            lambda: "return id(irrigation_duration_remaining) > 0;"
+                          then:
+                            - delay: 60s
+                            - lambda: |-
+                                id(irrigation_duration_remaining)--;
+                                ESP_LOGD("irrigation", "Test remaining: %d minutes", id(irrigation_duration_remaining));
+                      - switch.turn_off: sw2
+                      - switch.turn_off: sw3
 
+              # Done button
+              - button:
+                  id: back_back_button
+                  x: 350
+                  y: 20
+                  width: 100
+                  height: 40
+                  styles: nav_button_style
+                  widgets:
+                    - label:
+                        text: "Done"
+                        text_font: roboto
+                        align: center
+                  on_click:
+                    then:
+                      - lambda: |-
+                          // go to main page from settings page
+                          id(lvgl_comp).show_page(1, LV_SCR_LOAD_ANIM_OVER_RIGHT, 300);
 
-
+  
     # Settings Page
     - id: settings_page
       bg_color: 0x000000
@@ -3433,7 +2824,6 @@ lvgl:
                     // go to settings page from control page
                     id(current_page)=1;
                     id(lvgl_comp).show_page(1, LV_SCR_LOAD_ANIM_OVER_RIGHT, 300);
-                
 
         # Light Automation Settings Page
     - id: light_settings_page
@@ -4315,13 +3705,13 @@ switch:
     on_turn_on:
       then:
         - lvgl.label.update:
-            id: irrigation_status_display
+            id: current_status_display
             text: "Pump ON - Irrigating..."
         - logger.log: "Watering pump turned ON"
     on_turn_off:
       then:
         - lvgl.label.update:
-            id: irrigation_status_display
+            id: current_status_display
             text: "Pump OFF - Watering stopped"
         - logger.log: "Watering pump turned OFF"
 
@@ -4382,7 +3772,7 @@ switch:
     on_turn_on:
       then:
         - lvgl.label.update:
-            id: irrigation_status_display
+            id: current_status_display
             text: " Pump ON - Irrigating..."
         - logger.log: "Watering pump turned ON"
         - if:
@@ -4418,7 +3808,7 @@ switch:
     on_turn_off:
       then:
         - lvgl.label.update:
-            id: irrigation_status_display
+            id: current_status_display
             text: "⏹️ Pump OFF - Watering stopped"
         - logger.log: "Watering pump turned OFF"
 
@@ -4475,26 +3865,26 @@ script:
     then:
       - logger.log: "Manual irrigation test started"
       - lvgl.label.update:
-          id: irrigation_status_display
+          id: current_status_display
           text: " Starting test irrigation..."
       - switch.turn_on: pump_relay
       - lambda: |-
           id(irrigation_duration_remaining) = 2; // 2 minute test
       - lvgl.label.update:
-          id: irrigation_status_display
+          id: current_status_display
           text: "Test irrigation running - 2 min"
       - delay: 60s # 1 minute
       - lambda: |-
           id(irrigation_duration_remaining) = 1;
       - lvgl.label.update:
-          id: irrigation_status_display
+          id: current_status_display
           text: " Test irrigation running - 1 min"
       - delay: 60s # 1 more minute (total 2 minutes)
       - switch.turn_off: pump_relay
       - lambda: |-
           id(irrigation_duration_remaining) = 0;
       - lvgl.label.update:
-          id: irrigation_status_display
+          id: current_status_display
           text: "Test irrigation completed"
       - logger.log: "Manual irrigation test completed"
 
@@ -4502,7 +3892,7 @@ script:
     then:
       - logger.log: "Resetting irrigation settings to defaults"
       - lvgl.label.update:
-          id: irrigation_status_display
+          id: current_status_display
           text: "🔄 Resetting settings..."
       - number.set:
           id: field_area_input
@@ -4537,7 +3927,7 @@ script:
       - script.execute: calculate_irrigation_needs
       - delay: 1s
       - lvgl.label.update:
-          id: irrigation_status_display
+          id: current_status_display
           text: "Settings reset to defaults"
       - logger.log: "Watering settings reset to defaults"
 
@@ -4631,42 +4021,34 @@ script:
   - id: calculate_irrigation_needs
     then:
       - lambda: |-
-          // Get current date for seasonal calculation
-          auto now = id(time_comp).now();
+          // Calculate base daily runtime
+          int daily_runtime;
           
-          // Calculate seasonal base runtime (1 hour winter to 5 hours summer)
-          int day_of_year = now.day_of_year;
-          float seasonal_factor;
-          
-          if (day_of_year <= 80 || day_of_year >= 355) {
-            seasonal_factor = 1.0; // Winter
-          } else if (day_of_year >= 172 && day_of_year <= 264) {
-            seasonal_factor = 5.0; // Summer
-          } else if (day_of_year < 172) {
-            float progress = (day_of_year - 80) / 92.0;
-            seasonal_factor = 1.0 + (4.0 * progress);
+          if (id(seasonal_pump_enabled)) {
+            // Seasonal calculation
+            auto now = id(time_comp).now();
+            int day_of_year = now.day_of_year;
+            float seasonal_factor;
+            
+            if (day_of_year <= 80 || day_of_year >= 355) {
+              seasonal_factor = 0.0; // Winter solstice
+            } else if (day_of_year >= 172 && day_of_year <= 264) {
+              seasonal_factor = 1.0; // Summer solstice
+            } else if (day_of_year < 172) {
+              seasonal_factor = (day_of_year - 80) / 92.0; // Spring
+            } else {
+              seasonal_factor = 1.0 - ((day_of_year - 264) / 91.0); // Fall
+            }
+            
+            // Interpolate between winter min and summer max
+            daily_runtime = id(winter_min_runtime) + 
+                           (int)((id(summer_max_runtime) - id(winter_min_runtime)) * seasonal_factor);
           } else {
-            float progress = (day_of_year - 264) / 91.0;
-            seasonal_factor = 5.0 - (4.0 * progress);
+            // Use summer max as fixed runtime
+            daily_runtime = id(summer_max_runtime);
           }
           
-          // Time-based runtime calculation (center at 14:00)
-          float current_hour = now.hour + (now.minute / 60.0);
-          float center_hour = id(center_time_minutes);
-          float time_diff = abs(current_hour - center_hour);
-          
-          // Calculate runtime based on time distance from center
-          // Max runtime at center time, min runtime at furthest time
-          float time_factor = 1.0 - (time_diff / 12.0); // 12 hours max distance
-          if (time_factor < 0) time_factor = 0;
-          
-          float base_runtime = id(min_runtime_minutes) + 
-                              (id(max_runtime_minutes) - id(min_runtime_minutes)) * time_factor;
-          
-          // Apply seasonal multiplier
-          base_runtime *= seasonal_factor;
-          
-          // Temperature adjustment (1% per degree from reference)
+          // Temperature adjustment
           float temp_multiplier = 1.0;
           if (id(owm_temperature).has_state()) {
             float temp = id(owm_temperature).state;
@@ -4674,15 +4056,39 @@ script:
             temp_multiplier = 1.0 + (temp_diff * id(temp_rate_percent) / 100.0);
           }
           
-          // Calculate final runtime
-          float total_runtime = base_runtime * temp_multiplier;
-          if (total_runtime < id(min_runtime_minutes)) total_runtime = id(min_runtime_minutes);
-          if (total_runtime > id(max_runtime_minutes)) total_runtime = id(max_runtime_minutes);
+          // Apply temperature adjustment
+          daily_runtime = (int)(daily_runtime * temp_multiplier);
+          if (daily_runtime < id(winter_min_runtime)) daily_runtime = id(winter_min_runtime);
+          if (daily_runtime > id(summer_max_runtime)) daily_runtime = id(summer_max_runtime);
           
-          //id(irrigation_duration_remaining) = (int)total_runtime;
+          id(calculated_daily_runtime) = daily_runtime;
           
-          ESP_LOGI("irrigation", "Calculated runtime: %.1f min (seasonal: %.1f, time: %.1f, temp: %.2f)", 
-                   total_runtime, seasonal_factor, time_factor, temp_multiplier);
+          // Calculate block runtimes based on number of blocks
+          switch(id(pump_runtime_blocks)) {
+            case 1:
+              // All time in center block
+              id(center_block_runtime) = daily_runtime;
+              id(free_block_runtime) = 0;
+              break;
+            case 2:
+              // Half in center, half in free block
+              id(center_block_runtime) = daily_runtime / 2;
+              id(free_block_runtime) = daily_runtime / 2;
+              break;
+            case 3:
+              // 1/3 in center, 2/3 divided in free blocks
+              id(center_block_runtime) = daily_runtime / 3;
+              id(free_block_runtime) = daily_runtime / 3;
+              break;
+            case 4:
+              // 1/4 in center, 3/4 divided in free blocks
+              id(center_block_runtime) = daily_runtime / 4;
+              id(free_block_runtime) = daily_runtime / 4;
+              break;
+          }
+          
+          ESP_LOGI("irrigation", "Daily runtime: %d min, Center block: %d min, Free blocks: %d min each", 
+                   daily_runtime, id(center_block_runtime), id(free_block_runtime));
 
   - id: start_valve_training
     then:
@@ -4792,49 +4198,61 @@ script:
             - logger.log: "Starting scheduled irrigation"
             - script.execute: calculate_irrigation_needs
             - lambda: |-
-                // Check if current time is within any irrigation block
                 auto now = id(time_comp).now();
                 int current_minutes = now.hour * 60 + now.minute;
-                bool in_irrigation_block = false;
-                int active_block = -1;
+                bool should_run = false;
+                int runtime_minutes = 0;
                 
-                // Check each block
-                for (int block = 0; block < 4; block++) {
-                  int start_minutes, stop_minutes;
+                // Check center block (always around 14:00)
+                int center_start = (id(center_pump_time_hour) * 60) - (id(center_block_runtime) / 2);
+                int center_end = (id(center_pump_time_hour) * 60) + (id(center_block_runtime) / 2);
+                
+                if (current_minutes >= center_start && current_minutes <= center_end) {
+                  should_run = true;
+                  runtime_minutes = id(center_block_runtime) - (current_minutes - center_start);
+                  ESP_LOGI("irrigation", "Running center block, %d minutes remaining", runtime_minutes);
+                }
+                
+                // Check free blocks if more than 1 block configured
+                if (!should_run && id(pump_runtime_blocks) >= 2) {
+                  int free_start2 = id(free_block2_start_hour) * 60 + id(free_block2_start_minute);
+                  int free_end2 = free_start2 + id(free_block_runtime);
                   
-                  switch(block) {
-                    case 0:
-                      start_minutes = id(block1_start_hour) * 60 + id(block1_start_minute);
-                      stop_minutes = id(block1_stop_hour) * 60 + id(block1_stop_minute);
-                      break;
-                    case 1:
-                      start_minutes = id(block2_start_hour) * 60 + id(block2_start_minute);
-                      stop_minutes = id(block2_stop_hour) * 60 + id(block2_stop_minute);
-                      break;
-                    case 2:
-                      start_minutes = id(block3_start_hour) * 60 + id(block3_start_minute);
-                      stop_minutes = id(block3_stop_hour) * 60 + id(block3_stop_minute);
-                      break;
-                    case 3:
-                      start_minutes = id(block4_start_hour) * 60 + id(block4_start_minute);
-                      stop_minutes = id(block4_stop_hour) * 60 + id(block4_stop_minute);
-                      break;
-                  }
-                  
-                  if (current_minutes >= start_minutes && current_minutes <= stop_minutes) {
-                    in_irrigation_block = true;
-                    active_block = block + 1;
-                    break;
+                  if (current_minutes >= free_start2 && current_minutes <= free_end2) {
+                    should_run = true;
+                    runtime_minutes = free_end2 - current_minutes;
+                    ESP_LOGI("irrigation", "Running free block 2, %d minutes remaining", runtime_minutes);
                   }
                 }
                 
-                if (!in_irrigation_block) {
+                if (!should_run && id(pump_runtime_blocks) >= 3) {
+                  int free_start3 = id(free_block3_start_hour) * 60 + id(free_block3_start_minute);
+                  int free_end3 = free_start3 + id(free_block_runtime);
+                  
+                  if (current_minutes >= free_start3 && current_minutes <= free_end3) {
+                    should_run = true;
+                    runtime_minutes = free_end3 - current_minutes;
+                    ESP_LOGI("irrigation", "Running free block 3, %d minutes remaining", runtime_minutes);
+                  }
+                }
+                
+                if (!should_run && id(pump_runtime_blocks) >= 4) {
+                  int free_start4 = id(free_block4_start_hour) * 60 + id(free_block4_start_minute);
+                  int free_end4 = free_start4 + id(free_block_runtime);
+                  
+                  if (current_minutes >= free_start4 && current_minutes <= free_end4) {
+                    should_run = true;
+                    runtime_minutes = free_end4 - current_minutes;
+                    ESP_LOGI("irrigation", "Running free block 4, %d minutes remaining", runtime_minutes);
+                  }
+                }
+                
+                if (!should_run) {
                   ESP_LOGW("irrigation", "Current time not in any irrigation block");
                   return;
                 }
                 
-                ESP_LOGI("irrigation", "Starting irrigation block %d for %d minutes", 
-                         active_block, id(irrigation_duration_remaining));
+                id(irrigation_duration_remaining) = runtime_minutes;
                 
                 // Check if it's summer (add water) or winter (remove water)
                 bool is_summer = (now.month >= 4 && now.month <= 9);
@@ -4846,7 +4264,7 @@ script:
                     return (now.month >= 4 && now.month <= 9); // Summer months
                 then:
                   # Summer: Turn on valve to ADD water
-                  - switch.turn_on: sw3  # Watering Valve
+                  - switch.turn_on: sw3  # Irrigation Valve
                   - delay: 2s
                   - switch.turn_on: sw2  # Water Pump
                 else:
@@ -4861,12 +4279,11 @@ script:
                   - delay: 60s
                   - lambda: |-
                       id(irrigation_duration_remaining)--;
-                      ESP_LOGD("irrigation", "Watering remaining: %d minutes", id(irrigation_duration_remaining));
+                      ESP_LOGD("irrigation", "Irrigation remaining: %d minutes", id(irrigation_duration_remaining));
                       
             # Turn off both pump and valve
             - switch.turn_off: sw2
             - switch.turn_off: sw3
-
 
   - id: time_display_update
     then:
