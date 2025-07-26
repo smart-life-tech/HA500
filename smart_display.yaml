@@ -1955,7 +1955,7 @@ lvgl:
             width: 480
             height: 110
             bg_color: 0x000000
-            bg_opa: 0%
+            bg_opa: 50%
             radius: 10
             x: 0
             y: 80
@@ -2033,7 +2033,7 @@ lvgl:
                   text: "Sum max:"
                   text_font: roboto
                   text_color: 0xCCCCCC
-                  x: 210
+                  x: 215
                   y: 35
               - button:
                   x: 310
@@ -2101,7 +2101,7 @@ lvgl:
                   y: 65
               - button:
                   x: 160
-                  y: 63
+                  y: 70
                   width: 25
                   height: 25
                   widgets:
@@ -2117,10 +2117,10 @@ lvgl:
                   text: "Temp rate:"
                   text_font: roboto
                   text_color: 0xCCCCCC
-                  x: 200
+                  x: 215
                   y: 65
               - button:
-                  x: 280
+                  x: 310
                   y: 65
                   width: 25
                   height: 25
@@ -2139,10 +2139,10 @@ lvgl:
                     return text;
                   text_font: roboto
                   text_color: 0xFFFFFF
-                  x: 310
+                  x: 340
                   y: 70
               - button:
-                  x: 380
+                  x: 410
                   y: 65
                   width: 25
                   height: 25
@@ -2160,7 +2160,7 @@ lvgl:
             width: 480
             height: 100
             bg_color: 0x000000
-            bg_opa: 0%
+            bg_opa: 50%
             radius: 10
             x: 0
             y: 190
@@ -2881,7 +2881,7 @@ lvgl:
             width: 460
             height: 50
             bg_color: 0x1E3A8A
-            bg_opa: 80%
+            bg_opa: 0%
             radius: 10
             scrollable: false
             x: 10
@@ -4657,13 +4657,13 @@ touchscreen:
         ESP_LOGD("touch", "Touch at (%d, %d)", touch.x, touch.y);
         id(last_touch_time) = millis();
         // Check if touch is in top-left WiFi area (x: 0-60, y: 50-100)
-        if (touch.x <= 100 && touch.y >= 5 && touch.y <= 100 && id(current_page) == 0) {
+        if (touch.x <= 100 && touch.y >= 5 && touch.y <= 100 && (id(lvgl_comp).get_current_page()) == 0) {
           ESP_LOGD("touch", "WiFi area touched at (%d, %d)", touch.x, touch.y);
           // execute the page toggle script 
           id(toggle_wifi_popup).execute();
           return; // Exit early if WiFi area touched
         }
-        if (touch.x >= 390 && touch.y >= 60 && touch.y <= 110 && id(current_page) == 1) {
+        if (touch.x >= 390 && touch.y >= 60 && touch.y <= 110 && (id(lvgl_comp).get_current_page()) == 1) {
           ESP_LOGD("touch", "light area touched at (%d, %d)", touch.x, touch.y);
           // go to the light settings Page
           id(current_page) = 4;
@@ -4677,7 +4677,7 @@ touchscreen:
           id(lvgl_comp).show_page(2, LV_SCR_LOAD_ANIM_OVER_LEFT, 300);
           return; // Exit early if pump settings  area touched
         }
-        if (touch.x >= 390 && touch.y >= 240 && touch.y <= 290 && id(current_page) == 1) {
+        if (touch.x >= 390 && touch.y >= 240 && touch.y <= 290 && (id(lvgl_comp).get_current_page()) == 1) {
           ESP_LOGD("touch", "valve area touched at (%d, %d)", touch.x, touch.y);
           // go to the pump settings Page
           id(current_page) = 5;
