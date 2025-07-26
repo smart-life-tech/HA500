@@ -1969,7 +1969,7 @@ lvgl:
                   y: 0
               # Done button
               - button:
-                  id: back_back_button
+                  id: pump_back_button
                   x: 330
                   y: -10
                   width: 100
