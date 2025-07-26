@@ -1697,8 +1697,8 @@ lvgl:
                   on_click:
                     then:
                       - script.execute: toggle_wifi_popup
-                      - delay: 100ms
-                      - script.execute: toggle_wifi_popup
+                      # - delay: 100ms
+                      # - script.execute: toggle_wifi_popup
 
     # Controls Page - Light Control Buttons
     - id: controls_page
@@ -1903,7 +1903,7 @@ lvgl:
             radius: 10
             x: 5
             y: 10
-            border_width: 0
+            border_width: 10
             widgets:
               - label:
                   text: "Seasonal Pump Setting"
@@ -1911,6 +1911,7 @@ lvgl:
                   text_color: 0xFFFFFF
                   x: 10
                   y: 5
+                  align: center
               - button:
                   id: seasonal_toggle
                   x: 330
@@ -1975,6 +1976,7 @@ lvgl:
                   width: 100
                   height: 40
                   styles: nav_button_style
+                  bg_color: 0xFFA500
                   widgets:
                     - label:
                         text: "Done"
@@ -2161,7 +2163,7 @@ lvgl:
             height: 100
             bg_color: 0x000000
             bg_opa: 50%
-            radius: 10
+            radius: 0
             x: 0
             y: 190
             border_width: 0
@@ -2220,7 +2222,7 @@ lvgl:
                   text: "Runtime blocks:"
                   text_font: roboto
                   text_color: 0xCCCCCC
-                  x: 230
+                  x: 215
                   y: 35
               - button:
                   x: 340
@@ -2276,7 +2278,7 @@ lvgl:
                     return text;
                   text_font: roboto
                   text_color: 0x00FF00
-                  x: 10
+                  x: 5
                   y: 60
 
         # Free Block 2 Settings (only show if blocks >= 2)
@@ -2287,7 +2289,7 @@ lvgl:
             height: 60
             bg_color: 0x000000
             bg_opa: 50%
-            radius: 10
+            radius: 0
             x: 10
             y: 280
             border_width: 0
@@ -3612,7 +3614,7 @@ lvgl:
                   text_font: roboto
                   x: 10
                   y: 30
-                  text_color: 0x00FFFF
+                  text_color: 0xFFFFFF
                   width: 440
 
         # Control Buttons Section
