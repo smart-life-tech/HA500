@@ -1967,6 +1967,24 @@ lvgl:
                   text_color: 0xFFFFFF
                   x: 0
                   y: 0
+              # Done button
+              - button:
+                  id: back_back_button
+                  x: 330
+                  y: -10
+                  width: 100
+                  height: 40
+                  styles: nav_button_style
+                  widgets:
+                    - label:
+                        text: "Done"
+                        text_font: roboto
+                        align: center
+                  on_click:
+                    then:
+                      - lambda: |-
+                          // go to main page from settings page
+                          id(lvgl_comp).show_page(1, LV_SCR_LOAD_ANIM_OVER_RIGHT, 300);
 
               # Winter Min Runtime
               - label:
@@ -2012,10 +2030,10 @@ lvgl:
 
               # Summer Max Runtime
               - label:
-                  text: "Summer max:"
+                  text: "Sum max:"
                   text_font: roboto
                   text_color: 0xCCCCCC
-                  x: 200
+                  x: 210
                   y: 35
               - button:
                   x: 310
@@ -2083,7 +2101,7 @@ lvgl:
                   y: 65
               - button:
                   x: 160
-                  y: 60
+                  y: 63
                   width: 25
                   height: 25
                   widgets:
@@ -2103,7 +2121,7 @@ lvgl:
                   y: 65
               - button:
                   x: 280
-                  y: 60
+                  y: 65
                   width: 25
                   height: 25
                   widgets:
@@ -2122,10 +2140,10 @@ lvgl:
                   text_font: roboto
                   text_color: 0xFFFFFF
                   x: 310
-                  y: 65
+                  y: 70
               - button:
                   x: 380
-                  y: 60
+                  y: 65
                   width: 25
                   height: 25
                   widgets:
@@ -2140,7 +2158,7 @@ lvgl:
         - obj:
             scrollable: false
             width: 480
-            height: 80
+            height: 100
             bg_color: 0x000000
             bg_opa: 0%
             radius: 10
@@ -2505,6 +2523,7 @@ lvgl:
         # Current Status Display
         - obj:
             scrollable: false
+            hidden: true
             width: 460
             height: 100
             bg_color: 0x000000
