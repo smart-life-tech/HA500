@@ -5,7 +5,8 @@ substitutions:
   device_description: " Smart  Controller"
   project_name: "Guition.ESP32_S3_4848S040"
   project_version: "1.0.2"
-
+  wifi_ssid: ""
+  wifi_password: ""
   lightbulb: "\U000F0335"
   ceiling_light: "\U000F0769"
   lamp: "\U000F06B5"
@@ -214,6 +215,7 @@ http_request:
   verify_ssl: false
   follow_redirects: true
   buffer_size_rx: 1024 # Add buffer size
+
 
 wifi:
   networks:
@@ -1250,9 +1252,9 @@ lvgl:
                   height: 50
                   bg_opa: 0% # Transparent background
                   border_width: 0
-            on_click:
-              then:
-                - script.execute: toggle_wifi_popup
+            # on_click:
+            #   then:
+            #     - script.execute: toggle_wifi_popup
         # Title Bar
         - obj:
             width: 460
@@ -1694,9 +1696,9 @@ lvgl:
                         text: "Refresh"
                         text_font: roboto
                         align: center
-                  on_click:
-                    then:
-                      - script.execute: toggle_wifi_popup
+                  # on_click:
+                  #   then:
+                  #     - script.execute: toggle_wifi_popup
                       # - delay: 100ms
                       # - script.execute: toggle_wifi_popup
 
@@ -1903,19 +1905,19 @@ lvgl:
             radius: 10
             x: 5
             y: 10
-            border_width: 10
+            border_width: 2
             widgets:
               - label:
                   text: "Seasonal Pump Setting"
                   text_font: roboto24
                   text_color: 0xFFFFFF
                   x: 10
-                  y: 5
+                  y: 0
                   align: center
               - button:
                   id: seasonal_toggle
                   x: 330
-                  y: 1
+                  y: -5
                   width: 100
                   height: 40
                   checkable: true
