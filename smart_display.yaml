@@ -957,7 +957,7 @@ globals:
 
   - id: wifi_popup_visible
     type: bool
-    restore_value: no
+    restore_value: yes
     initial_value: "false"
 
   - id: valve_training_mode
@@ -1252,9 +1252,7 @@ lvgl:
                   height: 50
                   bg_opa: 0% # Transparent background
                   border_width: 0
-            # on_click:
-            #   then:
-            #     - script.execute: toggle_wifi_popup
+            
         # Title Bar
         - obj:
             width: 460
@@ -1696,11 +1694,7 @@ lvgl:
                         text: "Refresh"
                         text_font: roboto
                         align: center
-                  # on_click:
-                  #   then:
-                  #     - script.execute: toggle_wifi_popup
-                      # - delay: 100ms
-                      # - script.execute: toggle_wifi_popup
+                  
 
     # Controls Page - Light Control Buttons
     - id: controls_page
@@ -4046,8 +4040,10 @@ script:
                     return id(wifi_mac).state.c_str();
                   }
                   return "N/A";
+            - delay: 1s
           else:
             - lvgl.widget.hide: wifi_popup_obj
+            - delay: 1s
 
   - id: update_wifi_details
     then:
