@@ -4051,7 +4051,6 @@ script:
           condition:
             lambda: "return (wifi::global_wifi_component->is_connected());"
           then:
-            - lvgl.widget.show: wifi_popup_obj
             # Update all WiFi info when showing popup
             - lvgl.label.update:
                 id: wifi_status_text
@@ -4119,8 +4118,8 @@ script:
                     return id(wifi_mac).state.c_str();
                   }
                   return "N/A";
-          else:
-            - lvgl.widget.hide: wifi_popup_obj
+          # else:
+          #   - lvgl.widget.hide: wifi_popup_obj
 
   - id: goto_settings
     then:
