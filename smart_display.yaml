@@ -2003,6 +2003,12 @@ lvgl:
                   on_click:
                     then:
                       - number.decrement: winter_min_input
+                      - lvgl.label.update:
+                          id: winter_min_display
+                          text: !lambda |-
+                            static char text[15];
+                            snprintf(text, sizeof(text), "%d min", id(winter_min_runtime));
+                            return text;
               - label:
                   id: winter_min_display
                   text: !lambda |-
@@ -2025,6 +2031,14 @@ lvgl:
                   on_click:
                     then:
                       - number.increment: winter_min_input
+                      - lvgl.label.update:
+                          id: winter_min_display
+                          text: !lambda |-
+                            static char text[15];
+                            snprintf(text, sizeof(text), "%d min", id(winter_min_runtime));
+                            return text;
+                                id: auto_irrigation_label
+                                text: "Auto: ON"
 
               # Summer Max Runtime
               - label:
