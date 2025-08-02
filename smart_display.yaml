@@ -2014,7 +2014,7 @@ lvgl:
                   text: !lambda |-
                     static char text[15];
                     snprintf(text, sizeof(text), "%d min", id(winter_min_runtime));
-                  
+                    return text;
                   text_font: roboto
                   text_color: 0xFFFFFF
                   x: 125
@@ -2036,7 +2036,7 @@ lvgl:
                           text: !lambda |-
                             static char text[15];
                             snprintf(text, sizeof(text), "%d min", id(winter_min_runtime));
-                                                    
+                            return text;
 
               # Summer Max Runtime
               - label:
