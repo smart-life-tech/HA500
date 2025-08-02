@@ -1897,7 +1897,7 @@ lvgl:
             bg_color: 0x000000
             bg_opa: 0%
             radius: 10
-            x: 5
+            x: 10
             y: 10
             border_width: 2
             widgets:
@@ -2057,6 +2057,12 @@ lvgl:
                   on_click:
                     then:
                       - number.decrement: summer_max_input
+                      - lvgl.label.update:
+                          id: summer_max_display
+                          text: !lambda |-
+                            static char text[15];
+                            snprintf(text, sizeof(text), "%d min", id(summer_max_runtime));
+                            return text;
               - label:
                   id: summer_max_display
                   text: !lambda |-
@@ -2079,6 +2085,12 @@ lvgl:
                   on_click:
                     then:
                       - number.increment: summer_max_input
+                      - lvgl.label.update:
+                          id: summer_max_display
+                          text: !lambda |-
+                            static char text[15];
+                            snprintf(text, sizeof(text), "%d min", id(summer_max_runtime));
+                            return text;
 
               # Reference Temperature
               - label:
@@ -2099,6 +2111,12 @@ lvgl:
                   on_click:
                     then:
                       - number.decrement: reference_temp_input
+                      - lvgl.label.update:
+                          id: ref_temp_display
+                          text: !lambda |-
+                            static char text[10];
+                            snprintf(text, sizeof(text), "%.1f°C", id(reference_temperature));
+                            return text;
               - label:
                   id: ref_temp_display
                   text: !lambda |-
@@ -2121,6 +2139,12 @@ lvgl:
                   on_click:
                     then:
                       - number.increment: reference_temp_input
+                      - lvgl.label.update:
+                          id: ref_temp_display
+                          text: !lambda |-
+                            static char text[10];
+                            snprintf(text, sizeof(text), "%.1f°C", id(reference_temperature));
+                            return text;
 
               # Temperature Rate
               - label:
@@ -2141,6 +2165,12 @@ lvgl:
                   on_click:
                     then:
                       - number.decrement: temp_rate_input
+                      - lvgl.label.update:
+                          id: temp_rate_display
+                          text: !lambda |-
+                            static char text[15];
+                            snprintf(text, sizeof(text), "%.1f%%/°C", id(temp_rate_percent));
+                            return text;
               - label:
                   id: temp_rate_display
                   text: !lambda |-
@@ -2163,6 +2193,12 @@ lvgl:
                   on_click:
                     then:
                       - number.increment: temp_rate_input
+                      - lvgl.label.update:
+                          id: temp_rate_display
+                          text: !lambda |-
+                            static char text[15];
+                            snprintf(text, sizeof(text), "%.1f%%/°C", id(temp_rate_percent));
+                            return text;
 
         # Center Time and Runtime Blocks
         - obj:
@@ -2202,6 +2238,12 @@ lvgl:
                   on_click:
                     then:
                       - number.decrement: center_time_hour_input
+                      - lvgl.label.update:
+                          id: center_time_display
+                          text: !lambda |-
+                            static char text[10];
+                            snprintf(text, sizeof(text), "%02d:00", id(center_pump_time_hour));
+                            return text;
               - label:
                   id: center_time_display
                   text: !lambda |-
@@ -2224,6 +2266,12 @@ lvgl:
                   on_click:
                     then:
                       - number.increment: center_time_hour_input
+                      - lvgl.label.update:
+                          id: center_time_display
+                          text: !lambda |-
+                            static char text[10];
+                            snprintf(text, sizeof(text), "%02d:00", id(center_pump_time_hour));
+                            return text;
 
               # Runtime Blocks
               - label:
@@ -2244,6 +2292,12 @@ lvgl:
                   on_click:
                     then:
                       - number.decrement: runtime_blocks_input
+                      - lvgl.label.update:
+                          id: runtime_blocks_display
+                          text: !lambda |-
+                            static char text[5];
+                            snprintf(text, sizeof(text), "%d", id(pump_runtime_blocks));
+                            return text;
               - label:
                   id: runtime_blocks_display
                   text: !lambda |-
@@ -2266,6 +2320,12 @@ lvgl:
                   on_click:
                     then:
                       - number.increment: runtime_blocks_input
+                      - lvgl.label.update:
+                          id: runtime_blocks_display
+                          text: !lambda |-
+                            static char text[5];
+                            snprintf(text, sizeof(text), "%d", id(pump_runtime_blocks));
+                            return text;
 
               # Runtime Info Display
               - label:
