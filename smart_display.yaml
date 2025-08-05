@@ -2460,7 +2460,7 @@ lvgl:
             bg_opa: 50%
             radius: 10
             x: 10
-            y: 340
+            y: 350
             hidden: !lambda "return id(pump_runtime_blocks) < 3;"
             widgets:
               - label:
@@ -2540,7 +2540,7 @@ lvgl:
             bg_opa: 50%
             radius: 10
             x: 10
-            y: 410
+            y: 415
             hidden: !lambda "return id(pump_runtime_blocks) < 4;"
             widgets:
               - label:
