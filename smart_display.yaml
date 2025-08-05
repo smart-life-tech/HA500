@@ -53,6 +53,8 @@ logger:
   level: NONE
   baud_rate: 115200
 
+preferences:
+  flash_write_interval: 100s # Save preferences every 60 seconds
 # logger:
 #   level: DEBUG
 #   baud_rate: 115200
@@ -216,7 +218,6 @@ http_request:
   follow_redirects: true
   buffer_size_rx: 1024 # Add buffer size
 
-
 wifi:
   networks:
     - ssid: !secret wifi_ssid3
@@ -268,40 +269,40 @@ time:
         then:
           - lambda: |-
               if (!id(auto_irrigation_enabled)) return;
-              
+
               auto now = id(time_comp).now();
               int current_minutes = now.hour * 60 + now.minute;
               bool should_start = false;
-              
+
               // Recalculate daily runtime first
               id(calculate_irrigation_needs).execute();
-              
+
               // Check center block timing
               int center_half_time = id(center_block_runtime) / 2;
               int center_start = (id(center_pump_time_hour) * 60) - center_half_time;
               int center_end = (id(center_pump_time_hour) * 60) + center_half_time;
-              
+
               if (current_minutes == center_start) {
                 ESP_LOGI("irrigation", "Starting center block irrigation");
                 should_start = true;
               }
-              
+
               // Check free blocks
               if (id(pump_runtime_blocks) >= 2 && current_minutes == (id(free_block2_start_hour) * 60 + id(free_block2_start_minute))) {
                 ESP_LOGI("irrigation", "Starting free block 2 irrigation");
                 should_start = true;
               }
-              
+
               if (id(pump_runtime_blocks) >= 3 && current_minutes == (id(free_block3_start_hour) * 60 + id(free_block3_start_minute))) {
                 ESP_LOGI("irrigation", "Starting free block 3 irrigation");
                 should_start = true;
               }
-              
+
               if (id(pump_runtime_blocks) >= 4 && current_minutes == (id(free_block4_start_hour) * 60 + id(free_block4_start_minute))) {
                 ESP_LOGI("irrigation", "Starting free block 4 irrigation");
                 should_start = true;
               }
-              
+
               if (should_start && !id(sw2).state) {
                 id(run_scheduled_irrigation).execute();
               }
@@ -400,6 +401,22 @@ number:
     on_value:
       then:
         - lambda: "id(pump_runtime_blocks) = (int)x;"
+        - lambda: |-
+            if (x >=2) {
+             lv_obj_clear_flag(id(free_block2_settings), LV_OBJ_FLAG_HIDDEN);
+            }else{
+             lv_obj_add_flag(id(free_block2_settings), LV_OBJ_FLAG_HIDDEN);
+            }
+            if (x >=3) {
+             lv_obj_clear_flag(id(free_block3_settings), LV_OBJ_FLAG_HIDDEN);
+             }else{
+             lv_obj_add_flag(id(free_block3_settings), LV_OBJ_FLAG_HIDDEN);
+             }
+             if (x >=4) {
+             lv_obj_clear_flag(id(free_block4_settings), LV_OBJ_FLAG_HIDDEN);
+             }else{
+             lv_obj_add_flag(id(free_block4_settings), LV_OBJ_FLAG_HIDDEN);
+             }
 
   # Free block start times
   - platform: template
@@ -474,7 +491,7 @@ number:
     min_value: 0
     max_value: 100
     step: 0.5
-    restore_value: no
+    restore_value: yes
     initial_value: 0
     optimistic: true
     on_value:
@@ -623,7 +640,7 @@ number:
   - platform: template
     id: sunrise_hours_input
     name: "Sunrise Duration Hours"
-    min_value: 1
+    min_value: 0
     max_value: 6
     step: 1
     restore_value: true
@@ -1252,7 +1269,7 @@ lvgl:
                   height: 50
                   bg_opa: 0% # Transparent background
                   border_width: 0
-            
+
         # Title Bar
         - obj:
             width: 460
@@ -1694,7 +1711,6 @@ lvgl:
                         text: "Refresh"
                         text_font: roboto
                         align: center
-                  
 
     # Controls Page - Light Control Buttons
     - id: controls_page
@@ -1905,7 +1921,7 @@ lvgl:
                   text: "Seasonal Pump Set"
                   text_font: roboto24
                   text_color: 0xFFFFFF
-                  x: 10
+                  x: 0
                   y: 0
                   align: center
               - button:
@@ -1915,7 +1931,7 @@ lvgl:
                   width: 100
                   height: 40
                   checkable: true
-                  
+
                   widgets:
                     - label:
                         id: seasonal_label
@@ -1967,7 +1983,7 @@ lvgl:
               # Done button
               - button:
                   id: pump_back_button
-                  x: 335
+                  x: 345
                   y: -10
                   width: 100
                   height: 40
@@ -2298,6 +2314,8 @@ lvgl:
                             static char text[5];
                             snprintf(text, sizeof(text), "%d", id(pump_runtime_blocks));
                             return text;
+                      - lvgl.label.update:
+                          id: runtime_info_display
               - label:
                   id: runtime_blocks_display
                   text: !lambda |-
@@ -2326,6 +2344,8 @@ lvgl:
                             static char text[5];
                             snprintf(text, sizeof(text), "%d", id(pump_runtime_blocks));
                             return text;
+                      - lvgl.label.update:
+                          id: runtime_info_display
 
               # Runtime Info Display
               - label:
@@ -2335,7 +2355,7 @@ lvgl:
                     int blocks = id(pump_runtime_blocks);
                     int center_runtime = id(calculated_daily_runtime) / blocks;
                     int free_runtime = (blocks > 1) ? id(calculated_daily_runtime) / blocks : 0;
-                    
+
                     if (blocks == 1) {
                       snprintf(text, sizeof(text), "1 Run: All %d min centered at %02d:00", 
                                id(calculated_daily_runtime), id(center_pump_time_hour));
@@ -2613,17 +2633,17 @@ lvgl:
                   text: !lambda |-
                     static char text[200];
                     auto now = id(time_comp).now();
-                    
+
                     // Calculate today's runtime
                     int daily_runtime = id(calculated_daily_runtime);
                     if (daily_runtime == 0) {
                       // Trigger calculation if not done yet
                       return "Calculating runtime...";
                     }
-                    
+
                     int center_runtime = daily_runtime / id(pump_runtime_blocks);
                     int free_runtime = (id(pump_runtime_blocks) > 1) ? daily_runtime / id(pump_runtime_blocks) : 0;
-                    
+
                     snprintf(text, sizeof(text), 
                              "Today: %d min total\nCenter block: %d min (%02d:00 ±%d min)\nFree blocks: %d min each\nTemp: %.1f°C (ref: %.1f°C)", 
                              daily_runtime, 
@@ -2726,9 +2746,9 @@ lvgl:
                       - lambda: |-
                           ESP_LOGI("irrigation", "Manual test irrigation triggered");
                           id(irrigation_duration_remaining) = 5; // 5 minute test
-                      - switch.turn_on: sw3  # Irrigation Valve
+                      - switch.turn_on: sw3 # Irrigation Valve
                       - delay: 2s
-                      - switch.turn_on: sw2  # Water Pump
+                      - switch.turn_on: sw2 # Water Pump
                       - while:
                           condition:
                             lambda: "return id(irrigation_duration_remaining) > 0;"
@@ -2760,7 +2780,6 @@ lvgl:
                           // go to main page from settings page
                           id(lvgl_comp).show_page(1, LV_SCR_LOAD_ANIM_OVER_RIGHT, 300);
 
-  
     # Settings Page
     - id: settings_page
       bg_color: 0x000000
@@ -4209,7 +4228,7 @@ script:
       - lambda: |-
           // Calculate base daily runtime
           int daily_runtime;
-          
+
           if (id(seasonal_pump_enabled)) {
             // Seasonal calculation
             auto now = id(time_comp).now();
@@ -4233,7 +4252,7 @@ script:
             // Use summer max as fixed runtime
             daily_runtime = id(summer_max_runtime);
           }
-          
+
           // Temperature adjustment
           float temp_multiplier = 1.0;
           if (id(owm_temperature).has_state()) {
@@ -4241,14 +4260,14 @@ script:
             float temp_diff = temp - id(reference_temperature);
             temp_multiplier = 1.0 + (temp_diff * id(temp_rate_percent) / 100.0);
           }
-          
+
           // Apply temperature adjustment
           daily_runtime = (int)(daily_runtime * temp_multiplier);
           if (daily_runtime < id(winter_min_runtime)) daily_runtime = id(winter_min_runtime);
           if (daily_runtime > id(summer_max_runtime)) daily_runtime = id(summer_max_runtime);
-          
+
           id(calculated_daily_runtime) = daily_runtime;
-          
+
           // Calculate block runtimes based on number of blocks
           switch(id(pump_runtime_blocks)) {
             case 1:
@@ -4272,7 +4291,7 @@ script:
               id(free_block_runtime) = daily_runtime / 4;
               break;
           }
-          
+
           ESP_LOGI("irrigation", "Daily runtime: %d min, Center block: %d min, Free blocks: %d min each", 
                    daily_runtime, id(center_block_runtime), id(free_block_runtime));
 
@@ -4388,17 +4407,17 @@ script:
                 int current_minutes = now.hour * 60 + now.minute;
                 bool should_run = false;
                 int runtime_minutes = 0;
-                
+
                 // Check center block (always around 14:00)
                 int center_start = (id(center_pump_time_hour) * 60) - (id(center_block_runtime) / 2);
                 int center_end = (id(center_pump_time_hour) * 60) + (id(center_block_runtime) / 2);
-                
+
                 if (current_minutes >= center_start && current_minutes <= center_end) {
                   should_run = true;
                   runtime_minutes = id(center_block_runtime) - (current_minutes - center_start);
                   ESP_LOGI("irrigation", "Running center block, %d minutes remaining", runtime_minutes);
                 }
-                
+
                 // Check free blocks if more than 1 block configured
                 if (!should_run && id(pump_runtime_blocks) >= 2) {
                   int free_start2 = id(free_block2_start_hour) * 60 + id(free_block2_start_minute);
@@ -4410,7 +4429,7 @@ script:
                     ESP_LOGI("irrigation", "Running free block 2, %d minutes remaining", runtime_minutes);
                   }
                 }
-                
+
                 if (!should_run && id(pump_runtime_blocks) >= 3) {
                   int free_start3 = id(free_block3_start_hour) * 60 + id(free_block3_start_minute);
                   int free_end3 = free_start3 + id(free_block_runtime);
@@ -4421,7 +4440,7 @@ script:
                     ESP_LOGI("irrigation", "Running free block 3, %d minutes remaining", runtime_minutes);
                   }
                 }
-                
+
                 if (!should_run && id(pump_runtime_blocks) >= 4) {
                   int free_start4 = id(free_block4_start_hour) * 60 + id(free_block4_start_minute);
                   int free_end4 = free_start4 + id(free_block_runtime);
@@ -4432,17 +4451,17 @@ script:
                     ESP_LOGI("irrigation", "Running free block 4, %d minutes remaining", runtime_minutes);
                   }
                 }
-                
+
                 if (!should_run) {
                   ESP_LOGW("irrigation", "Current time not in any irrigation block");
                   return;
                 }
-                
+
                 id(irrigation_duration_remaining) = runtime_minutes;
-                
+
                 // Check if it's summer (add water) or winter (remove water)
                 bool is_summer = (now.month >= 4 && now.month <= 9);
-                
+
             - if:
                 condition:
                   lambda: |-
@@ -4450,14 +4469,14 @@ script:
                     return (now.month >= 4 && now.month <= 9); // Summer months
                 then:
                   # Summer: Turn on valve to ADD water
-                  - switch.turn_on: sw3  # Irrigation Valve
+                  - switch.turn_on: sw3 # Irrigation Valve
                   - delay: 2s
-                  - switch.turn_on: sw2  # Water Pump
+                  - switch.turn_on: sw2 # Water Pump
                 else:
                   # Winter: Turn on pump only to REMOVE water
-                  - switch.turn_off: sw3  # Ensure valve is closed
-                  - switch.turn_on: sw2   # Water Pump only
-                      
+                  - switch.turn_off: sw3 # Ensure valve is closed
+                  - switch.turn_on: sw2 # Water Pump only
+
             - while:
                 condition:
                   lambda: "return id(irrigation_duration_remaining) > 0 && id(sw2).state;"
@@ -4466,7 +4485,7 @@ script:
                   - lambda: |-
                       id(irrigation_duration_remaining)--;
                       ESP_LOGD("irrigation", "Irrigation remaining: %d minutes", id(irrigation_duration_remaining));
-                      
+
             # Turn off both pump and valve
             - switch.turn_off: sw2
             - switch.turn_off: sw3
