@@ -1983,7 +1983,7 @@ lvgl:
               # Done button
               - button:
                   id: pump_back_button
-                  x: 345
+                  x: 350
                   y: -10
                   width: 100
                   height: 40
@@ -2379,19 +2379,19 @@ lvgl:
             bg_opa: 50%
             radius: 0
             x: 10
-            y: 280
+            y: 290
             border_width: 0
             hidden: !lambda "return id(pump_runtime_blocks) < 2;"
             widgets:
               - label:
                   text: "Free Block 2 Start Time"
-                  text_font: roboto24
+                  text_font: roboto
                   text_color: 0xFFFFFF
                   x: 10
-                  y: 5
+                  y: -5
               - button:
                   x: 200
-                  y: 25
+                  y: 15
                   width: 30
                   height: 25
                   widgets:
@@ -2410,10 +2410,10 @@ lvgl:
                   text_font: roboto
                   text_color: 0xFFFFFF
                   x: 235
-                  y: 30
+                  y: 20
               - button:
                   x: 280
-                  y: 25
+                  y: 15
                   width: 30
                   height: 25
                   widgets:
@@ -2425,7 +2425,7 @@ lvgl:
                       - number.increment: free_block2_hour_input
               - button:
                   x: 320
-                  y: 25
+                  y: 15
                   width: 25
                   height: 25
                   widgets:
@@ -2438,7 +2438,7 @@ lvgl:
                       - number.decrement: free_block2_minute_input
               - button:
                   x: 350
-                  y: 25
+                  y: 15
                   width: 25
                   height: 25
                   widgets:
@@ -2460,18 +2460,18 @@ lvgl:
             bg_opa: 50%
             radius: 10
             x: 10
-            y: 350
+            y: 340
             hidden: !lambda "return id(pump_runtime_blocks) < 3;"
             widgets:
               - label:
                   text: "Free Block 3 Start Time"
-                  text_font: roboto24
+                  text_font: roboto
                   text_color: 0xFFFFFF
                   x: 10
-                  y: 5
+                  y: -5
               - button:
                   x: 200
-                  y: 25
+                  y: 15
                   width: 30
                   height: 25
                   widgets:
@@ -2490,10 +2490,10 @@ lvgl:
                   text_font: roboto
                   text_color: 0xFFFFFF
                   x: 235
-                  y: 30
+                  y: 20
               - button:
                   x: 280
-                  y: 25
+                  y: 15
                   width: 30
                   height: 25
                   widgets:
@@ -2505,7 +2505,7 @@ lvgl:
                       - number.increment: free_block3_hour_input
               - button:
                   x: 320
-                  y: 25
+                  y: 15
                   width: 25
                   height: 25
                   widgets:
@@ -2518,7 +2518,7 @@ lvgl:
                       - number.decrement: free_block3_minute_input
               - button:
                   x: 350
-                  y: 25
+                  y: 15
                   width: 25
                   height: 25
                   widgets:
@@ -2540,7 +2540,7 @@ lvgl:
             bg_opa: 50%
             radius: 10
             x: 10
-            y: 420
+            y: 410
             hidden: !lambda "return id(pump_runtime_blocks) < 4;"
             widgets:
               - label:
@@ -2548,10 +2548,10 @@ lvgl:
                   text_font: roboto24
                   text_color: 0xFFFFFF
                   x: 10
-                  y: 5
+                  y: -5
               - button:
                   x: 200
-                  y: 25
+                  y: 15
                   width: 30
                   height: 25
                   widgets:
@@ -2570,10 +2570,10 @@ lvgl:
                   text_font: roboto
                   text_color: 0xFFFFFF
                   x: 235
-                  y: 30
+                  y: 20
               - button:
                   x: 280
-                  y: 25
+                  y: 15
                   width: 30
                   height: 25
                   widgets:
@@ -2585,7 +2585,7 @@ lvgl:
                       - number.increment: free_block4_hour_input
               - button:
                   x: 320
-                  y: 25
+                  y: 15
                   width: 25
                   height: 25
                   widgets:
@@ -2598,7 +2598,7 @@ lvgl:
                       - number.decrement: free_block4_minute_input
               - button:
                   x: 350
-                  y: 25
+                  y: 15
                   width: 25
                   height: 25
                   widgets:
