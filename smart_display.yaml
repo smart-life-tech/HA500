@@ -110,6 +110,53 @@ ota:
     #           args: ["x"]
     #     - lambda: "id(lvgl_comp).loop();"
 sensor:
+  - platform: template
+    name: "Pool Volume"
+    id: pool_volume
+    unit_of_measurement: "m³"
+    accuracy_decimals: 2
+    lambda: |-
+      return id(pool_length) * id(pool_width) * id(pool_depth);
+
+  - platform: template
+    name: "Total Runtime"
+    id: total_runtime
+    unit_of_measurement: "h"
+    accuracy_decimals: 2
+    lambda: |-
+      float V = id(pool_length) * id(pool_width) * id(pool_depth);
+      return V / id(pump_flow_rate);
+
+  - platform: template
+    name: "Runtime per Block"
+    id: runtime_per_block
+    unit_of_measurement: "h"
+    accuracy_decimals: 2
+    lambda: |-
+      float V = id(pool_length) * id(pool_width) * id(pool_depth);
+      float T = V / id(pump_flow_rate);
+      return T / id(num_blocks);
+
+  - platform: template
+    name: "Adjusted Runtime"
+    id: adjusted_runtime
+    unit_of_measurement: "h"
+    accuracy_decimals: 2
+    lambda: |-
+      float V = id(pool_length) * id(pool_width) * id(pool_depth);
+      float T = V / id(pump_flow_rate);
+      float temp = id(pool_temp);
+      return T * (1.0 + id(temp_rate_percent) * (temp - id(reference_temperature)));
+
+  - platform: template
+    name: "Total Runtime (Multiple Cycles)"
+    unit_of_measurement: "h"
+    accuracy_decimals: 2
+    lambda: |-
+      float V = id(pool_length) * id(pool_width) * id(pool_depth);
+      float T = V / id(pump_flow_rate);
+      return id(cycles) * T;
+
   - platform: wifi_signal
     name: "WiFi Signal"
     id: wifi_rssi
@@ -335,6 +382,25 @@ sun:
 
 # Add this to update the sun component when location changes
 number:
+
+  - platform: template
+    name: "Temperature Adjustment Factor (per °C)"
+    id: temp_coeff
+    optimistic: true
+    min_value: 0.00
+    max_value: 0.10
+    step: 0.001
+    initial_value: 0.02
+
+  - platform: template
+    name: "Reference Temperature (°C)"
+    id: temp_ref
+    optimistic: true
+    min_value: 0
+    max_value: 40
+    step: 0.5
+    initial_value: 25.0
+
   # Seasonal settings
   - platform: template
     id: winter_min_input
@@ -890,6 +956,33 @@ color:
 # Global variables for timer tracking and settings
 globals:
   # Seasonal settings
+  - id: pool_depth
+    type: float
+    initial_value: "1.5"
+  - id: pool_length
+    type: float
+    initial_value: "3.0"
+  - id: pool_width
+    type: float
+    initial_value: "2.0"
+  - id: pump_flow_rate
+    type: float
+    initial_value: "5.0"
+  - id: pool_temperature
+    type: float
+    initial_value: "25.0"
+  - id: cycles
+    type: int
+    initial_value: "0"
+  - id: total_runtime_multiple
+    type: int
+    initial_value: "1"
+  - id: pool_temp
+    type: float
+    initial_value: "25.0" # Default pool temperature
+  - id: num_blocks
+    type: int
+    initial_value: "1"
   - id: seasonal_pump_enabled
     type: bool
     initial_value: "true"
@@ -3790,6 +3883,219 @@ lvgl:
                           // go to sttong page from control page
                           id(lvgl_comp).show_page(1, LV_SCR_LOAD_ANIM_OVER_RIGHT, 300);
 
+    - id: pool_pump_settings_page
+      bg_color: 0x0F172A
+      pad_all: 0
+      border_width: 0
+      scrollable: true
+      widgets:
+        # Optional background image
+        - image:
+            src: background_image
+            x: 0
+            y: 0
+            width: 480
+            height: 320
+            align: TOP_LEFT
+
+        # Title bar
+        - obj:
+            width: 460
+            height: 44
+            bg_color: 0x2563EB
+            bg_opa: 80%
+            radius: 10
+            x: 10
+            y: 10
+            widgets:
+              - label:
+                  text: "POOL PUMP SETTINGS"
+                  text_font: roboto24
+                  align: center
+                  text_color: 0xFFFFFF
+                  x: 0
+                  y: 6
+
+        # Editable settings section
+        - obj:
+            width: 460
+            height: 230
+            bg_opa: 30%
+            radius: 10
+            x: 10
+            y: 64
+            widgets:
+              - label:
+                  text: "Pool Dimensions / Pump Settings"
+                  text_font: roboto
+                  text_color: 0xFFFFFF
+                  x: 10
+                  y: 8
+
+              # Pool Length
+              - label: {text: "Length (m):", text_font: roboto, x: 10, y: 40, text_color: 0xA7F3D0}
+              - label:
+                  id: pool_length_number
+                  x: 140
+                  y: 36
+                  width: 80
+                  text_color: 0xFFFFFF
+                  
+
+              # Pool Width
+              - label: {text: "Width (m):", text_font: roboto, x: 10, y: 70, text_color: 0xA7F3D0}
+              - label:
+                  id: pool_width_number
+                  
+                  x: 140
+                  y: 66
+                  width: 80
+                  text_color: 0xFFFFFF
+                   
+
+              # Pool Depth
+              - label: {text: "Depth (m):", text_font: roboto, x: 10, y: 100, text_color: 0xA7F3D0}
+              - label:
+                  id: pool_depth_number
+                  
+                  x: 140
+                  y: 96
+                  width: 80
+                  text_color: 0xFFFFFF
+                   
+
+              # Pump Flow Rate
+              - label: {text: "Flow Rate (m³/h):", text_font: roboto, x: 10, y: 130, text_color: 0xA7F3D0}
+              - label:
+                  id: pump_flow_number
+                  
+                  x: 140
+                  y: 126
+                  width: 80
+                  text_color: 0xFFFFFF
+                   
+
+              # Number of Blocks
+              - label: {text: "Blocks:", text_font: roboto, x: 10, y: 160, text_color: 0xA7F3D0}
+              - label:
+                  id: blocks_number
+                  
+                  x: 140
+                  y: 156
+                  width: 80
+                  text_color: 0xFFFFFF
+                   
+
+              # Cycles
+              - label: {text: "Cycles:", text_font: roboto, x: 10, y: 190, text_color: 0xA7F3D0}
+              - label:
+                  id: cycles_number
+                  
+                  x: 140
+                  y: 186
+                  width: 80
+                  text_color: 0xFFFFFF
+                  
+        # Results section
+        - obj:
+            width: 460
+            height: 100
+            bg_opa: 40%
+            radius: 10
+            x: 10
+            y: 305
+            widgets:
+              - label:
+                  text: "Calculated Results"
+                  text_font: roboto
+                  text_color: 0x38BDF8
+                  x: 10
+                  y: 8
+
+              - label:
+                  text: "Volume:"
+                  text_font: roboto
+                  x: 10
+                  y: 34
+                  text_color: 0xFFFFFF
+              - label:
+                  id: pool_volume_label
+                  text: !lambda |-
+                    static char buf[32];
+                    snprintf(buf, sizeof(buf), "%.2f m³", id(pool_volume));
+                    return buf;
+                  text_font: roboto
+                  x: 110
+                  y: 34
+                  text_color: 0xFFFFFF
+
+              - label:
+                  text: "Total Runtime:"
+                  text_font: roboto
+                  x: 10
+                  y: 54
+                  text_color: 0xFFFFFF
+              - label:
+                  id: total_runtime_label
+                  text: !lambda |-
+                    static char buf[32];
+                    snprintf(buf, sizeof(buf), "%.2f h", id(total_runtime));
+                    return buf;
+                  text_font: roboto
+                  x: 110
+                  y: 54
+                  text_color: 0xFFFFFF
+
+              - label:
+                  text: "Per Block:"
+                  text_font: roboto
+                  x: 10
+                  y: 74
+                  text_color: 0xFFFFFF
+              - label:
+                  id: runtime_per_block_label
+                  text: !lambda |-
+                    static char buf[32];
+                    snprintf(buf, sizeof(buf), "%.2f h", id(runtime_per_block));
+                    return buf;
+                  text_font: roboto
+                  x: 110
+                  y: 74
+                  text_color: 0xFFFFFF
+
+              - label:
+                  text: "Adjusted:"
+                  text_font: roboto
+                  x: 260
+                  y: 34
+                  text_color: 0xFFFFFF
+              - label:
+                  id: adjusted_runtime_label
+                  text: !lambda |-
+                    static char buf[32];
+                    snprintf(buf, sizeof(buf), "%.2f h", id(adjusted_runtime));
+                    return buf;
+                  text_font: roboto
+                  x: 350
+                  y: 34
+                  text_color: 0xFFFFFF
+
+              - label:
+                  text: "Total (Cycles):"
+                  text_font: roboto
+                  x: 260
+                  y: 54
+                  text_color: 0xFFFFFF
+              - label:
+                  id: total_cycles_label
+                  text: !lambda |-
+                    static char buf[32];
+                    snprintf(buf, sizeof(buf), "%.2f h", id(total_runtime_multiple));
+                    return buf;
+                  text_font: roboto
+                  x: 370
+                  y: 54
+                  text_color: 0xFFFFFF
 #-------------------------------------------
 # Internal outputs
 #-------------------------------------------
