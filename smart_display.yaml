@@ -3915,6 +3915,23 @@ lvgl:
                   text_color: 0xFFFFFF
                   x: 0
                   y: 6
+              - button:
+                  id: back_to_controls_btn_pool
+                  x: 300
+                  y: 10
+                  width: 150
+                  height: 60
+                  bg_color: 0x00FF00
+                  widgets:
+                    - label:
+                        text: "Done"
+                        text_font: roboto
+                        align: center
+                  on_click:
+                    then:
+                      - lambda: |-
+                          // go to sttong page from control page
+                          id(lvgl_comp).show_page(1, LV_SCR_LOAD_ANIM_OVER_RIGHT, 300);
 
         # Editable settings section
         - obj:
