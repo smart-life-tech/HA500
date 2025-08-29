@@ -2552,6 +2552,7 @@ lvgl:
             bg_color: 0x000000
             bg_opa: 50%
             radius: 10
+            border_width: 0
             x: 10
             y: 355
             hidden: !lambda "return id(pump_runtime_blocks) < 3;"
@@ -2632,6 +2633,7 @@ lvgl:
             bg_color: 0x000000
             bg_opa: 50%
             radius: 10
+            border_width: 0
             x: 10
             y: 415
             hidden: !lambda "return id(pump_runtime_blocks) < 4;"
