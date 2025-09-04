@@ -2000,7 +2000,7 @@ lvgl:
             height: 60
             bg_color: 0x000000
             bg_opa: 0%
-            radius: 10
+            radius: 5
             x: 10
             y: 10
             border_width: 2
@@ -2467,7 +2467,7 @@ lvgl:
             bg_opa: 50%
             radius: 10
             x: 10
-            y: 290
+            y: 295
             border_width: 0
             hidden: !lambda "return id(pump_runtime_blocks) < 2;"
             widgets:
