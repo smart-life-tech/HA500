@@ -280,7 +280,7 @@ wifi:
   # Added parameters for better connection reliability
   power_save_mode: NONE
   fast_connect: false # Disable for better reliability with multiple networks
-  reboot_timeout: 0s
+  reboot_timeout: 5min  # Reboots if no Wi-Fi connection is made
   output_power: 20.0
   enable_rrm: true
   enable_btm: true
@@ -289,6 +289,7 @@ wifi:
   ap:
     ssid: "PhiJo Smart Products"
     password: !secret wifi_fallback_password
+    ap_timeout: 1min  # Automatically disables fallback AP after 1 minute
 
   # Existing event handlers
   on_connect:
