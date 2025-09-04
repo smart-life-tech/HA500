@@ -5304,7 +5304,7 @@ interval:
             - logger.log: "Making weather API request..."
             - http_request.get:
                 url: "http://api.openweathermap.org/data/2.5/weather?q=Sao%20Bartolomeu%20de%20messines&appid=b0fed035f1b875bafaf66f85d33f4e71&units=metric"
-                headers:
+                request_headers:
                   User-Agent: "ESPHome/1.0"
                 capture_response: true
                 on_response:
