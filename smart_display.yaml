@@ -50,7 +50,7 @@ psram:
 
 # Enable logging
 logger:
-  level: NONE
+  level: VERY_VERBOSE
   baud_rate: 115200
 
 preferences:
