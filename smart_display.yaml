@@ -278,7 +278,7 @@ wifi:
       priority: 80
   
   # Added parameters for better connection reliability
-  power_save_mode: NONE
+  power_save_mode: LIGHT
   fast_connect: false # Disable for better reliability with multiple networks
   reboot_timeout: 5min  # Reboots if no Wi-Fi connection is made
   output_power: 20.0
