@@ -289,7 +289,7 @@ wifi:
   ap:
     ssid: "PhiJo Smart Products"
     password: !secret wifi_fallback_password
-    ap_timeout: 1min  # Automatically disables fallback AP after 1 minute
+    ap_timeout: 10min  # Automatically disables fallback AP after 1 minute
 
   # Existing event handlers
   on_connect:
