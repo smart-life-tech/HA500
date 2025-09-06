@@ -2069,6 +2069,25 @@ lvgl:
                   text_color: 0xFFFFFF
                   x: 0
                   y: 0
+              # pool button
+              - button:
+                  id: pump_nav_button
+                  x: 250
+                  y: -10
+                  width: 150
+                  height: 40
+                  styles: nav_button_style
+                  bg_color: 0x00FF00
+                  widgets:
+                    - label:
+                        text: "Pool Dim."
+                        text_font: roboto
+                        align: center
+                  on_click:
+                    then:
+                      - lambda: |-
+                          // go to main page from settings page
+                          id(lvgl_comp).show_page(6, LV_SCR_LOAD_ANIM_OVER_RIGHT, 300);
               # Done button
               - button:
                   id: pump_back_button
@@ -2076,6 +2095,7 @@ lvgl:
                   y: -10
                   width: 100
                   height: 40
+                  radius: 10
                   styles: nav_button_style
                   bg_color: 0x00FF00
                   widgets:
@@ -3852,6 +3872,8 @@ lvgl:
                   y: 10
                   width: 130
                   height: 60
+                  state:
+                    checked: true
                   widgets:
                     - label:
                         text: "Manual"
@@ -4642,13 +4664,13 @@ script:
     then:
       - component.update: ip_address # Force update the IP sensor first
       - delay: 500ms
-      # - lvgl.qrcode.update:
-      #     id: settings_qr
-      #     text: !lambda |-
-      #       if (id(ip_address).has_state() && !id(ip_address).state.empty()) {
-      #         return "phijo-smart-device.local/";
-      #       }
-      #       return "http://192.168.4.1/";
+      - lvgl.qrcode.update:
+          id: settings_qr
+          text: !lambda |-
+            if (id(ip_address).has_state() && !id(ip_address).state.empty()) {
+              return "phijo-smart-device.local/";
+            }
+            return "http://192.168.4.1/";
 
       - lvgl.label.update:
           id: qr_url_label
