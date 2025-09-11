@@ -2076,7 +2076,7 @@ lvgl:
               # pool button
               - button:
                   id: pump_nav_button
-                  x: 250
+                  x: 180
                   y: -10
                   width: 150
                   height: 40
@@ -3911,7 +3911,7 @@ lvgl:
       bg_color: 0x0F172A
       pad_all: 0
       border_width: 0
-      scrollable: true
+      scrollable: false
       widgets:
         # Optional background image
         - image:
@@ -3919,7 +3919,7 @@ lvgl:
             x: 0
             y: 0
             width: 480
-            height: 320
+            height: 480
             align: TOP_LEFT
 
         # Title bar
@@ -3939,11 +3939,12 @@ lvgl:
                   text_color: 0xFFFFFF
                   x: 0
                   y: 6
+                  scrollable: false
               - button:
                   id: back_to_controls_btn_pool
-                  x: 300
-                  y: 10
-                  width: 150
+                  x: 350
+                  y: -10
+                  width: 80
                   height: 60
                   bg_color: 0x00FF00
                   widgets:
@@ -3962,7 +3963,7 @@ lvgl:
         - obj:
             width: 460
             height: 230
-            bg_opa: 30%
+            bg_opa: 50%
             radius: 10
             x: 10
             y: 64
