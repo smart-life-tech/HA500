@@ -3994,9 +3994,15 @@ lvgl:
                   on_press:
                     - lambda: |-
                         id(pool_length) += 0.1;
-                        id(pool_length_number).update();
+                    - lvgl.label.update:
+                        id: pool_length_number
+                        text: !lambda |-
+                            static char text[20];
+                            snprintf(text, sizeof(text), "%d pool_depth_number ", id(pool_length));
+                            return text;
                   widgets:
                     - label: {text: "+", text_font: roboto, align: CENTER}
+        
               - button:
                   x: 270
                   y: 36
@@ -4005,7 +4011,12 @@ lvgl:
                   on_press:
                     - lambda: |-
                         if (id(pool_length) > 0.1) id(pool_length) -= 0.1;
-                        id(pool_length_number).update();
+                    - lvgl.label.update:
+                        id: pool_length_number
+                        text: !lambda |-
+                            static char text[20];
+                            snprintf(text, sizeof(text), "%d pool_depth_number ", id(pool_length));
+                            return text;
                   widgets:
                     - label: {text: "-", text_font: roboto, align: CENTER}
 
@@ -4029,7 +4040,12 @@ lvgl:
                   on_press:
                     - lambda: |-
                         id(pool_width) += 0.1;
-                        id(pool_width_number).update();
+                    - lvgl.label.update:
+                        id: pool_width_number
+                        text: !lambda |-
+                            static char text[20];
+                            snprintf(text, sizeof(text), "%d pool_depth_number ", id(pool_width));
+                            return text;
                   widgets:
                     - label: {text: "+", text_font: roboto, align: CENTER}
               - button:
@@ -4040,7 +4056,12 @@ lvgl:
                   on_press:
                     - lambda: |-
                         if (id(pool_width) > 0.1) id(pool_width) -= 0.1;
-                        id(pool_width_number).update();
+                    - lvgl.label.update:
+                        id: pool_width_number
+                        text: !lambda |-
+                            static char text[20];
+                            snprintf(text, sizeof(text), "%d pool_depth_number ", id(pool_width));
+                            return text;
                   widgets:
                     - label: {text: "-", text_font: roboto, align: CENTER}
 
@@ -4064,7 +4085,12 @@ lvgl:
                   on_press:
                     - lambda: |-
                         id(pool_depth) += 0.1;
-                        id(pool_depth_number).update();
+                    - lvgl.label.update:
+                        id: pool_depth_number
+                        text: !lambda |-
+                            static char text[20];
+                            snprintf(text, sizeof(text), "%d pool_depth_number ", id(pool_depth));
+                            return text;
                   widgets:
                     - label: {text: "+", text_font: roboto, align: CENTER}
               - button:
@@ -4075,7 +4101,12 @@ lvgl:
                   on_press:
                     - lambda: |-
                         if (id(pool_depth) > 0.1) id(pool_depth) -= 0.1;
-                        id(pool_depth_number).update();
+                    - lvgl.label.update:
+                        id: pool_depth_number
+                        text: !lambda |-  
+                            static char text[20];
+                            snprintf(text, sizeof(text), "%d pool_depth_number ", id(pool_depth));
+                            return text;
                   widgets:
                     - label: {text: "-", text_font: roboto, align: CENTER}
 
@@ -4099,7 +4130,12 @@ lvgl:
                   on_press:
                     - lambda: |-
                         id(pump_flow_rate) += 0.5;
-                        id(pump_flow_number).update();
+                    - lvgl.label.update:
+                        id: pump_flow_number
+                        text: !lambda |-
+                            static char text[20];
+                            snprintf(text, sizeof(text), "%d pump_flow_number ", id(pump_flow_rate));
+                            return text;
                   widgets:
                     - label: {text: "+", text_font: roboto, align: CENTER}
               - button:
@@ -4110,7 +4146,12 @@ lvgl:
                   on_press:
                     - lambda: |-
                         if (id(pump_flow_rate) > 0.5) id(pump_flow_rate) -= 0.5;
-                        id(pump_flow_number).update();
+                    - lvgl.label.update:
+                        id: pump_flow_number
+                        text: !lambda |-
+                            static char text[20];
+                            snprintf(text, sizeof(text), "%d pump_flow_number ", id(pump_flow_rate));
+                            return text;
                   widgets:
                     - label: {text: "-", text_font: roboto, align: CENTER}
 
@@ -4134,7 +4175,12 @@ lvgl:
                   on_press:
                     - lambda: |-
                         id(num_blocks) += 1;
-                        id(blocks_number).update();
+                    - lvgl.label.update:
+                        id: blocks_number
+                        text: !lambda |-
+                            static char text[20];
+                            snprintf(text, sizeof(text), "%d", id(num_blocks));
+                            return text;  
                   widgets:
                     - label: {text: "+", text_font: roboto, align: CENTER}
               - button:
@@ -4145,7 +4191,12 @@ lvgl:
                   on_press:
                     - lambda: |-
                         if (id(num_blocks) > 1) id(num_blocks) -= 1;
-                        id(blocks_number).update();
+                    - lvgl.label.update:
+                        id: blocks_number
+                        text: !lambda |-
+                            static char text[20];
+                            snprintf(text, sizeof(text), "%d", id(num_blocks));
+                            return text;
                   widgets:
                     - label: {text: "-", text_font: roboto, align: CENTER}
 
@@ -4169,7 +4220,12 @@ lvgl:
                   on_press:
                     - lambda: |-
                         id(cycles_count) += 1;
-                        id(cycles_number).update();
+                    - lvgl.label.update:
+                        id: cycles_number
+                        text: !lambda |-
+                            static char text[20];
+                            snprintf(text, sizeof(text), "%d", id(cycles_count));
+                            return text;
                   widgets:
                     - label: {text: "+", text_font: roboto, align: CENTER}
               - button:
@@ -4180,7 +4236,12 @@ lvgl:
                   on_press:
                     - lambda: |-
                         if (id(cycles_count) > 1) id(cycles_count) -= 1;
-                        id(cycles_number).update();
+                    - lvgl.label.update:
+                        id: cycles_number
+                        text: !lambda |-
+                            static char text[20];
+                            snprintf(text, sizeof(text), "%d", id(cycles_count));
+                            return text;
                   widgets:
                     - label: {text: "-", text_font: roboto, align: CENTER}
 
