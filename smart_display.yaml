@@ -3954,6 +3954,7 @@ lvgl:
                           id(lvgl_comp).show_page(1, LV_SCR_LOAD_ANIM_OVER_RIGHT, 300);
 
         # Editable settings section
+        
         - obj:
             width: 460
             height: 230
@@ -3982,7 +3983,6 @@ lvgl:
                     sprintf(buf, "%.2f", id(pool_length));
                     return buf;
               - button:
-                  text: "+"
                   x: 230
                   y: 36
                   width: 30
@@ -3991,8 +3991,9 @@ lvgl:
                     - lambda: |-
                         id(pool_length) += 0.1;
                         id(pool_length_number).update();
+                  widgets:
+                    - label: {text: "+", text_font: roboto, align: CENTER}
               - button:
-                  text: "-"
                   x: 270
                   y: 36
                   width: 30
@@ -4001,6 +4002,8 @@ lvgl:
                     - lambda: |-
                         if (id(pool_length) > 0.1) id(pool_length) -= 0.1;
                         id(pool_length_number).update();
+                  widgets:
+                    - label: {text: "-", text_font: roboto, align: CENTER}
 
               # Pool Width
               - label: {text: "Width (m):", text_font: roboto, x: 10, y: 70, text_color: 0xA7F3D0}
@@ -4015,7 +4018,6 @@ lvgl:
                     sprintf(buf, "%.2f", id(pool_width));
                     return buf;
               - button:
-                  text: "+"
                   x: 230
                   y: 66
                   width: 30
@@ -4024,8 +4026,9 @@ lvgl:
                     - lambda: |-
                         id(pool_width) += 0.1;
                         id(pool_width_number).update();
+                  widgets:
+                    - label: {text: "+", text_font: roboto, align: CENTER}
               - button:
-                  text: "-"
                   x: 270
                   y: 66
                   width: 30
@@ -4034,6 +4037,8 @@ lvgl:
                     - lambda: |-
                         if (id(pool_width) > 0.1) id(pool_width) -= 0.1;
                         id(pool_width_number).update();
+                  widgets:
+                    - label: {text: "-", text_font: roboto, align: CENTER}
 
               # Pool Depth
               - label: {text: "Depth (m):", text_font: roboto, x: 10, y: 100, text_color: 0xA7F3D0}
@@ -4048,7 +4053,6 @@ lvgl:
                     sprintf(buf, "%.2f", id(pool_depth));
                     return buf;
               - button:
-                  text: "+"
                   x: 230
                   y: 96
                   width: 30
@@ -4057,8 +4061,9 @@ lvgl:
                     - lambda: |-
                         id(pool_depth) += 0.1;
                         id(pool_depth_number).update();
+                  widgets:
+                    - label: {text: "+", text_font: roboto, align: CENTER}
               - button:
-                  text: "-"
                   x: 270
                   y: 96
                   width: 30
@@ -4067,6 +4072,8 @@ lvgl:
                     - lambda: |-
                         if (id(pool_depth) > 0.1) id(pool_depth) -= 0.1;
                         id(pool_depth_number).update();
+                  widgets:
+                    - label: {text: "-", text_font: roboto, align: CENTER}
 
               # Pump Flow Rate
               - label: {text: "Flow Rate (m³/h):", text_font: roboto, x: 10, y: 130, text_color: 0xA7F3D0}
@@ -4081,7 +4088,6 @@ lvgl:
                     sprintf(buf, "%.1f", id(pump_flow));
                     return buf;
               - button:
-                  text: "+"
                   x: 230
                   y: 126
                   width: 30
@@ -4090,8 +4096,9 @@ lvgl:
                     - lambda: |-
                         id(pump_flow) += 0.5;
                         id(pump_flow_number).update();
+                  widgets:
+                    - label: {text: "+", text_font: roboto, align: CENTER}
               - button:
-                  text: "-"
                   x: 270
                   y: 126
                   width: 30
@@ -4100,6 +4107,8 @@ lvgl:
                     - lambda: |-
                         if (id(pump_flow) > 0.5) id(pump_flow) -= 0.5;
                         id(pump_flow_number).update();
+                  widgets:
+                    - label: {text: "-", text_font: roboto, align: CENTER}
 
               # Number of Blocks
               - label: {text: "Blocks:", text_font: roboto, x: 10, y: 160, text_color: 0xA7F3D0}
@@ -4114,7 +4123,6 @@ lvgl:
                     sprintf(buf, "%d", id(blocks));
                     return buf;
               - button:
-                  text: "+"
                   x: 230
                   y: 156
                   width: 30
@@ -4123,8 +4131,9 @@ lvgl:
                     - lambda: |-
                         id(blocks) += 1;
                         id(blocks_number).update();
+                  widgets:
+                    - label: {text: "+", text_font: roboto, align: CENTER}
               - button:
-                  text: "-"
                   x: 270
                   y: 156
                   width: 30
@@ -4133,6 +4142,8 @@ lvgl:
                     - lambda: |-
                         if (id(blocks) > 1) id(blocks) -= 1;
                         id(blocks_number).update();
+                  widgets:
+                    - label: {text: "-", text_font: roboto, align: CENTER}
 
               # Cycles
               - label: {text: "Cycles:", text_font: roboto, x: 10, y: 190, text_color: 0xA7F3D0}
@@ -4147,7 +4158,6 @@ lvgl:
                     sprintf(buf, "%d", id(cycles));
                     return buf;
               - button:
-                  text: "+"
                   x: 230
                   y: 186
                   width: 30
@@ -4156,8 +4166,9 @@ lvgl:
                     - lambda: |-
                         id(cycles) += 1;
                         id(cycles_number).update();
+                  widgets:
+                    - label: {text: "+", text_font: roboto, align: CENTER}
               - button:
-                  text: "-"
                   x: 270
                   y: 186
                   width: 30
@@ -4166,6 +4177,9 @@ lvgl:
                     - lambda: |-
                         if (id(cycles) > 1) id(cycles) -= 1;
                         id(cycles_number).update();
+                  widgets:
+                    - label: {text: "-", text_font: roboto, align: CENTER}
+
 
 #-------------------------------------------
 # Internal outputs
