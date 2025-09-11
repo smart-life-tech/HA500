@@ -3945,7 +3945,7 @@ lvgl:
                   x: 350
                   y: -10
                   width: 80
-                  height: 60
+                  height: 40
                   bg_color: 0x00FF00
                   widgets:
                     - label:
@@ -3963,7 +3963,7 @@ lvgl:
         - obj:
             width: 460
             height: 230
-            bg_opa: 50%
+            bg_opa: 80%
             radius: 10
             x: 10
             y: 64
@@ -3999,7 +3999,7 @@ lvgl:
                         id: pool_length_number
                         text: !lambda |-
                             static char text[20];
-                            snprintf(text, sizeof(text), "%d pool_depth_number ", id(pool_length));
+                            snprintf(text, sizeof(text), "%d  ", id(pool_length));
                             return text;
                   widgets:
                     - label: {text: "+", text_font: roboto, align: CENTER}
