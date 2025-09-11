@@ -3942,9 +3942,9 @@ lvgl:
                   scrollable: false
               - button:
                   id: back_to_controls_btn_pool
-                  x: 350
+                  x: 360
                   y: -10
-                  width: 80
+                  width: 60
                   height: 40
                   bg_color: 0x00FF00
                   widgets:
@@ -4112,7 +4112,7 @@ lvgl:
                     - label: {text: "-", text_font: roboto, align: CENTER}
 
               # Pump Flow Rate
-              - label: {text: "Flow Rate (m³/h):", text_font: roboto, x: 10, y: 130, text_color: 0xA7F3D0}
+              - label: {text: "Flow Rate :", text_font: roboto, x: 10, y: 130, text_color: 0xA7F3D0}
               - label:
                   id: pump_flow_number
                   x: 140
