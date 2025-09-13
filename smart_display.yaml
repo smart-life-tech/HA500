@@ -3943,7 +3943,7 @@ lvgl:
               - button:
                   id: back_to_controls_btn_pool
                   x: 360
-                  y: -13
+                  y: -10
                   width: 60
                   height: 30
                   bg_color: 0x00FF00
