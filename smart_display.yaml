@@ -1,9 +1,9 @@
-# known value 'MIDDLE_LEFT', valid options are 'TOP_LEFT', 'TOP_MID', 'TOP_RIGHT', 'LEFT_MID', 'CENTER', 'RIGHT_MID', 'BOTTOM_LEFT', 'BOTTOM_MID', 'BOTTOM_RIGHT'.
+# known values 'MIDDLE_LEFT', valid options are 'TOP_LEFT', 'TOP_MID', 'TOP_RIGHT', 'LEFT_MID', 'CENTER', 'RIGHT_MID', 'BOTTOM_LEFT', 'BOTTOM_MID', 'BOTTOM_RIGHT'.
 substitutions:
   name: "phijo-smart-device"
   friendly_name: "Phijo Smart"
-  device_description: " Smart  Controller"
-  project_name: "Guition.ESP32_S3_4848S040"
+  device_description: " Smart Controller"
+  project_name: "phijo-smart-device"
   project_version: "1.0.2"
   wifi_ssid: ""
   wifi_password: ""
