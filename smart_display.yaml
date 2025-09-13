@@ -3927,7 +3927,7 @@ lvgl:
             width: 460
             height: 44
             bg_color: 0x2563EB
-            bg_opa: 50%
+            bg_opa: 0%
             radius: 10
             x: 10
             y: 10
@@ -3976,13 +3976,13 @@ lvgl:
                   y: 8
 
               # Pool Length
-              - label: {text: "Length (m):", text_font: roboto, x: 10, y: 50, text_color: 0xA7F3D0}
+              - label: {text: "Length (m):", text_font: roboto, x: 10, y: 50, text_color: 0x000000}
               - label:
                   id: pool_length_number
                   x: 140
                   y: 46
                   width: 80
-                  text_color: 0xFFFFFF
+                  text_color: 0x000000
                   text: !lambda |-
                     static char buf[16];
                     sprintf(buf, "%.2f", id(pool_length));
@@ -4021,7 +4021,7 @@ lvgl:
                     - label: {text: "-", text_font: roboto, align: CENTER}
 
               # Pool Width
-              - label: {text: "Width (m):", text_font: roboto, x: 10, y: 90, text_color: 0xA7F3D0}
+              - label: {text: "Width (m):", text_font: roboto, x: 10, y: 90, text_color: 0x000000}
               - label:
                   id: pool_width_number
                   x: 140
@@ -4066,7 +4066,7 @@ lvgl:
                     - label: {text: "-", text_font: roboto, align: CENTER}
 
               # Pool Depth
-              - label: {text: "Depth (m):", text_font: roboto, x: 10, y: 130, text_color: 0xA7F3D0}
+              - label: {text: "Depth (m):", text_font: roboto, x: 10, y: 130, text_color: 0x000000}
               - label:
                   id: pool_depth_number
                   x: 140
@@ -4111,7 +4111,7 @@ lvgl:
                     - label: {text: "-", text_font: roboto, align: CENTER}
 
               # Pump Flow Rate
-              - label: {text: "Flow Rate:", text_font: roboto, x: 10, y: 170, text_color: 0xA7F3D0}
+              - label: {text: "Flow Rate:", text_font: roboto, x: 10, y: 170, text_color: 0x000000}
               - label:
                   id: pump_flow_number
                   x: 140
@@ -4156,7 +4156,7 @@ lvgl:
                     - label: {text: "-", text_font: roboto, align: CENTER}
 
               # Number of Blocks
-              - label: {text: "Blocks:", text_font: roboto, x: 10, y: 210, text_color: 0xA7F3D0}
+              - label: {text: "Blocks:", text_font: roboto, x: 10, y: 210, text_color: 0x000000}
               - label:
                   id: blocks_number
                   x: 140
@@ -4201,7 +4201,7 @@ lvgl:
                     - label: {text: "-", text_font: roboto, align: CENTER}
 
               # Cycles
-              - label: {text: "Cycles:", text_font: roboto, x: 10, y: 250, text_color: 0xA7F3D0}
+              - label: {text: "Cycles:", text_font: roboto, x: 10, y: 250, text_color: 0x000000}
               - label:
                   id: cycles_number
                   x: 140
