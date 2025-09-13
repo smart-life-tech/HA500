@@ -3962,7 +3962,7 @@ lvgl:
         
         - obj:
             width: 460
-            height: 230
+            height: 310
             bg_opa: 80%
             radius: 10
             x: 10
@@ -3976,11 +3976,11 @@ lvgl:
                   y: 8
 
               # Pool Length
-              - label: {text: "Length (m):", text_font: roboto, x: 10, y: 40, text_color: 0xA7F3D0}
+              - label: {text: "Length (m):", text_font: roboto, x: 10, y: 50, text_color: 0xA7F3D0}
               - label:
                   id: pool_length_number
                   x: 140
-                  y: 36
+                  y: 46
                   width: 80
                   text_color: 0xFFFFFF
                   text: !lambda |-
@@ -3989,9 +3989,9 @@ lvgl:
                     return buf;
               - button:
                   x: 230
-                  y: 36
-                  width: 30
-                  height: 30
+                  y: 44
+                  width: 35
+                  height: 35
                   on_press:
                     - lambda: |-
                         id(pool_length) += 0.1;
@@ -3999,16 +3999,15 @@ lvgl:
                         id: pool_length_number
                         text: !lambda |-
                             static char text[20];
-                            snprintf(text, sizeof(text), "%d  ", id(pool_length));
+                            snprintf(text, sizeof(text), "%.2f", id(pool_length));
                             return text;
                   widgets:
                     - label: {text: "+", text_font: roboto, align: CENTER}
-        
               - button:
-                  x: 270
-                  y: 36
-                  width: 30
-                  height: 30
+                  x: 275
+                  y: 44
+                  width: 35
+                  height: 35
                   on_press:
                     - lambda: |-
                         if (id(pool_length) > 0.1) id(pool_length) -= 0.1;
@@ -4016,17 +4015,17 @@ lvgl:
                         id: pool_length_number
                         text: !lambda |-
                             static char text[20];
-                            snprintf(text, sizeof(text), "%d pool_depth_number ", id(pool_length));
+                            snprintf(text, sizeof(text), "%.2f", id(pool_length));
                             return text;
                   widgets:
                     - label: {text: "-", text_font: roboto, align: CENTER}
 
               # Pool Width
-              - label: {text: "Width (m):", text_font: roboto, x: 10, y: 70, text_color: 0xA7F3D0}
+              - label: {text: "Width (m):", text_font: roboto, x: 10, y: 90, text_color: 0xA7F3D0}
               - label:
                   id: pool_width_number
                   x: 140
-                  y: 66
+                  y: 86
                   width: 80
                   text_color: 0xFFFFFF
                   text: !lambda |-
@@ -4035,9 +4034,9 @@ lvgl:
                     return buf;
               - button:
                   x: 230
-                  y: 66
-                  width: 30
-                  height: 30
+                  y: 84
+                  width: 35
+                  height: 35
                   on_press:
                     - lambda: |-
                         id(pool_width) += 0.1;
@@ -4045,15 +4044,15 @@ lvgl:
                         id: pool_width_number
                         text: !lambda |-
                             static char text[20];
-                            snprintf(text, sizeof(text), "%d pool_depth_number ", id(pool_width));
+                            snprintf(text, sizeof(text), "%.2f", id(pool_width));
                             return text;
                   widgets:
                     - label: {text: "+", text_font: roboto, align: CENTER}
               - button:
-                  x: 270
-                  y: 66
-                  width: 30
-                  height: 30
+                  x: 275
+                  y: 84
+                  width: 35
+                  height: 35
                   on_press:
                     - lambda: |-
                         if (id(pool_width) > 0.1) id(pool_width) -= 0.1;
@@ -4061,17 +4060,17 @@ lvgl:
                         id: pool_width_number
                         text: !lambda |-
                             static char text[20];
-                            snprintf(text, sizeof(text), "%d pool_depth_number ", id(pool_width));
+                            snprintf(text, sizeof(text), "%.2f", id(pool_width));
                             return text;
                   widgets:
                     - label: {text: "-", text_font: roboto, align: CENTER}
 
               # Pool Depth
-              - label: {text: "Depth (m):", text_font: roboto, x: 10, y: 100, text_color: 0xA7F3D0}
+              - label: {text: "Depth (m):", text_font: roboto, x: 10, y: 130, text_color: 0xA7F3D0}
               - label:
                   id: pool_depth_number
                   x: 140
-                  y: 96
+                  y: 126
                   width: 80
                   text_color: 0xFFFFFF
                   text: !lambda |-
@@ -4080,9 +4079,9 @@ lvgl:
                     return buf;
               - button:
                   x: 230
-                  y: 96
-                  width: 30
-                  height: 30
+                  y: 124
+                  width: 35
+                  height: 35
                   on_press:
                     - lambda: |-
                         id(pool_depth) += 0.1;
@@ -4090,33 +4089,33 @@ lvgl:
                         id: pool_depth_number
                         text: !lambda |-
                             static char text[20];
-                            snprintf(text, sizeof(text), "%d pool_depth_number ", id(pool_depth));
+                            snprintf(text, sizeof(text), "%.2f", id(pool_depth));
                             return text;
                   widgets:
                     - label: {text: "+", text_font: roboto, align: CENTER}
               - button:
-                  x: 270
-                  y: 96
-                  width: 30
-                  height: 30
+                  x: 275
+                  y: 124
+                  width: 35
+                  height: 35
                   on_press:
                     - lambda: |-
                         if (id(pool_depth) > 0.1) id(pool_depth) -= 0.1;
                     - lvgl.label.update:
                         id: pool_depth_number
-                        text: !lambda |-  
+                        text: !lambda |-
                             static char text[20];
-                            snprintf(text, sizeof(text), "%d pool_depth_number ", id(pool_depth));
+                            snprintf(text, sizeof(text), "%.2f", id(pool_depth));
                             return text;
                   widgets:
                     - label: {text: "-", text_font: roboto, align: CENTER}
 
               # Pump Flow Rate
-              - label: {text: "Flow Rate :", text_font: roboto, x: 10, y: 130, text_color: 0xA7F3D0}
+              - label: {text: "Flow Rate:", text_font: roboto, x: 10, y: 170, text_color: 0xA7F3D0}
               - label:
                   id: pump_flow_number
                   x: 140
-                  y: 126
+                  y: 166
                   width: 80
                   text_color: 0xFFFFFF
                   text: !lambda |-
@@ -4125,9 +4124,9 @@ lvgl:
                     return buf;
               - button:
                   x: 230
-                  y: 126
-                  width: 30
-                  height: 30
+                  y: 164
+                  width: 35
+                  height: 35
                   on_press:
                     - lambda: |-
                         id(pump_flow_rate) += 0.5;
@@ -4135,15 +4134,15 @@ lvgl:
                         id: pump_flow_number
                         text: !lambda |-
                             static char text[20];
-                            snprintf(text, sizeof(text), "%d pump_flow_number ", id(pump_flow_rate));
+                            snprintf(text, sizeof(text), "%.1f", id(pump_flow_rate));
                             return text;
                   widgets:
                     - label: {text: "+", text_font: roboto, align: CENTER}
               - button:
-                  x: 270
-                  y: 126
-                  width: 30
-                  height: 30
+                  x: 275
+                  y: 164
+                  width: 35
+                  height: 35
                   on_press:
                     - lambda: |-
                         if (id(pump_flow_rate) > 0.5) id(pump_flow_rate) -= 0.5;
@@ -4151,17 +4150,17 @@ lvgl:
                         id: pump_flow_number
                         text: !lambda |-
                             static char text[20];
-                            snprintf(text, sizeof(text), "%d pump_flow_number ", id(pump_flow_rate));
+                            snprintf(text, sizeof(text), "%.1f", id(pump_flow_rate));
                             return text;
                   widgets:
                     - label: {text: "-", text_font: roboto, align: CENTER}
 
               # Number of Blocks
-              - label: {text: "Blocks:", text_font: roboto, x: 10, y: 160, text_color: 0xA7F3D0}
+              - label: {text: "Blocks:", text_font: roboto, x: 10, y: 210, text_color: 0xA7F3D0}
               - label:
                   id: blocks_number
                   x: 140
-                  y: 156
+                  y: 206
                   width: 80
                   text_color: 0xFFFFFF
                   text: !lambda |-
@@ -4170,9 +4169,9 @@ lvgl:
                     return buf;
               - button:
                   x: 230
-                  y: 156
-                  width: 30
-                  height: 30
+                  y: 204
+                  width: 35
+                  height: 35
                   on_press:
                     - lambda: |-
                         id(num_blocks) += 1;
@@ -4181,14 +4180,14 @@ lvgl:
                         text: !lambda |-
                             static char text[20];
                             snprintf(text, sizeof(text), "%d", id(num_blocks));
-                            return text;  
+                            return text;
                   widgets:
                     - label: {text: "+", text_font: roboto, align: CENTER}
               - button:
-                  x: 270
-                  y: 156
-                  width: 30
-                  height: 30
+                  x: 275
+                  y: 204
+                  width: 35
+                  height: 35
                   on_press:
                     - lambda: |-
                         if (id(num_blocks) > 1) id(num_blocks) -= 1;
@@ -4202,11 +4201,11 @@ lvgl:
                     - label: {text: "-", text_font: roboto, align: CENTER}
 
               # Cycles
-              - label: {text: "Cycles:", text_font: roboto, x: 10, y: 190, text_color: 0xA7F3D0}
+              - label: {text: "Cycles:", text_font: roboto, x: 10, y: 250, text_color: 0xA7F3D0}
               - label:
                   id: cycles_number
                   x: 140
-                  y: 186
+                  y: 246
                   width: 80
                   text_color: 0xFFFFFF
                   text: !lambda |-
@@ -4215,9 +4214,9 @@ lvgl:
                     return buf;
               - button:
                   x: 230
-                  y: 186
-                  width: 30
-                  height: 30
+                  y: 244
+                  width: 35
+                  height: 35
                   on_press:
                     - lambda: |-
                         id(cycles_count) += 1;
@@ -4230,10 +4229,10 @@ lvgl:
                   widgets:
                     - label: {text: "+", text_font: roboto, align: CENTER}
               - button:
-                  x: 270
-                  y: 186
-                  width: 30
-                  height: 30
+                  x: 275
+                  y: 244
+                  width: 35
+                  height: 35
                   on_press:
                     - lambda: |-
                         if (id(cycles_count) > 1) id(cycles_count) -= 1;
