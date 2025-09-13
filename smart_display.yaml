@@ -3943,9 +3943,9 @@ lvgl:
               - button:
                   id: back_to_controls_btn_pool
                   x: 360
-                  y: -10
+                  y: -15
                   width: 60
-                  height: 40
+                  height: 30
                   bg_color: 0x00FF00
                   widgets:
                     - label:
@@ -3966,12 +3966,12 @@ lvgl:
             bg_opa: 80%
             radius: 10
             x: 10
-            y: 64
+            y: 150
             widgets:
               - label:
                   text: "Pool Dimensions / Pump Settings"
                   text_font: roboto
-                  text_color: 0xFFFFFF
+                  text_color: 0x000000
                   x: 10
                   y: 8
 
@@ -4027,7 +4027,7 @@ lvgl:
                   x: 140
                   y: 86
                   width: 80
-                  text_color: 0xFFFFFF
+                  text_color: 0x000000
                   text: !lambda |-
                     static char buf[16];
                     sprintf(buf, "%.2f", id(pool_width));
@@ -4072,7 +4072,7 @@ lvgl:
                   x: 140
                   y: 126
                   width: 80
-                  text_color: 0xFFFFFF
+                  text_color: 0x000000
                   text: !lambda |-
                     static char buf[16];
                     sprintf(buf, "%.2f", id(pool_depth));
@@ -4117,7 +4117,7 @@ lvgl:
                   x: 140
                   y: 166
                   width: 80
-                  text_color: 0xFFFFFF
+                  text_color: 0x000000
                   text: !lambda |-
                     static char buf[16];
                     sprintf(buf, "%.1f", id(pump_flow_rate));
@@ -4162,7 +4162,7 @@ lvgl:
                   x: 140
                   y: 206
                   width: 80
-                  text_color: 0xFFFFFF
+                  text_color: 0x000000
                   text: !lambda |-
                     static char buf[16];
                     sprintf(buf, "%d", id(num_blocks));
@@ -4207,7 +4207,7 @@ lvgl:
                   x: 140
                   y: 246
                   width: 80
-                  text_color: 0xFFFFFF
+                  text_color: 0x000000
                   text: !lambda |-
                     static char buf[16];
                     sprintf(buf, "%d", id(cycles_count));
