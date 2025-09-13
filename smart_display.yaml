@@ -280,7 +280,7 @@ wifi:
   # Added parameters for better connection reliability
   power_save_mode: LIGHT
   fast_connect: false # Disable for better reliability with multiple networks
-  reboot_timeout: 5min  # Reboots if no Wi-Fi connection is made
+  #reboot_timeout: 1min  # Reboots if no Wi-Fi connection is made
   output_power: 20.0
   enable_rrm: true
   enable_btm: true
@@ -303,6 +303,9 @@ wifi:
       - logger.log: "WiFi disconnected, attempting to reconnect"
       - script.execute: notify_web_portal
       #- script.execute: update_qr_display  # Update QR code
+
+captive_portal:
+
 time:
   - platform: homeassistant
     id: time_comp
@@ -373,7 +376,6 @@ time:
             then:
               - script.execute: time_display_update
 
-captive_portal:
 
 # For the sun component, we need to use fixed values initially
 sun:
@@ -3974,7 +3976,7 @@ lvgl:
                   text_color: 0x000000
                   x: 50
                   y: 0
-                  align: center
+                 
 
               # Pool Length
               - label: {text: "Length (m):", text_font: roboto, x: 10, y: 50, text_color: 0x000000}
