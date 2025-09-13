@@ -3,7 +3,7 @@ substitutions:
   name: "phijo-smart-device"
   friendly_name: "Phijo Smart"
   device_description: " Smart Controller"
-  project_name: "phijo-smart-device"
+  project_name: "Guition.ESP32_S3_4848S040"
   project_version: "1.0.2"
   wifi_ssid: ""
   wifi_password: ""
