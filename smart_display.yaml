@@ -2078,9 +2078,9 @@ lvgl:
               # pool button
               - button:
                   id: pump_nav_button
-                  x: 180
+                  x: 185
                   y: -10
-                  width: 150
+                  width: 120
                   height: 40
                   styles: nav_button_style
                   bg_color: 0x00FF00
@@ -3945,7 +3945,7 @@ lvgl:
               - button:
                   id: back_to_controls_btn_pool
                   x: 360
-                  y: -10
+                  y: -7
                   width: 60
                   height: 30
                   bg_color: 0x00FF00
@@ -3968,7 +3968,7 @@ lvgl:
             bg_opa: 80%
             radius: 10
             x: 10
-            y: 75
+            y: 85
             widgets:
               - label:
                   text: "Pool Dimensions / Pump Settings"
