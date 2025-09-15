@@ -280,7 +280,7 @@ wifi:
   # Added parameters for better connection reliability
   power_save_mode: LIGHT
   fast_connect: false # Disable for better reliability with multiple networks
-  #reboot_timeout: 1min  # Reboots if no Wi-Fi connection is made
+  reboot_timeout: 0s  # Reboots if no Wi-Fi connection is made
   output_power: 20.0
   enable_rrm: true
   enable_btm: true
