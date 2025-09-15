@@ -2003,7 +2003,7 @@ lvgl:
         # Seasonal Pump Settings Toggle
         - obj:
             scrollable: false
-            width: 460
+            width: 480
             height: 60
             bg_color: 0x000000
             bg_opa: 0%
