@@ -2016,7 +2016,7 @@ lvgl:
                   text: "Seasonal Pump Set"
                   text_font: roboto24
                   text_color: 0xFFFFFF
-                  x: 0
+                  x: -10
                   y: 0
                   align: center
               - button:
@@ -2078,15 +2078,15 @@ lvgl:
               # pool button
               - button:
                   id: pump_nav_button
-                  x: 185
+                  x: 190
                   y: -10
-                  width: 120
+                  width: 100
                   height: 40
                   styles: nav_button_style
                   bg_color: 0x00FF00
                   widgets:
                     - label:
-                        text: "Pool Dim."
+                        text: "Pool M^2."
                         text_font: roboto
                         align: center
                   on_click:
@@ -2231,9 +2231,9 @@ lvgl:
                   x: 0
                   y: 65
               - button:
-                  x: 80
+                  x: 90
                   y: 60
-                  width: 25
+                  width: 30
                   height: 25
                   widgets:
                     - label:
@@ -2256,12 +2256,12 @@ lvgl:
                     return text;
                   text_font: roboto
                   text_color: 0xFFFFFF
-                  x: 110
+                  x: 120
                   y: 65
               - button:
-                  x: 160
+                  x: 180
                   y: 60
-                  width: 25
+                  width: 30
                   height: 25
                   widgets:
                     - label:
@@ -2287,7 +2287,7 @@ lvgl:
               - button:
                   x: 310
                   y: 65
-                  width: 25
+                  width: 30
                   height: 25
                   widgets:
                     - label:
@@ -2315,7 +2315,7 @@ lvgl:
               - button:
                   x: 410
                   y: 65
-                  width: 25
+                  width: 30
                   height: 25
                   widgets:
                     - label:
