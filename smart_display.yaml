@@ -3940,7 +3940,7 @@ lvgl:
                   align: center
                   text_color: 0xFFFFFF
                   x: 0
-                  y: 6
+                  y: 0
                   scrollable: false
               - button:
                   id: back_to_controls_btn_pool
@@ -3968,7 +3968,7 @@ lvgl:
             bg_opa: 80%
             radius: 10
             x: 10
-            y: 90
+            y: 100
             widgets:
               - label:
                   text: "Pool Dimensions / Pump Settings"
@@ -3982,7 +3982,7 @@ lvgl:
               - label: {text: "Length (m):", text_font: roboto, x: 10, y: 50, text_color: 0x000000}
               - label:
                   id: pool_length_number
-                  x: 150
+                  x: 170
                   y: 50
                   width: 80
                   text_color: 0x000000
@@ -4027,7 +4027,7 @@ lvgl:
               - label: {text: "Width (m):", text_font: roboto, x: 10, y: 90, text_color: 0x000000}
               - label:
                   id: pool_width_number
-                  x: 150
+                  x: 170
                   y: 90
                   width: 80
                   text_color: 0x000000
@@ -4072,7 +4072,7 @@ lvgl:
               - label: {text: "Depth (m):", text_font: roboto, x: 10, y: 130, text_color: 0x000000}
               - label:
                   id: pool_depth_number
-                  x: 150
+                  x: 170
                   y: 130
                   width: 80
                   text_color: 0x000000
@@ -4117,7 +4117,7 @@ lvgl:
               - label: {text: "Flow Rate(L/Min):", text_font: roboto, x: 10, y: 170, text_color: 0x000000}
               - label:
                   id: pump_flow_number
-                  x: 150
+                  x: 170
                   y: 170
                   width: 80
                   text_color: 0x000000
@@ -4162,7 +4162,7 @@ lvgl:
               - label: {text: "Blocks:", text_font: roboto, x: 10, y: 210, text_color: 0x000000}
               - label:
                   id: blocks_number
-                  x: 150
+                  x: 170
                   y: 210
                   width: 80
                   text_color: 0x000000
@@ -4207,7 +4207,7 @@ lvgl:
               - label: {text: "Cycles:", text_font: roboto, x: 10, y: 250, text_color: 0x000000}
               - label:
                   id: cycles_number
-                  x: 150
+                  x: 170
                   y: 250
                   width: 80
                   text_color: 0x000000
