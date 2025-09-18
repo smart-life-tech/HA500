@@ -1378,7 +1378,7 @@ lvgl:
             border_width: 0
             widgets:
               - label:
-                  text: "PHIJO SMART"
+                  text: "PHIJO SMART POOL"
                   text_font: roboto24
                   align: center
                   text_color: 0xFFFFFF
@@ -2024,7 +2024,7 @@ lvgl:
               - button:
                   id: seasonal_toggle
                   x: 335
-                  y: -5
+                  y: -15
                   width: 100
                   height: 40
                   checkable: true
@@ -3465,7 +3465,7 @@ lvgl:
                   text_font: roboto24
                   text_color: 0xFFFFFF
                   x: 10
-                  y: 5
+                  y: -5
               - button:
                   id: mode_duration_btn
                   x: 10
@@ -3600,7 +3600,7 @@ lvgl:
                   width: 100
                   height: 30
                   bg_color: 0x00FF00
-                  checkable: true
+                  #checkable: true
                   widgets:
                     - label:
                         text: "Done"
@@ -5679,8 +5679,8 @@ interval:
                           static char wind_text[50];
                           if (id(owm_wind_speed).has_state()) {
                             if (id(owm_wind_gust).has_state() && id(owm_wind_gust).state > id(owm_wind_speed).state) {
-                              snprintf(wind_text, sizeof(wind_text), " %.1fm/s (gust %.1f)", 
-                                      id(owm_wind_speed).state, id(owm_wind_gust).state);
+                              snprintf(wind_text, sizeof(wind_text), " %.1fm/s", 
+                                      id(owm_wind_speed).state);
                             } else {
                               snprintf(wind_text, sizeof(wind_text), "%.1fm/s", id(owm_wind_speed).state);
                             }
