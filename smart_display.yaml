@@ -1394,7 +1394,7 @@ lvgl:
             x: 10
             y: 30
             border_width: 0
-            scrollable: false # Add this
+            scrollable: false 
             widgets:
               # Clock - positioned below title (fixed positioning)
               - label:
