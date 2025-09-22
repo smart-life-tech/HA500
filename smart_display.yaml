@@ -2024,7 +2024,7 @@ lvgl:
               - button:
                   id: seasonal_toggle
                   x: 335
-                  y: -10
+                  y: -6
                   width: 100
                   height: 40
                   checkable: true
@@ -2099,7 +2099,7 @@ lvgl:
               # Done button
               - button:
                   id: pump_back_button
-                  x: 350
+                  x: 345
                   y: -10
                   width: 100
                   height: 40
@@ -2575,7 +2575,7 @@ lvgl:
             height: 60
             bg_color: 0x000000
             bg_opa: 50%
-            radius: 10
+            radius: 0
             border_width: 0
             x: 10
             y: 355
@@ -3126,7 +3126,7 @@ lvgl:
                   text_font: roboto24
                   text_color: 0xFFFFFF
                   x: 10
-                  y: 5
+                  y: -5
 
               # Sunset duration setting
               - label:
@@ -3318,7 +3318,7 @@ lvgl:
                   text_font: roboto24
                   text_color: 0xFFFFFF
                   x: 10
-                  y: 5
+                  y: -5
 
               - label:
                   text: "Light on before sunrise for:"
@@ -3392,7 +3392,7 @@ lvgl:
                   text_color: 0xFFFFFF
                   scrollable: false
                   x: 10
-                  y: 5
+                  y: -5
 
               - label:
                   text: "Manual on duration:"
