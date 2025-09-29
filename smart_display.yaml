@@ -4286,7 +4286,7 @@ lvgl:
                   text: !lambda |-
                     static char buf[16];
                     // base 1 cycle at 22.5°C
-                    float hours = (id(pool_volume) * 1000.0f) / (id(pump_flow_rate) * 60.0f);
+                    float hours = (id(pool_volume).state * 1000.0f) / (id(pump_flow_rate) * 60.0f);
                     if (id(owm_temperature).state > 42.5f) hours += 1.0f;
                     hours *= id(cycles_count);
                     sprintf(buf, "%.1f", hours);
