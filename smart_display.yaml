@@ -2010,7 +2010,7 @@ lvgl:
             bg_color: 0x000000
             bg_opa: 0%
             radius: 5
-            x: 10
+            x: 0
             y: 10
             border_width: 2
             widgets:
@@ -2066,7 +2066,7 @@ lvgl:
             height: 110
             bg_color: 0x000000
             bg_opa: 50%
-            radius: 10
+            radius: 0
             x: 0
             y: 80
             border_width: 0
@@ -3967,7 +3967,7 @@ lvgl:
         
         - obj:
             width: 460
-            height: 350
+            height: 400
             bg_opa: 80%
             radius: 10
             x: 10
@@ -4002,6 +4002,8 @@ lvgl:
                     - lambda: |-
                         id(pool_length) += 0.1;
                     - lvgl.label.update:
+                        id: pool_volume
+                    - lvgl.label.update:
                         id: pool_volume_number
                     - lvgl.label.update:
                         id: pool_length_number
@@ -4019,6 +4021,8 @@ lvgl:
                   on_press:
                     - lambda: |-
                         if (id(pool_length) > 0.1) id(pool_length) -= 0.1;
+                    - lvgl.label.update:
+                        id: pool_volume
                     - lvgl.label.update:
                         id: pool_volume_number
                     - lvgl.label.update:
@@ -4051,6 +4055,8 @@ lvgl:
                     - lambda: |-
                         id(pool_width) += 0.1;
                     - lvgl.label.update:
+                        id: pool_volume
+                    - lvgl.label.update:
                         id: pool_volume_number
                     - lvgl.label.update:
                         id: pool_width_number
@@ -4068,6 +4074,8 @@ lvgl:
                   on_press:
                     - lambda: |-
                         if (id(pool_width) > 0.1) id(pool_width) -= 0.1;
+                    - lvgl.label.update:
+                        id: pool_volume
                     - lvgl.label.update:
                         id: pool_volume_number
                     - lvgl.label.update:
@@ -4100,6 +4108,8 @@ lvgl:
                     - lambda: |-
                         id(pool_depth) += 0.1;
                     - lvgl.label.update:
+                        id: pool_volume
+                    - lvgl.label.update:
                         id: pool_volume_number
                     - lvgl.label.update:
                         id: pool_depth_number
@@ -4117,6 +4127,8 @@ lvgl:
                   on_press:
                     - lambda: |-
                         if (id(pool_depth) > 0.1) id(pool_depth) -= 0.1;
+                    - lvgl.label.update:
+                        id: pool_volume
                     - lvgl.label.update:
                         id: pool_volume_number
                     - lvgl.label.update:
@@ -4268,7 +4280,7 @@ lvgl:
               - label:
                   id: pool_volume_number
                   x: 170
-                  y: 300
+                  y: 290
                   width: 80
                   text_color: 0x000000
                   text: !lambda |-
@@ -4276,11 +4288,11 @@ lvgl:
                     sprintf(buf, "%.2f", id(pool_volume));
                     return buf;
               # Pump runtime calculation
-              - label: {text: "Runtime (hrs):", text_font: roboto, x: 10, y: 350, text_color: 0x000000}
+              - label: {text: "Runtime (hrs):", text_font: roboto, x: 10, y: 320, text_color: 0x000000}
               - label:
                   id: pump_runtime_label
                   x: 170
-                  y: 360
+                  y: 320
                   width: 80
                   text_color: 0x000000
                   text: !lambda |-
