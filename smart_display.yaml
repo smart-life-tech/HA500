@@ -3967,7 +3967,7 @@ lvgl:
         
         - obj:
             width: 460
-            height: 400
+            height: 380
             bg_opa: 80%
             radius: 10
             x: 10
@@ -4279,7 +4279,8 @@ lvgl:
                   text_color: 0x000000
                   text: !lambda |-
                     static char buf[16];
-                    sprintf(buf, "%.2f", id(pool_volume).state);
+                    id(pool_volume)= id(pool_length) * id(pool_width) * id(pool_depth);
+                    sprintf(buf, "%.2f", id(pool_volume));
                     return buf;
               # Pump runtime calculation
               - label: {text: "Runtime (hrs):", text_font: roboto, x: 10, y: 320, text_color: 0x000000}
@@ -4292,7 +4293,7 @@ lvgl:
                   text: !lambda |-
                     static char buf[16];
                     // base 1 cycle at 22.5°C
-                    float hours = (id(pool_volume).state * 1000.0f) / (id(pump_flow_rate) * 60.0f);
+                    float hours = (id(pool_volume) * 1000.0f) / (id(pump_flow_rate) * 60.0f);
                     if (id(owm_temperature).state > 42.5f) hours += 1.0f;
                     hours *= id(cycles_count);
                     sprintf(buf, "%.1f", hours);
