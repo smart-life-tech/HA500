@@ -135,7 +135,7 @@ sensor:
     lambda: |-
       float V = id(pool_length) * id(pool_width) * id(pool_depth);
       float T = V / id(pump_flow_rate);
-      return T / id(num_blocks);
+      return T /  id(pump_runtime_blocks);
 
   - platform: template
     name: "Adjusted Runtime"
@@ -2088,7 +2088,7 @@ lvgl:
                   bg_color: 0x00FF00
                   widgets:
                     - label:
-                        text: "Pool M^2."
+                        text: "Pool M^3."
                         text_font: roboto
                         align: center
                   on_click:
@@ -4183,7 +4183,7 @@ lvgl:
                   text_color: 0x000000
                   text: !lambda |-
                     static char buf[16];
-                    sprintf(buf, "%d", id(num_blocks));
+                    sprintf(buf, "%d",  id(pump_runtime_blocks));
                     return buf;
               - button:
                   x: 230
@@ -4192,12 +4192,12 @@ lvgl:
                   height: 35
                   on_press:
                     - lambda: |-
-                        id(num_blocks) += 1;
+                         id(pump_runtime_blocks) += 1;
                     - lvgl.label.update:
                         id: blocks_number
                         text: !lambda |-
                             static char text[20];
-                            snprintf(text, sizeof(text), "%d", id(num_blocks));
+                            snprintf(text, sizeof(text), "%d",  id(pump_runtime_blocks));
                             return text;
                   widgets:
                     - label: {text: "+", text_font: roboto, align: CENTER}
@@ -4208,12 +4208,12 @@ lvgl:
                   height: 35
                   on_press:
                     - lambda: |-
-                        if (id(num_blocks) > 1) id(num_blocks) -= 1;
+                        if ( id(pump_runtime_blocks) > 1)  id(pump_runtime_blocks) -= 1;
                     - lvgl.label.update:
                         id: blocks_number
                         text: !lambda |-
                             static char text[20];
-                            snprintf(text, sizeof(text), "%d", id(num_blocks));
+                            snprintf(text, sizeof(text), "%d",  id(pump_runtime_blocks));
                             return text;
                   widgets:
                     - label: {text: "-", text_font: roboto, align: CENTER}
@@ -4275,6 +4275,22 @@ lvgl:
                     static char buf[16];
                     sprintf(buf, "%.2f", id(pool_volume));
                     return buf;
+              # Pump runtime calculation
+              - label: {text: "Runtime (hrs):", text_font: roboto, x: 10, y: 350, text_color: 0x000000}
+              - label:
+                  id: pump_runtime_label
+                  x: 170
+                  y: 360
+                  width: 80
+                  text_color: 0x000000
+                  text: !lambda |-
+                    static char buf[16];
+                    // base 1 cycle at 22.5°C
+                    float hours = (id(pool_volume) * 1000.0f) / (id(pump_flow_rate) * 60.0f);
+                    if (id(owm_temperature) > 42.5f) hours += 1.0f;
+                    hours *= id(cycles_count);
+                    sprintf(buf, "%.1f", hours);
+                    return buf
 #-------------------------------------------
 # Internal outputs
 #-------------------------------------------
