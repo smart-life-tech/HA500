@@ -957,6 +957,9 @@ globals:
   - id: pool_depth
     type: float
     initial_value: "1.5"
+  - id: pool_volume_calculated
+    type: float
+    initial_value: "10.5"
   - id: pool_length
     type: float
     initial_value: "3.0"
@@ -4279,7 +4282,7 @@ lvgl:
                   text_color: 0x000000
                   text: !lambda |-
                     static char buf[16];
-                    id(pool_volume)= id(pool_length) * id(pool_width) * id(pool_depth);
+                    id(pool_volume_calculated) = id(pool_length) * id(pool_width) * id(pool_depth);
                     sprintf(buf, "%.2f", id(pool_volume));
                     return buf;
               # Pump runtime calculation
@@ -4293,7 +4296,7 @@ lvgl:
                   text: !lambda |-
                     static char buf[16];
                     // base 1 cycle at 22.5°C
-                    float hours = (id(pool_volume) * 1000.0f) / (id(pump_flow_rate) * 60.0f);
+                    float hours = (id(pool_volume_calculated) * 1000.0f) / (id(pump_flow_rate) * 60.0f);
                     if (id(owm_temperature).state > 42.5f) hours += 1.0f;
                     hours *= id(cycles_count);
                     sprintf(buf, "%.1f", hours);
