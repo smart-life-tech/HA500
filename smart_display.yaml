@@ -4012,7 +4012,7 @@ lvgl:
                   on_press:
                     - lambda: |-
                         id(pool_length) += 0.1;
-                     
+                        id(pool_volume).publish_state(id(pool_length) * id(pool_width) * id(pool_depth));
                     - lvgl.label.update:
                         id: pool_volume_number
                     - lvgl.label.update:
@@ -4031,7 +4031,7 @@ lvgl:
                   on_press:
                     - lambda: |-
                         if (id(pool_length) > 0.1) id(pool_length) -= 0.1;
-                  
+                        id(pool_volume).publish_state(id(pool_length) * id(pool_width) * id(pool_depth));
                     - lvgl.label.update:
                         id: pool_volume_number
                     - lvgl.label.update:
@@ -4291,7 +4291,7 @@ lvgl:
                   text: !lambda |-
                     static char buf[16];
                     id(pool_volume_calculated) = id(pool_length) * id(pool_width) * id(pool_depth);
-                    sprintf(buf, "%.2f", id(pool_volume_calculated));
+                    sprintf(buf, "%.2f", id(pool_volume));
                     return buf;
               # Pump runtime calculation
               - label: {text: "Runtime (hrs):", text_font: roboto, x: 10, y: 320, text_color: 0x000000}
