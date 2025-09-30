@@ -4098,9 +4098,13 @@ lvgl:
                   on_press:
                     - lambda: |-
                         id(pool_width).state += 0.1;
-                     
+                        id(pool_volume).publish_state(id(pool_length).state * id(pool_width).state * id(pool_depth).state);
                     - lvgl.label.update:
                         id: pool_volume_number
+                        text: !lambda |-
+                            static char text[20];
+                            snprintf(text, sizeof(text), "%.1f", id(pool_volume).state);
+                            return text;
                     - lvgl.label.update:
                         id: pool_width_number
                         text: !lambda |-
@@ -4117,9 +4121,13 @@ lvgl:
                   on_press:
                     - lambda: |-
                         if (id(pool_width).state > 0.1) id(pool_width).state -= 0.1;
-                     
+                        id(pool_volume).publish_state(id(pool_length).state * id(pool_width).state * id(pool_depth).state);
                     - lvgl.label.update:
                         id: pool_volume_number
+                        text: !lambda |-
+                            static char text[20];
+                            snprintf(text, sizeof(text), "%.1f", id(pool_volume).state);
+                            return text;
                     - lvgl.label.update:
                         id: pool_width_number
                         text: !lambda |-
@@ -4149,9 +4157,13 @@ lvgl:
                   on_press:
                     - lambda: |-
                         id(pool_depth).state += 0.1;
-                     
+                        id(pool_volume).publish_state(id(pool_length).state * id(pool_width).state * id(pool_depth).state);
                     - lvgl.label.update:
                         id: pool_volume_number
+                        text: !lambda |-
+                            static char text[20];
+                            snprintf(text, sizeof(text), "%.1f", id(pool_volume).state);
+                            return text;
                     - lvgl.label.update:
                         id: pool_depth_number
                         text: !lambda |-
@@ -4168,9 +4180,13 @@ lvgl:
                   on_press:
                     - lambda: |-
                         if (id(pool_depth).state > 0.1) id(pool_depth).state -= 0.1;
-                     
+                        id(pool_volume).publish_state(id(pool_length).state * id(pool_width).state * id(pool_depth).state);
                     - lvgl.label.update:
                         id: pool_volume_number
+                        text: !lambda |-
+                            static char text[20];
+                            snprintf(text, sizeof(text), "%.1f", id(pool_volume).state);
+                            return text;
                     - lvgl.label.update:
                         id: pool_depth_number
                         text: !lambda |-
@@ -4245,7 +4261,7 @@ lvgl:
                   on_press:
                     - lambda: |-
                          id(pump_runtime_blocks) += 1;
-                         if ( id(pump_runtime_blocks) > 1)  id(pump_runtime_blocks) -= 4;
+                         if ( id(pump_runtime_blocks) > 4)  id(pump_runtime_blocks) = 4;
                          if ( id(pump_runtime_blocks) < 1)  id(pump_runtime_blocks) = 1;
                     - lvgl.label.update:
                         id: blocks_number
