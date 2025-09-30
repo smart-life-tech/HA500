@@ -2115,7 +2115,7 @@ lvgl:
               # pool button
               - button:
                   id: pump_nav_button
-                  x: 190
+                  x: 180
                   y: -10
                   width: 100
                   height: 40
@@ -4039,12 +4039,17 @@ lvgl:
                         id(pool_volume).publish_state(id(pool_length).state * id(pool_width).state * id(pool_depth).state);
                     - lvgl.label.update:
                         id: pool_volume_number
+                        text: !lambda |-
+                            static char text[20];
+                            snprintf(text, sizeof(text), "%.1f", id(pool_volume).state);
+                            return text;
                     - lvgl.label.update:
                         id: pool_length_number
                         text: !lambda |-
                             static char text[20];
                             snprintf(text, sizeof(text), "%.2f", id(pool_length).state);
                             return text;
+                            
                   widgets:
                     - label: {text: "+", text_font: roboto, align: CENTER}
               - button:
@@ -4058,6 +4063,10 @@ lvgl:
                         id(pool_volume).publish_state(id(pool_length).state * id(pool_width).state * id(pool_depth).state);
                     - lvgl.label.update:
                         id: pool_volume_number
+                        text: !lambda |-
+                            static char text[20];
+                            snprintf(text, sizeof(text), "%.1f", id(pool_volume).state);
+                            return text;
                     - lvgl.label.update:
                         id: pool_length_number
                         text: !lambda |-
