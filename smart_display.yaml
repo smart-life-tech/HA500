@@ -391,25 +391,27 @@ number:
     min_value: 0.1
     max_value: 10
     step: 0.1
-    initial_value: 3.0
+    initial_value: 1.0
     optimistic: true
+    restore_value: true
   - platform: template
     name: "Pool Width"
     id: pool_width
     min_value: 0.1
     max_value: 10
     step: 0.1
-    initial_value: 2.0
+    initial_value: 1.0
     optimistic: true
+    restore_value: true
   - platform: template
     name: "Pool Depth"
     id: pool_depth
     min_value: 0.1
-    max_value: 5
+    max_value: 50
     step: 0.1
-    initial_value: 1.5
+    initial_value: 1.0
     optimistic: true
-
+    restore_value: true
   - platform: template
     name: "Temperature Adjustment Factor (per °C)"
     id: temp_coeff
@@ -418,7 +420,7 @@ number:
     max_value: 0.10
     step: 0.001
     initial_value: 0.02
-
+    restore_value: true
   - platform: template
     name: "Reference Temperature (°C)"
     id: temp_ref
@@ -2115,7 +2117,7 @@ lvgl:
               # pool button
               - button:
                   id: pump_nav_button
-                  x: 180
+                  x: 190
                   y: -10
                   width: 100
                   height: 40
@@ -2134,7 +2136,7 @@ lvgl:
               # Done button
               - button:
                   id: pump_back_button
-                  x: 345
+                  x: 335
                   y: -10
                   width: 100
                   height: 40
