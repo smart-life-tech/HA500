@@ -4037,8 +4037,8 @@ lvgl:
                     - lambda: |-
                         id(pool_length).state += 0.1;
                         id(pool_volume).publish_state(id(pool_length).state * id(pool_width).state * id(pool_depth).state);
-                    # - lvgl.label.update:
-                    #     id: pool_volume
+                    - lvgl.label.update:
+                        id: pool_volume_number
                     - lvgl.label.update:
                         id: pool_length_number
                         text: !lambda |-
@@ -4056,8 +4056,8 @@ lvgl:
                     - lambda: |-
                         if (id(pool_length).state > 0.1) id(pool_length).state -= 0.1;
                         id(pool_volume).publish_state(id(pool_length).state * id(pool_width).state * id(pool_depth).state);
-                    # - lvgl.label.update:
-                    #     id: pool_volume
+                    - lvgl.label.update:
+                        id: pool_volume_number
                     - lvgl.label.update:
                         id: pool_length_number
                         text: !lambda |-
@@ -4234,6 +4234,8 @@ lvgl:
                   on_press:
                     - lambda: |-
                          id(pump_runtime_blocks) += 1;
+                         if ( id(pump_runtime_blocks) > 1)  id(pump_runtime_blocks) -= 4;
+                         if ( id(pump_runtime_blocks) < 1)  id(pump_runtime_blocks) = 1;
                     - lvgl.label.update:
                         id: blocks_number
                         text: !lambda |-
@@ -4314,8 +4316,7 @@ lvgl:
                   text_color: 0x000000
                   text: !lambda |-
                     static char buf[16];
-                    
-                    sprintf(buf, "%.2f", id(pool_volume));
+                    sprintf(buf, "%.2f", id(pool_volume).state);
                     return buf;
               # Pump runtime calculation
               - label: {text: "Runtime (hrs):", text_font: roboto, x: 10, y: 320, text_color: 0x000000}
