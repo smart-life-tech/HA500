@@ -4014,7 +4014,7 @@ lvgl:
                         id(pool_length) += 0.1;
                         id(pool_volume).publish_state(id(pool_length) * id(pool_width) * id(pool_depth));
                     - lvgl.label.update:
-                        id: pool_volume_number
+                        id: pool_volume
                     - lvgl.label.update:
                         id: pool_length_number
                         text: !lambda |-
@@ -4033,7 +4033,7 @@ lvgl:
                         if (id(pool_length) > 0.1) id(pool_length) -= 0.1;
                         id(pool_volume).publish_state(id(pool_length) * id(pool_width) * id(pool_depth));
                     - lvgl.label.update:
-                        id: pool_volume_number
+                        id: pool_volume
                     - lvgl.label.update:
                         id: pool_length_number
                         text: !lambda |-
