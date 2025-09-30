@@ -392,6 +392,7 @@ number:
     max_value: 10
     step: 0.1
     initial_value: 3.0
+    optimistic: true
   - platform: template
     name: "Pool Width"
     id: pool_width
@@ -399,6 +400,7 @@ number:
     max_value: 10
     step: 0.1
     initial_value: 2.0
+    optimistic: true
   - platform: template
     name: "Pool Depth"
     id: pool_depth
@@ -406,6 +408,7 @@ number:
     max_value: 5
     step: 0.1
     initial_value: 1.5
+    optimistic: true
 
   - platform: template
     name: "Temperature Adjustment Factor (per °C)"
