@@ -385,6 +385,27 @@ sun:
 
 # Add this to update the sun component when location changes
 number:
+  - platform: template
+    name: "Pool Length"
+    id: pool_length
+    min_value: 0.1
+    max_value: 10
+    step: 0.1
+    initial_value: 3.0
+  - platform: template
+    name: "Pool Width"
+    id: pool_width
+    min_value: 0.1
+    max_value: 10
+    step: 0.1
+    initial_value: 2.0
+  - platform: template
+    name: "Pool Depth"
+    id: pool_depth
+    min_value: 0.1
+    max_value: 5
+    step: 0.1
+    initial_value: 1.5
 
   - platform: template
     name: "Temperature Adjustment Factor (per °C)"
@@ -954,22 +975,22 @@ color:
 # Global variables for timer tracking and settings
 globals:
   # Seasonal settings
-  - id: pool_depth
-    type: float
-    initial_value: "1.5"
-    restore_value: yes
-  - id: pool_volume_calculated
-    type: float
-    initial_value: "10.5"
-    restore_value: yes
-  - id: pool_length
-    type: float
-    initial_value: "3.0"
-    restore_value: yes
-  - id: pool_width
-    type: float
-    initial_value: "2.0"
-    restore_value: yes
+  # - id: pool_depth
+  #   type: float
+  #   initial_value: "1.5"
+  #   restore_value: yes
+  # - id: pool_volume_calculated
+  #   type: float
+  #   initial_value: "10.5"
+  #   restore_value: yes
+  # - id: pool_length
+  #   type: float
+  #   initial_value: "3.0"
+  #   restore_value: yes
+  # - id: pool_width
+  #   type: float
+  #   initial_value: "2.0"
+  #   restore_value: yes
   - id: pump_flow_rate
     type: float
     initial_value: "5.0"
