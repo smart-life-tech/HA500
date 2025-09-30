@@ -982,10 +982,10 @@ globals:
   #   type: float
   #   initial_value: "1.5"
   #   restore_value: yes
-  # - id: pool_volume_calculated
-  #   type: float
-  #   initial_value: "10.5"
-  #   restore_value: yes
+  - id: pool_volume_calculated
+    type: float
+    initial_value: "10.5"
+    restore_value: yes
   # - id: pool_length
   #   type: float
   #   initial_value: "3.0"
