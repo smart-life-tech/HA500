@@ -116,7 +116,7 @@ sensor:
     unit_of_measurement: "m³"
     accuracy_decimals: 2
     lambda: |-
-      return id(pool_length) * id(pool_width) * id(pool_depth);
+      return id(pool_length).state * id(pool_width).state * id(pool_depth).state;
 
   - platform: template
     name: "Total Runtime"
@@ -124,7 +124,7 @@ sensor:
     unit_of_measurement: "h"
     accuracy_decimals: 2
     lambda: |-
-      float V = id(pool_length) * id(pool_width) * id(pool_depth);
+      float V = id(pool_length).state * id(pool_width).state * id(pool_depth).state;
       return V / id(pump_flow_rate);
 
   - platform: template
@@ -133,7 +133,7 @@ sensor:
     unit_of_measurement: "h"
     accuracy_decimals: 2
     lambda: |-
-      float V = id(pool_length) * id(pool_width) * id(pool_depth);
+      float V = id(pool_length).state * id(pool_width).state * id(pool_depth).state;
       float T = V / id(pump_flow_rate);
       return T /  id(pump_runtime_blocks);
 
@@ -143,7 +143,7 @@ sensor:
     unit_of_measurement: "h"
     accuracy_decimals: 2
     lambda: |-
-      float V = id(pool_length) * id(pool_width) * id(pool_depth);
+      float V = id(pool_length).state * id(pool_width).state * id(pool_depth).state;
       float T = V / id(pump_flow_rate);
       float temp = id(pool_temp);
       return T * (1.0 + id(temp_rate_percent) * (temp - id(reference_temperature)));
@@ -153,7 +153,7 @@ sensor:
     unit_of_measurement: "h"
     accuracy_decimals: 2
     lambda: |-
-      float V = id(pool_length) * id(pool_width) * id(pool_depth);
+      float V = id(pool_length).state * id(pool_width).state * id(pool_depth).state;
       float T = V / id(pump_flow_rate);
       return id(cycles) * T;
 
@@ -4026,7 +4026,7 @@ lvgl:
                   text_color: 0x000000
                   text: !lambda |-
                     static char buf[16];
-                    sprintf(buf, "%.2f", id(pool_length));
+                    sprintf(buf, "%.2f", id(pool_length).state);
                     return buf;
               - button:
                   x: 230
@@ -4035,15 +4035,15 @@ lvgl:
                   height: 35
                   on_press:
                     - lambda: |-
-                        id(pool_length) += 0.1;
-                        id(pool_volume).publish_state(id(pool_length) * id(pool_width) * id(pool_depth));
+                        id(pool_length).state += 0.1;
+                        id(pool_volume).publish_state(id(pool_length).state * id(pool_width).state * id(pool_depth).state);
                     # - lvgl.label.update:
                     #     id: pool_volume
                     - lvgl.label.update:
                         id: pool_length_number
                         text: !lambda |-
                             static char text[20];
-                            snprintf(text, sizeof(text), "%.2f", id(pool_length));
+                            snprintf(text, sizeof(text), "%.2f", id(pool_length).state);
                             return text;
                   widgets:
                     - label: {text: "+", text_font: roboto, align: CENTER}
@@ -4054,15 +4054,15 @@ lvgl:
                   height: 35
                   on_press:
                     - lambda: |-
-                        if (id(pool_length) > 0.1) id(pool_length) -= 0.1;
-                        id(pool_volume).publish_state(id(pool_length) * id(pool_width) * id(pool_depth));
+                        if (id(pool_length).state > 0.1) id(pool_length).state -= 0.1;
+                        id(pool_volume).publish_state(id(pool_length).state * id(pool_width).state * id(pool_depth).state);
                     # - lvgl.label.update:
                     #     id: pool_volume
                     - lvgl.label.update:
                         id: pool_length_number
                         text: !lambda |-
                             static char text[20];
-                            snprintf(text, sizeof(text), "%.2f", id(pool_length));
+                            snprintf(text, sizeof(text), "%.2f", id(pool_length).state);
                             return text;
                   widgets:
                     - label: {text: "-", text_font: roboto, align: CENTER}
@@ -4077,7 +4077,7 @@ lvgl:
                   text_color: 0x000000
                   text: !lambda |-
                     static char buf[16];
-                    sprintf(buf, "%.2f", id(pool_width));
+                    sprintf(buf, "%.2f", id(pool_width).state);
                     return buf;
               - button:
                   x: 230
@@ -4086,7 +4086,7 @@ lvgl:
                   height: 35
                   on_press:
                     - lambda: |-
-                        id(pool_width) += 0.1;
+                        id(pool_width).state += 0.1;
                      
                     - lvgl.label.update:
                         id: pool_volume_number
@@ -4094,7 +4094,7 @@ lvgl:
                         id: pool_width_number
                         text: !lambda |-
                             static char text[20];
-                            snprintf(text, sizeof(text), "%.2f", id(pool_width));
+                            snprintf(text, sizeof(text), "%.2f", id(pool_width).state);
                             return text;
                   widgets:
                     - label: {text: "+", text_font: roboto, align: CENTER}
@@ -4105,7 +4105,7 @@ lvgl:
                   height: 35
                   on_press:
                     - lambda: |-
-                        if (id(pool_width) > 0.1) id(pool_width) -= 0.1;
+                        if (id(pool_width).state > 0.1) id(pool_width).state -= 0.1;
                      
                     - lvgl.label.update:
                         id: pool_volume_number
@@ -4113,7 +4113,7 @@ lvgl:
                         id: pool_width_number
                         text: !lambda |-
                             static char text[20];
-                            snprintf(text, sizeof(text), "%.2f", id(pool_width));
+                            snprintf(text, sizeof(text), "%.2f", id(pool_width).state);
                             return text;
                   widgets:
                     - label: {text: "-", text_font: roboto, align: CENTER}
@@ -4128,7 +4128,7 @@ lvgl:
                   text_color: 0x000000
                   text: !lambda |-
                     static char buf[16];
-                    sprintf(buf, "%.2f", id(pool_depth));
+                    sprintf(buf, "%.2f", id(pool_depth).state);
                     return buf;
               - button:
                   x: 230
@@ -4137,7 +4137,7 @@ lvgl:
                   height: 35
                   on_press:
                     - lambda: |-
-                        id(pool_depth) += 0.1;
+                        id(pool_depth).state += 0.1;
                      
                     - lvgl.label.update:
                         id: pool_volume_number
@@ -4145,7 +4145,7 @@ lvgl:
                         id: pool_depth_number
                         text: !lambda |-
                             static char text[20];
-                            snprintf(text, sizeof(text), "%.2f", id(pool_depth));
+                            snprintf(text, sizeof(text), "%.2f", id(pool_depth).state);
                             return text;
                   widgets:
                     - label: {text: "+", text_font: roboto, align: CENTER}
@@ -4156,7 +4156,7 @@ lvgl:
                   height: 35
                   on_press:
                     - lambda: |-
-                        if (id(pool_depth) > 0.1) id(pool_depth) -= 0.1;
+                        if (id(pool_depth).state > 0.1) id(pool_depth).state -= 0.1;
                      
                     - lvgl.label.update:
                         id: pool_volume_number
@@ -4164,7 +4164,7 @@ lvgl:
                         id: pool_depth_number
                         text: !lambda |-
                             static char text[20];
-                            snprintf(text, sizeof(text), "%.2f", id(pool_depth));
+                            snprintf(text, sizeof(text), "%.2f", id(pool_depth).state);
                             return text;
                   widgets:
                     - label: {text: "-", text_font: roboto, align: CENTER}
