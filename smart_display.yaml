@@ -405,12 +405,13 @@ number:
             id: pool_volume
             state: !lambda "return id(global_pool_length) * id(global_pool_width) * id(global_pool_depth);"
         - lvgl.label.update:
-            id: pool_volume_label
+            id: pool_volume_number
             text: !lambda |-
               char buf[32];
               snprintf(buf, sizeof(buf), "Volume: %.2f m³", 
                        id(global_pool_length) * id(global_pool_width) * id(global_pool_depth));
               return buf;
+        - lvgl.widget.redraw:  # Refresh all widgets on the current page
   - platform: template
     name: "Pool Width"
     id: pool_width
@@ -429,12 +430,13 @@ number:
             id: pool_volume
             state: !lambda "return id(global_pool_length) * id(global_pool_width) * id(global_pool_depth);"
         - lvgl.label.update:
-            id: pool_volume_label
+            id: pool_volume_number
             text: !lambda |-
               char buf[32];
               snprintf(buf, sizeof(buf), "Volume: %.2f m³", 
                        id(global_pool_length) * id(global_pool_width) * id(global_pool_depth));
               return buf;
+        - lvgl.widget.redraw:
   - platform: template
     name: "Pool Depth"
     id: pool_depth
@@ -453,12 +455,13 @@ number:
             id: pool_volume
             state: !lambda "return id(global_pool_length) * id(global_pool_width) * id(global_pool_depth);"
         - lvgl.label.update:
-            id: pool_volume_label
+            id: pool_volume_number
             text: !lambda |-
               char buf[32];
               snprintf(buf, sizeof(buf), "Volume: %.2f m³", 
                        id(global_pool_length) * id(global_pool_width) * id(global_pool_depth));
-  # - platform: template
+              return buf;
+        - lvgl.widget.redraw:
   #   name: "Pool Length"
   #   id: pool_length
   #   min_value: 0.1
@@ -5631,7 +5634,7 @@ interval:
             - logger.log: "Making weather API request..."
             - http_request.get:
                 url: "http://api.openweathermap.org/data/2.5/weather?q=Sao%20Bartolomeu%20de%20messines&appid=b0fed035f1b875bafaf66f85d33f4e71&units=metric"
-                request_headers:
+                headers:
                   User-Agent: "ESPHome/1.0"
                 capture_response: true
                 on_response:
