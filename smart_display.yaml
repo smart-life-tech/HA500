@@ -408,7 +408,7 @@ number:
             id: pool_volume_number
             text: !lambda |-
               char buf[32];
-              snprintf(buf, sizeof(buf),  %.2f , 
+              snprintf(buf, sizeof(buf), "%.2f", 
                        id(global_pool_length) * id(global_pool_width) * id(global_pool_depth));
               return buf;
         - lvgl.widget.redraw:  # Refresh all widgets on the current page
