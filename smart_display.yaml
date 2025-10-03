@@ -29,6 +29,19 @@ esphome:
     board_build.flash_mode: dio
     build_unflags: "-f"
     build_flags: "-shared"
+  on_boot:
+    priority: -100
+    then:
+      # Push global into number on startup
+      - number.set:
+          id: pool_length
+          value: !lambda "return id(global_pool_length);"
+      - number.set:
+          id: pool_width
+          value: !lambda "return id(global_pool_width);"
+      - number.set:
+          id: pool_depth
+          value: !lambda "return id(global_pool_depth);"
 
 esp32:
   board: esp32-s3-devkitc-1
@@ -395,7 +408,7 @@ number:
     step: 0.1
     initial_value: 1.0
     optimistic: true
-    restore_value: true
+    restore_value: false
     on_value:
       then:
         - globals.set:
@@ -433,7 +446,7 @@ number:
             id: pool_volume_number
             text: !lambda |-
               char buf[32];
-              snprintf(buf, sizeof(buf), "Volume: %.2f m³", 
+              snprintf(buf, sizeof(buf), "%.2f", 
                        id(global_pool_length) * id(global_pool_width) * id(global_pool_depth));
               return buf;
         - lvgl.widget.redraw:
@@ -458,7 +471,7 @@ number:
             id: pool_volume_number
             text: !lambda |-
               char buf[32];
-              snprintf(buf, sizeof(buf), "Volume: %.2f m³", 
+              snprintf(buf, sizeof(buf), "%.2f", 
                        id(global_pool_length) * id(global_pool_width) * id(global_pool_depth));
               return buf;
         - lvgl.widget.redraw:
