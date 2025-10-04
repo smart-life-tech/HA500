@@ -4385,8 +4385,10 @@ lvgl:
                             static char text[20];
                             snprintf(text, sizeof(text), "%d",  id(pump_runtime_blocks));
                             return text;
-                    - lvgl.label.update: id: runtime_blocks_display
-                    - lvgl.label.update: id: runtime_info_display
+                    - lvgl.label.update:
+                        id: runtime_blocks_display
+                    - lvgl.label.update:
+                        id: runtime_info_display
                   widgets:
                     - label: {text: "-", text_font: roboto, align: CENTER}
 
