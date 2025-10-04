@@ -4362,6 +4362,8 @@ lvgl:
                             static char text[20];
                             snprintf(text, sizeof(text), "%d",  id(pump_runtime_blocks));
                             return text;
+                    - lvgl.label.update: id: runtime_blocks_display
+                    - lvgl.label.update: id: runtime_info_display
                   widgets:
                     - label: {text: "+", text_font: roboto, align: CENTER}
               - button:
@@ -4371,13 +4373,18 @@ lvgl:
                   height: 35
                   on_press:
                     - lambda: |-
-                        if ( id(pump_runtime_blocks) > 1)  id(pump_runtime_blocks) -= 1;
+                        id(pump_runtime_blocks) -= 1;
+                        if ( id(pump_runtime_blocks) > 4)  id(pump_runtime_blocks) = 4;
+                        if ( id(pump_runtime_blocks) < 1)  id(pump_runtime_blocks) = 1;
+                        
                     - lvgl.label.update:
                         id: blocks_number
                         text: !lambda |-
                             static char text[20];
                             snprintf(text, sizeof(text), "%d",  id(pump_runtime_blocks));
                             return text;
+                    - lvgl.label.update: id: runtime_blocks_display
+                    - lvgl.label.update: id: runtime_info_display
                   widgets:
                     - label: {text: "-", text_font: roboto, align: CENTER}
 
