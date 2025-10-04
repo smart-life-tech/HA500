@@ -2129,7 +2129,7 @@ lvgl:
             width: 480
             height: 480
             align: TOP_LEFT
-        - lvgl.widget.redraw:
+        
             
         # Seasonal Pump Settings Toggle
         - obj:
@@ -2480,6 +2480,7 @@ lvgl:
                   text_color: 0xFFFFFF
                   x: 0
                   y: 5
+              
 
               # Center Time
               - label:
