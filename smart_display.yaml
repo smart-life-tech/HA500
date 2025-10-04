@@ -129,7 +129,6 @@ sensor:
     unit_of_measurement: "m³"
     accuracy_decimals: 2
     lambda: |-
-      //return id(pool_length).state * id(pool_width).state * id(pool_depth).state;
       return id(global_pool_length) * id(global_pool_width) * id(global_pool_depth);
     update_interval: 30s
 
@@ -408,7 +407,7 @@ number:
     step: 0.1
     initial_value: 1.0
     optimistic: true
-    restore_value: false
+    #restore_value: false
     on_value:
       then:
         - globals.set:
@@ -433,7 +432,7 @@ number:
     step: 0.1
     initial_value: 1.0
     optimistic: true
-    restore_value: true
+    #restore_value: false
     on_value:
       then:
         - globals.set:
@@ -458,7 +457,7 @@ number:
     step: 0.1
     initial_value: 1.0
     optimistic: true
-    restore_value: true
+    #restore_value: false
     on_value:
       then:
         - globals.set:
@@ -2130,6 +2129,7 @@ lvgl:
             width: 480
             height: 480
             align: TOP_LEFT
+        - lvgl.widget.redraw:
             
         # Seasonal Pump Settings Toggle
         - obj:
