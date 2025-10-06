@@ -4155,7 +4155,7 @@ lvgl:
                   on_press:
                     - lambda: |-
                         id(global_pool_length) -= 0.1;
-                        if (id(global_pool_length) > 0.1) id(global_pool_length) -= 0.1;
+                        if (id(global_pool_length) < 0.1) id(global_pool_length) = 0.1;
                         id(pool_volume).publish_state(id(global_pool_length) * id(global_pool_width) * id(global_pool_depth));
                     - lvgl.label.update:
                         id: pool_volume_number
@@ -4191,8 +4191,9 @@ lvgl:
                   height: 35
                   on_press:
                     - lambda: |-
-                        id(pool_width).state += 0.1;
-                        id(pool_volume).publish_state(id(pool_length).state * id(pool_width).state * id(pool_depth).state);
+                        id(global_pool_width) += 0.1;
+                        id(pool_volume).publish_state(id(global_pool_length) * id(global_pool_width) * id(global_pool_depth));
+                    - lvgl.label.update:
                     - lvgl.label.update:
                         id: pool_volume_number
                         text: !lambda |-
@@ -4214,8 +4215,9 @@ lvgl:
                   height: 35
                   on_press:
                     - lambda: |-
-                        if (id(pool_width).state > 0.1) id(pool_width).state -= 0.1;
-                        id(pool_volume).publish_state(id(pool_length).state * id(pool_width).state * id(pool_depth).state);
+                        id(global_pool_width) -= 0.1;
+                        id(pool_volume).publish_state(id(global_pool_length) * id(global_pool_width) * id(global_pool_depth));
+                    - lvgl.label.update:
                     - lvgl.label.update:
                         id: pool_volume_number
                         text: !lambda |-
@@ -4250,8 +4252,9 @@ lvgl:
                   height: 35
                   on_press:
                     - lambda: |-
-                        id(pool_depth).state += 0.1;
-                        id(pool_volume).publish_state(id(pool_length).state * id(pool_width).state * id(pool_depth).state);
+                        id(global_pool_depth) += 0.1;
+                        id(pool_volume).publish_state(id(global_pool_length) * id(global_pool_width) * id(global_pool_depth));
+                    - lvgl.label.update:
                     - lvgl.label.update:
                         id: pool_volume_number
                         text: !lambda |-
@@ -4273,8 +4276,9 @@ lvgl:
                   height: 35
                   on_press:
                     - lambda: |-
-                        if (id(pool_depth).state > 0.1) id(pool_depth).state -= 0.1;
-                        id(pool_volume).publish_state(id(pool_length).state * id(pool_width).state * id(pool_depth).state);
+                        id(global_pool_depth) -= 0.1;
+                        id(pool_volume).publish_state(id(global_pool_length) * id(global_pool_width) * id(global_pool_depth));
+                    - lvgl.label.update:
                     - lvgl.label.update:
                         id: pool_volume_number
                         text: !lambda |-
