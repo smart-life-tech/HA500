@@ -1069,15 +1069,15 @@ color:
 globals:
   - id: global_pool_length
     type: float
-    restore_value: true
+    restore_value: yes
     initial_value: "1.0"
   - id: global_pool_width
     type: float
-    restore_value: true
+    restore_value: yes
     initial_value: "1.0"
   - id: global_pool_depth
     type: float
-    restore_value: true
+    restore_value: yes
     initial_value: "1.0"
   - id: global_temp_coeff
     type: float
@@ -4130,8 +4130,8 @@ lvgl:
                   height: 35
                   on_press:
                     - lambda: |-
-                        id(pool_length).state += 0.1;
-                        id(pool_volume).publish_state(id(pool_length).state * id(pool_width).state * id(pool_depth).state);
+                        id(global_pool_length) += 0.1;
+                        id(pool_volume).publish_state(id(global_pool_length) * id(global_pool_width) * id(global_pool_depth));
                     - lvgl.label.update:
                         id: pool_volume_number
                         text: !lambda |-
@@ -4142,7 +4142,7 @@ lvgl:
                         id: pool_length_number
                         text: !lambda |-
                             static char text[20];
-                            snprintf(text, sizeof(text), "%.2f", id(pool_length).state);
+                            snprintf(text, sizeof(text), "%.2f", id(global_pool_length));
                             return text;
                             
                   widgets:
@@ -4154,8 +4154,9 @@ lvgl:
                   height: 35
                   on_press:
                     - lambda: |-
-                        if (id(pool_length).state > 0.1) id(pool_length).state -= 0.1;
-                        id(pool_volume).publish_state(id(pool_length).state * id(pool_width).state * id(pool_depth).state);
+                        id(global_pool_length) -= 0.1;
+                        if (id(global_pool_length) > 0.1) id(global_pool_length) -= 0.1;
+                        id(pool_volume).publish_state(id(global_pool_length) * id(global_pool_width) * id(global_pool_depth));
                     - lvgl.label.update:
                         id: pool_volume_number
                         text: !lambda |-
@@ -4166,7 +4167,7 @@ lvgl:
                         id: pool_length_number
                         text: !lambda |-
                             static char text[20];
-                            snprintf(text, sizeof(text), "%.2f", id(pool_length).state);
+                            snprintf(text, sizeof(text), "%.2f", id(global_pool_length);
                             return text;
                   widgets:
                     - label: {text: "-", text_font: roboto, align: CENTER}
