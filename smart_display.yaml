@@ -4167,7 +4167,7 @@ lvgl:
                         id: pool_length_number
                         text: !lambda |-
                             static char text[20];
-                            snprintf(text, sizeof(text), "%.2f", id(global_pool_length);
+                            snprintf(text, sizeof(text), "%.2f", id(global_pool_length));
                             return text;
                   widgets:
                     - label: {text: "-", text_font: roboto, align: CENTER}
