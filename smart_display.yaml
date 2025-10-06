@@ -29,19 +29,19 @@ esphome:
     board_build.flash_mode: dio
     build_unflags: "-f"
     build_flags: "-shared"
-  on_boot:
-    priority: -100
-    then:
-      # Push global into number on startup
-      - number.set:
-          id: pool_length
-          value: !lambda "return id(global_pool_length);"
-      - number.set:
-          id: pool_width
-          value: !lambda "return id(global_pool_width);"
-      - number.set:
-          id: pool_depth
-          value: !lambda "return id(global_pool_depth);"
+  # on_boot:
+  #   priority: -100
+  #   then:
+  #     # Push global into number on startup
+  #     - number.set:
+  #         id: pool_length
+  #         value: !lambda "return id(global_pool_length);"
+  #     - number.set:
+  #         id: pool_width
+  #         value: !lambda "return id(global_pool_width);"
+  #     - number.set:
+  #         id: pool_depth
+  #         value: !lambda "return id(global_pool_depth);"
 
 esp32:
   board: esp32-s3-devkitc-1
