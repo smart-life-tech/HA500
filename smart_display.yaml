@@ -4193,7 +4193,7 @@ lvgl:
                     - lambda: |-
                         id(global_pool_width) += 0.1;
                         id(pool_volume).publish_state(id(global_pool_length) * id(global_pool_width) * id(global_pool_depth));
-                    - lvgl.label.update:
+                    
                     - lvgl.label.update:
                         id: pool_volume_number
                         text: !lambda |-
@@ -4217,7 +4217,7 @@ lvgl:
                     - lambda: |-
                         id(global_pool_width) -= 0.1;
                         id(pool_volume).publish_state(id(global_pool_length) * id(global_pool_width) * id(global_pool_depth));
-                    - lvgl.label.update:
+                        
                     - lvgl.label.update:
                         id: pool_volume_number
                         text: !lambda |-
@@ -4254,7 +4254,7 @@ lvgl:
                     - lambda: |-
                         id(global_pool_depth) += 0.1;
                         id(pool_volume).publish_state(id(global_pool_length) * id(global_pool_width) * id(global_pool_depth));
-                    - lvgl.label.update:
+                    
                     - lvgl.label.update:
                         id: pool_volume_number
                         text: !lambda |-
@@ -4278,7 +4278,7 @@ lvgl:
                     - lambda: |-
                         id(global_pool_depth) -= 0.1;
                         id(pool_volume).publish_state(id(global_pool_length) * id(global_pool_width) * id(global_pool_depth));
-                    - lvgl.label.update:
+                    
                     - lvgl.label.update:
                         id: pool_volume_number
                         text: !lambda |-
