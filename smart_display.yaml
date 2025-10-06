@@ -4217,7 +4217,7 @@ lvgl:
                     - lambda: |-
                         id(global_pool_width) -= 0.1;
                         id(pool_volume).publish_state(id(global_pool_length) * id(global_pool_width) * id(global_pool_depth));
-                        
+
                     - lvgl.label.update:
                         id: pool_volume_number
                         text: !lambda |-
@@ -4265,7 +4265,7 @@ lvgl:
                         id: pool_depth_number
                         text: !lambda |-
                             static char text[20];
-                            snprintf(text, sizeof(text), "%.2f", id(pool_depth).state);
+                            snprintf(text, sizeof(text), "%.2f", id(global_pool_depth));
                             return text;
                   widgets:
                     - label: {text: "+", text_font: roboto, align: CENTER}
@@ -4289,7 +4289,7 @@ lvgl:
                         id: pool_depth_number
                         text: !lambda |-
                             static char text[20];
-                            snprintf(text, sizeof(text), "%.2f", id(pool_depth).state);
+                            snprintf(text, sizeof(text), "%.2f", id(global_pool_depth));
                             return text;
                   widgets:
                     - label: {text: "-", text_font: roboto, align: CENTER}
