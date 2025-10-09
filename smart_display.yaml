@@ -4131,7 +4131,7 @@ lvgl:
                   on_press:
                     - lambda: |-
                         id(global_pool_length) += 0.1;
-                        global_save();
+              
                         id(pool_volume).publish_state(id(global_pool_length) * id(global_pool_width) * id(global_pool_depth));
                     - globals.set:
                         id: global_pool_length
