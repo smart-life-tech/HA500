@@ -1069,15 +1069,15 @@ color:
 globals:
   - id: global_pool_length
     type: float
-    restore_value: yes
+    restore_value: true
     initial_value: "1.0"
   - id: global_pool_width
     type: float
-    restore_value: yes
+    restore_value: true
     initial_value: "1.0"
   - id: global_pool_depth
     type: float
-    restore_value: yes
+    restore_value: true
     initial_value: "1.0"
   - id: global_temp_coeff
     type: float
@@ -4131,6 +4131,7 @@ lvgl:
                   on_press:
                     - lambda: |-
                         id(global_pool_length) += 0.1;
+                        global_save();
                         id(pool_volume).publish_state(id(global_pool_length) * id(global_pool_width) * id(global_pool_depth));
                     - lvgl.label.update:
                         id: pool_volume_number
@@ -4155,6 +4156,7 @@ lvgl:
                   on_press:
                     - lambda: |-
                         id(global_pool_length) -= 0.1;
+                        global_save();
                         if (id(global_pool_length) < 0.1) id(global_pool_length) = 0.1;
                         id(pool_volume).publish_state(id(global_pool_length) * id(global_pool_width) * id(global_pool_depth));
                     - lvgl.label.update:
