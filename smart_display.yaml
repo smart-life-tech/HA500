@@ -4682,7 +4682,7 @@ lvgl:
                         id: cycles_number
                         text: !lambda |-
                             static char text[20];
-                            snprintf(text, sizeof(text), "%d", id(cycles_count));
+                            snprintf(text, sizeof(text), "%.1f", id(cycles_count));
                             return text;
                     - lvgl.label.update: 
                         id: pump_runtime_label
@@ -4721,7 +4721,7 @@ lvgl:
                         id: cycles_number
                         text: !lambda |-
                             static char text[20];
-                            snprintf(text, sizeof(text), "%d", id(cycles_count));
+                            snprintf(text, sizeof(text), "%.1f, id(cycles_count));
                             return text;
 
                     - lvgl.label.update: 
