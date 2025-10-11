@@ -1125,7 +1125,7 @@ globals:
     restore_value: yes
   - id: cycles_count
     type: float
-    restore_value: yes   # keep value after reboot
+    restore_value: true   # keep value after reboot
     initial_value: '1.00'
   - id: total_runtime_multiple
     type: int
@@ -4667,7 +4667,7 @@ lvgl:
                   text_color: 0x000000
                   text: !lambda |-
                     static char buf[16];
-                    sprintf(buf, "%d", id(cycles_count));
+                    sprintf(buf, "%.1f", id(cycles_count));
                     return buf;
               - button:
                   x: 230
