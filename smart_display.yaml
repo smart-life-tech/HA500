@@ -4716,7 +4716,7 @@ lvgl:
                   on_press:
                     - lambda: |-
                         id(cycles_count) -= 0.5;
-                        if (id(cycles_count) < 0) id(cycles_count) = 0;
+                        if (id(cycles_count) < 1) id(cycles_count) = 1;
                     - lvgl.label.update:
                         id: cycles_number
                         text: !lambda |-
