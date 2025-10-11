@@ -1114,7 +1114,7 @@ globals:
     initial_value: "25.0"
   - id: pump_flow_rate
     type: float
-    initial_value: "5.0"
+    initial_value: "500.0"
     restore_value: yes
   - id: pool_temperature
     type: float
@@ -4489,7 +4489,7 @@ lvgl:
                   height: 35
                   on_press:
                     - lambda: |-
-                        id(pump_flow_rate) += 0.5;
+                        id(pump_flow_rate) += 50.0f;
                     - lvgl.label.update:
                         id: pump_flow_number
                         text: !lambda |-
@@ -4527,7 +4527,8 @@ lvgl:
                   height: 35
                   on_press:
                     - lambda: |-
-                        if (id(pump_flow_rate) > 0.5) id(pump_flow_rate) -= 0.5;
+                        id(pump_flow_rate) -= 50.0f;
+                        if (id(pump_flow_rate) < 0) id(pump_flow_rate) = 50.0;
                     - lvgl.label.update:
                         id: pump_flow_number
                         text: !lambda |-
