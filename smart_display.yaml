@@ -4800,9 +4800,9 @@ lvgl:
                     float runtime = (volume / flow) * cycles * temp_factor;
                     if (runtime > 24.0f) runtime = 24.0f; // limit to 24 hours
 
-                    sprintf(buf, "%.1f", runtime);
+                    sprintf(buf, "%.1f", id(total_runtime).state));
                     //id(total_runtime).publish_state(runtime);
-                    return  id(total_runtime).state;
+                    return  buf;
 
 #-------------------------------------------
 # Internal outputs
@@ -4949,7 +4949,7 @@ switch:
       then:
         - lvgl.label.update:
             id: current_status_display
-            text: "⏹️ Pump OFF - Watering stopped"
+            text: "Pump OFF - Watering stopped"
         - logger.log: "Watering pump turned OFF"
 
         - if:
