@@ -4800,7 +4800,7 @@ lvgl:
                     float runtime = (volume / flow) * cycles * temp_factor;
                     if (runtime > 24.0f) runtime = 24.0f; // limit to 24 hours
 
-                    sprintf(buf, "%.1f", id(total_runtime).state));
+                    sprintf(buf, "%.1f", id(total_runtime).state);
                     //id(total_runtime).publish_state(runtime);
                     return  buf;
 
