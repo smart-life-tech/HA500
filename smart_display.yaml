@@ -4717,7 +4717,7 @@ lvgl:
                   on_press:
                     - lambda: |-
                         id(cycles_count) -= 0.5;
-                        if (id(cycles_count) < 1) id(cycles_count) = 1;
+                        if (id(cycles_count) < 0.5) id(cycles_count) = 0.5;
                     - lvgl.label.update:
                         id: cycles_number
                         text: !lambda |-
@@ -4727,6 +4727,26 @@ lvgl:
 
                     - lvgl.label.update: 
                         id: pump_runtime_label
+                        text: !lambda |-
+                          static char buf[16];
+                          float volume = id(global_pool_length) * id(global_pool_width) * id(global_pool_depth); // m³
+                          float flow = id(pump_flow_rate); // m³ per hour
+                          float cycles = id(cycles_count);
+                          float temp = id(owm_temperature).has_state() ? id(owm_temperature).state : 25.0f;
+
+                          // Prevent divide-by-zero
+                          if (flow <= 0.1f) flow = 1.0f;
+
+                          // Temperature correction
+                          float temp_factor = 1.0f;
+                          if (temp > 40.0f) temp_factor = 1.3f;   // hot water, longer filtering
+                          else if (temp < 20.0f) temp_factor = 0.8f; // cold water, shorter filtering
+
+                          float runtime = (volume / flow) * cycles * temp_factor;
+                          if (runtime > 24.0f) runtime = 24.0f; // limit to 24 hours
+
+                          sprintf(buf, "%.1f", runtime);
+                          return buf;
                   widgets:
                     - label: {text: "-", text_font: roboto, align: CENTER}
 
