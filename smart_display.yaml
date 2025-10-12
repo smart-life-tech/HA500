@@ -4194,6 +4194,7 @@ lvgl:
                           if (runtime > 24.0f) runtime = 24.0f; // limit to 24 hours
 
                           sprintf(buf, "%.1f", runtime);
+                          id(total_runtime).publish_state(runtime);
                           return buf;
                             
                   widgets:
@@ -4244,6 +4245,7 @@ lvgl:
                           if (runtime > 24.0f) runtime = 24.0f; // limit to 24 hours
 
                           sprintf(buf, "%.1f", runtime);
+                          id(total_runtime).publish_state(runtime);
                           return buf;
                   widgets:
                     - label: {text: "-", text_font: roboto, align: CENTER}
@@ -4306,6 +4308,7 @@ lvgl:
                           if (runtime > 24.0f) runtime = 24.0f; // limit to 24 hours
 
                           sprintf(buf, "%.1f", runtime);
+                          id(total_runtime).publish_state(runtime);
                           return buf;
                   widgets:
                     - label: {text: "+", text_font: roboto, align: CENTER}
@@ -4355,6 +4358,7 @@ lvgl:
                           if (runtime > 24.0f) runtime = 24.0f; // limit to 24 hours
 
                           sprintf(buf, "%.1f", runtime);
+                          id(total_runtime).publish_state(runtime);
                           return buf;
                   widgets:
                     - label: {text: "-", text_font: roboto, align: CENTER}
@@ -4417,6 +4421,7 @@ lvgl:
                           if (runtime > 24.0f) runtime = 24.0f; // limit to 24 hours
 
                           sprintf(buf, "%.1f", runtime);
+                          id(total_runtime).publish_state(runtime);
                           return buf;
                   widgets:
                     - label: {text: "+", text_font: roboto, align: CENTER}
@@ -4466,6 +4471,7 @@ lvgl:
                           if (runtime > 24.0f) runtime = 24.0f; // limit to 24 hours
 
                           sprintf(buf, "%.1f", runtime);
+                          id(total_runtime).publish_state(runtime);
                           return buf;
                   widgets:
                     - label: {text: "-", text_font: roboto, align: CENTER}
@@ -4517,6 +4523,7 @@ lvgl:
                           if (runtime > 24.0f) runtime = 24.0f; // limit to 24 hours
 
                           sprintf(buf, "%.1f", runtime);
+                          id(total_runtime).publish_state(runtime);
                           return buf;
                   widgets:
                     - label: {text: "+", text_font: roboto, align: CENTER}
@@ -4556,6 +4563,7 @@ lvgl:
                           if (runtime > 24.0f) runtime = 24.0f; // limit to 24 hours
 
                           sprintf(buf, "%.1f", runtime);
+                          id(total_runtime).publish_state(runtime);
                           return buf;
                   widgets:
                     - label: {text: "-", text_font: roboto, align: CENTER}
@@ -4611,6 +4619,7 @@ lvgl:
                           if (runtime > 24.0f) runtime = 24.0f; // limit to 24 hours
 
                           sprintf(buf, "%.1f", runtime);
+                          id(total_runtime).publish_state(runtime);
                           return buf;
                   widgets:
                     - label: {text: "+", text_font: roboto, align: CENTER}
@@ -4654,6 +4663,7 @@ lvgl:
                           if (runtime > 24.0f) runtime = 24.0f; // limit to 24 hours
 
                           sprintf(buf, "%.1f", runtime);
+                          id(total_runtime).publish_state(runtime);
                           return buf;
                   widgets:
                     - label: {text: "-", text_font: roboto, align: CENTER}
@@ -4706,6 +4716,7 @@ lvgl:
                           if (runtime > 24.0f) runtime = 24.0f; // limit to 24 hours
 
                           sprintf(buf, "%.1f", runtime);
+                          id(total_runtime).publish_state(runtime);
                           return buf;
                   widgets:
                     - label: {text: "+", text_font: roboto, align: CENTER}
@@ -4746,6 +4757,7 @@ lvgl:
                           if (runtime > 24.0f) runtime = 24.0f; // limit to 24 hours
 
                           sprintf(buf, "%.1f", runtime);
+                          id(total_runtime).publish_state(runtime);
                           return buf;
                   widgets:
                     - label: {text: "-", text_font: roboto, align: CENTER}
@@ -4789,7 +4801,8 @@ lvgl:
                     if (runtime > 24.0f) runtime = 24.0f; // limit to 24 hours
 
                     sprintf(buf, "%.1f", runtime);
-                    return buf;
+                    //id(total_runtime).publish_state(runtime);
+                    return  id(total_runtime).state;
 
 #-------------------------------------------
 # Internal outputs
