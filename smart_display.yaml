@@ -4203,7 +4203,7 @@ lvgl:
                           sprintf(buf, "%.1f", id(total_runtime).state);
                           return buf;
                     - globals.set:
-                        id: total_runtime
+                        id: total_runtime_label
                         value: !lambda "return id(total_runtime_multiple);"
                             
                   widgets:
@@ -4250,7 +4250,7 @@ lvgl:
                             snprintf(text, sizeof(text), "%.2f", id(global_pool_length));
                             return text;
                     - globals.set:
-                        id: total_runtime
+                        id: total_runtime_label
                         value: !lambda "return id(total_runtime_multiple);"
                     - lvgl.label.update: 
                         id: pump_runtime_label
