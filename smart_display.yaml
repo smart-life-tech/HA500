@@ -4180,6 +4180,7 @@ lvgl:
 
                         float runtime = (volume / flow) * cycles * temp_factor;
                         if (runtime > 24.0f) runtime = 24.0f; // limit to 24 hours
+                        ESP_LOGI("pool_pump", "Calculated runtime: %.2f hours", runtime);
                         id(total_runtime).publish_state(runtime);
                     - globals.set:
                         id: global_pool_length
@@ -4233,6 +4234,7 @@ lvgl:
 
                         float runtime = (volume / flow) * cycles * temp_factor;
                         if (runtime > 24.0f) runtime = 24.0f; // limit to 24 hours
+                        ESP_LOGI("pool_pump", "Calculated runtime: %.2f hours", runtime);
                         id(total_runtime).publish_state(runtime);
                     - globals.set:
                         id: global_pool_length
