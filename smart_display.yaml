@@ -4168,7 +4168,12 @@ lvgl:
                         float volume = id(global_pool_length) * id(global_pool_width) * id(global_pool_depth); // m³
                         float flow = id(pump_flow_rate); // m³ per hour
                         float cycles = id(cycles_count);
+
                         float temp = id(owm_temperature).has_state() ? id(owm_temperature).state : 25.0f;
+                        ESP_LOGI("pool_pump", "Calculated VOLUME: %.2f M3", volume);
+                        ESP_LOGI("pool_pump", "Calculated FLOW: %.2f M3/h", flow);
+                        ESP_LOGI("pool_pump", "Calculated CYCLES: %.2f", cycles);
+                        ESP_LOGI("pool_pump", "Calculated TEMP: %.2f C", temp);
 
                         // Prevent divide-by-zero
                         if (flow <= 0.1f) flow = 1.0f;
@@ -4177,7 +4182,7 @@ lvgl:
                         float temp_factor = 1.0f;
                         if (temp > 40.0f) temp_factor = 1.3f;   // hot water, longer filtering
                         else if (temp < 20.0f) temp_factor = 0.8f; // cold water, shorter filtering
-
+                        ESP_LOGI("pool_pump", "Calculated temp factor: %.2f hours", temp_factor);
                         float runtime = (volume / flow) * cycles * temp_factor;
                         if (runtime > 24.0f) runtime = 24.0f; // limit to 24 hours
                         ESP_LOGI("pool_pump", "Calculated runtime: %.2f hours", runtime);
