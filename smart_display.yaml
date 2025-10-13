@@ -66,6 +66,12 @@ esphome:
             static char buf[20];
             snprintf(buf, sizeof(buf), "%.1f", id(pump_flow_rate));
             return buf;
+      - lvgl.label.update:
+          id: pump_runtime_label
+          text: !lambda |-
+            static char buf[20];
+            snprintf(buf, sizeof(buf), "%.2f", id(total_runtime_multiple));
+            return buf;
       
 
 esp32:
@@ -1128,8 +1134,9 @@ globals:
     restore_value: true   # keep value after reboot
     initial_value: '1.00'
   - id: total_runtime_multiple
-    type: int
-    initial_value: "1"
+    type: float
+    restore_value: true
+    initial_value: "20.00"
   - id: pool_temp
     type: float
     initial_value: "25.0" # Default pool temperature
@@ -4197,7 +4204,7 @@ lvgl:
                           return buf;
                     - globals.set:
                         id: total_runtime
-                        value: !lambda "return id(total_runtime).state;"
+                        value: !lambda "return id(total_runtime_multiple);"
                             
                   widgets:
                     - label: {text: "+", text_font: roboto, align: CENTER}
@@ -4244,7 +4251,7 @@ lvgl:
                             return text;
                     - globals.set:
                         id: total_runtime
-                        value: !lambda "return id(total_runtime).state;"
+                        value: !lambda "return id(total_runtime_multiple);"
                     - lvgl.label.update: 
                         id: pump_runtime_label
                         text: !lambda |-
@@ -5020,7 +5027,7 @@ script:
       - logger.log: "Resetting irrigation settings to defaults"
       - lvgl.label.update:
           id: current_status_display
-          text: "🔄 Resetting settings..."
+          text: " Resetting settings..."
       - number.set:
           id: field_area_input
           value: 48
