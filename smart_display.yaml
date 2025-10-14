@@ -167,6 +167,7 @@ sensor:
     id: total_runtime
     unit_of_measurement: "h"
     accuracy_decimals: 2
+    update_interval: 30s
     lambda: |-
       float V = id(pool_length).state * id(pool_width).state * id(pool_depth).state;
       return V / id(pump_flow_rate);
@@ -1131,7 +1132,7 @@ globals:
   - id: total_runtime_multiple
     type: float
     restore_value: true
-    initial_value: "20.00"
+    initial_value: "50.00"
   - id: pool_temp
     type: float
     initial_value: "25.0" # Default pool temperature
@@ -4850,7 +4851,7 @@ lvgl:
                   text_color: 0x000000
                   text: !lambda |-
                     static char buf[16];
-                    sprintf(buf, "%.1f", id(total_runtime_multiple));
+                    sprintf(buf, "%.2f", id(total_runtime).state);
                     return  buf;
 
 #-------------------------------------------
