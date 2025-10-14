@@ -1104,6 +1104,15 @@ color:
 
 # Global variables for timer tracking and settings
 globals:
+  - id: current_lat
+    type: float
+    restore_value: true
+    initial_value: '37.1'
+  - id: current_lon
+    type: float
+    restore_value: true
+    initial_value: '-8.0'
+
   - id: global_pool_length
     type: float
     restore_value: true
@@ -6055,9 +6064,38 @@ interval:
           condition:
             wifi.connected:
           then:
+            - logger.log: "fechting  request..."
+            - http_request.get:
+                url: "http://ip-api.com/json"
+                capture_response: true
+                on_response:
+                  then:
+                    - lambda: |-
+                        size_t lat_pos = body.find("\"lat\":");
+                        size_t lon_pos = body.find("\"lon\":");
+                        if (lat_pos != std::string::npos && lon_pos != std::string::npos) {
+                          float lat = std::stof(body.substr(lat_pos + 6));
+                          float lon = std::stof(body.substr(lon_pos + 6));
+                          id(current_lat) = lat;
+                          id(current_lon) = lon;
+                          ESP_LOGI("geo", "Auto location: lat=%.4f, lon=%.4f", lat, lon);
+                        }
+
+  - interval: 60s
+    then:
+      - if:
+          condition:
+            wifi.connected:
+          then:
             - logger.log: "Making weather API request..."
             - http_request.get:
-                url: "http://api.openweathermap.org/data/2.5/weather?q=Sao%20Bartolomeu%20de%20messines&appid=b0fed035f1b875bafaf66f85d33f4e71&units=metric"
+                # url: "http://api.openweathermap.org/data/2.5/weather?q=Sao%20Bartolomeu%20de%20messines&appid=b0fed035f1b875bafaf66f85d33f4e71&units=metric"
+                url: !lambda |-
+                  char url[256];
+                  sprintf(url,
+                    "http://api.openweathermap.org/data/2.5/weather?lat=%.4f&lon=%.4f&appid=b0fed035f1b875bafaf66f85d33f4e71&units=metric",
+                    id(current_lat), id(current_lon));
+                  return std::string(url);
                 request_headers:
                   User-Agent: "ESPHome/1.0"
                 capture_response: true
