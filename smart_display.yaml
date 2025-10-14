@@ -33,6 +33,8 @@ esphome:
     priority: -100
     then:
       # Push global into number on startup
+      - lambda: |-
+          id(total_runtime).publish_state(id(total_runtime_multiple));
       - number.set:
           id: pool_length
           value: !lambda "return id(global_pool_length);"
@@ -167,6 +169,7 @@ sensor:
     id: total_runtime
     unit_of_measurement: "h"
     accuracy_decimals: 2
+    restore_value: true 
     update_interval: 30s
     lambda: |-
       float V = id(pool_length).state * id(pool_width).state * id(pool_depth).state;
@@ -442,6 +445,10 @@ number:
         - globals.set:
             id: global_pool_length
             value: !lambda "return x;"
+        - globals.set:
+            id: total_runtime_multiple
+            value: !lambda "return id(total_runtime).state;"
+
         - sensor.template.publish:
             id: pool_volume
             state: !lambda "return id(global_pool_length) * id(global_pool_width) * id(global_pool_depth);"
@@ -467,6 +474,9 @@ number:
         - globals.set:
             id: global_pool_width
             value: !lambda "return x;"
+        - globals.set:
+            id: total_runtime_multiple
+            value: !lambda "return id(total_runtime).state;"
         - sensor.template.publish:
             id: pool_volume
             state: !lambda "return id(global_pool_length) * id(global_pool_width) * id(global_pool_depth);"
@@ -1132,7 +1142,7 @@ globals:
   - id: total_runtime_multiple
     type: float
     restore_value: true
-    initial_value: "50.00"
+    initial_value: "5.00"
   - id: pool_temp
     type: float
     initial_value: "25.0" # Default pool temperature
