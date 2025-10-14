@@ -4328,7 +4328,7 @@ lvgl:
                           if (temp > 40.0f) temp_factor = 1.3f;   // hot water, longer filtering
                           else if (temp < 20.0f) temp_factor = 0.8f; // cold water, shorter filtering
 
-                          float runtime = (volume / flow) * cycles * temp_factor;
+                          float runtime = (volume / (flow*0.001)) * cycles * temp_factor;
                           if (runtime > 24.0f) runtime = 24.0f; // limit to 24 hours
 
                           sprintf(buf, "%.1f", runtime);
@@ -4378,7 +4378,7 @@ lvgl:
                           if (temp > 40.0f) temp_factor = 1.3f;   // hot water, longer filtering
                           else if (temp < 20.0f) temp_factor = 0.8f; // cold water, shorter filtering
 
-                          float runtime = (volume / flow) * cycles * temp_factor;
+                          float runtime = (volume / (flow*0.001)) * cycles * temp_factor;
                           if (runtime > 24.0f) runtime = 24.0f; // limit to 24 hours
 
                           sprintf(buf, "%.1f", runtime);
@@ -4448,7 +4448,7 @@ lvgl:
                           if (temp > 40.0f) temp_factor = 1.3f;   // hot water, longer filtering
                           else if (temp < 20.0f) temp_factor = 0.8f; // cold water, shorter filtering
 
-                          float runtime = (volume / flow) * cycles * temp_factor;
+                          float runtime = (volume / (flow*0.001)) * cycles * temp_factor;
                           if (runtime > 24.0f) runtime = 24.0f; // limit to 24 hours
 
                           sprintf(buf, "%.1f", runtime);
@@ -4498,7 +4498,7 @@ lvgl:
                           if (temp > 40.0f) temp_factor = 1.3f;   // hot water, longer filtering
                           else if (temp < 20.0f) temp_factor = 0.8f; // cold water, shorter filtering
 
-                          float runtime = (volume / flow) * cycles * temp_factor;
+                          float runtime = (volume / (flow*0.001)) * cycles * temp_factor;
                           if (runtime > 24.0f) runtime = 24.0f; // limit to 24 hours
 
                           sprintf(buf, "%.1f", runtime);
@@ -4557,7 +4557,7 @@ lvgl:
                           if (temp > 40.0f) temp_factor = 1.3f;   // hot water, longer filtering
                           else if (temp < 20.0f) temp_factor = 0.8f; // cold water, shorter filtering
 
-                          float runtime = (volume / flow) * cycles * temp_factor;
+                          float runtime = (volume / (flow*0.001)) * cycles * temp_factor;
                           if (runtime > 24.0f) runtime = 24.0f; // limit to 24 hours
 
                           sprintf(buf, "%.1f", runtime);
@@ -4597,7 +4597,7 @@ lvgl:
                           if (temp > 40.0f) temp_factor = 1.3f;   // hot water, longer filtering
                           else if (temp < 20.0f) temp_factor = 0.8f; // cold water, shorter filtering
 
-                          float runtime = (volume / flow) * cycles * temp_factor;
+                          float runtime = (volume / (flow*0.001)) * cycles * temp_factor;
                           if (runtime > 24.0f) runtime = 24.0f; // limit to 24 hours
 
                           sprintf(buf, "%.1f", runtime);
@@ -4660,7 +4660,7 @@ lvgl:
                           if (temp > 40.0f) temp_factor = 1.3f;   // hot water, longer filtering
                           else if (temp < 20.0f) temp_factor = 0.8f; // cold water, shorter filtering
 
-                          float runtime = (volume / flow) * cycles * temp_factor;
+                          float runtime = (volume / (flow*0.001)) * cycles * temp_factor;
                           if (runtime > 24.0f) runtime = 24.0f; // limit to 24 hours
 
                           sprintf(buf, "%.1f", runtime);
@@ -4704,7 +4704,7 @@ lvgl:
                           if (temp > 40.0f) temp_factor = 1.3f;   // hot water, longer filtering
                           else if (temp < 20.0f) temp_factor = 0.8f; // cold water, shorter filtering
 
-                          float runtime = (volume / flow) * cycles * temp_factor;
+                          float runtime = (volume / (flow*0.001)) * cycles * temp_factor;
                           if (runtime > 24.0f) runtime = 24.0f; // limit to 24 hours
 
                           sprintf(buf, "%.1f", runtime);
@@ -4764,7 +4764,7 @@ lvgl:
                           if (temp > 40.0f) temp_factor = 1.3f;   // hot water, longer filtering
                           else if (temp < 20.0f) temp_factor = 0.8f; // cold water, shorter filtering
 
-                          float runtime = (volume / flow) * cycles * temp_factor;
+                          float runtime = (volume / (flow*0.001)) * cycles * temp_factor;
                           if (runtime > 24.0f) runtime = 24.0f; // limit to 24 hours
 
                           sprintf(buf, "%.1f", runtime);
@@ -4805,7 +4805,7 @@ lvgl:
                           if (temp > 40.0f) temp_factor = 1.3f;   // hot water, longer filtering
                           else if (temp < 20.0f) temp_factor = 0.8f; // cold water, shorter filtering
 
-                          float runtime = (volume / flow) * cycles * temp_factor;
+                          float runtime = (volume / (flow*0.001)) * cycles * temp_factor;
                           if (runtime > 24.0f) runtime = 24.0f; // limit to 24 hours
 
                           sprintf(buf, "%.1f", runtime);
