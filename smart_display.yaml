@@ -4850,7 +4850,7 @@ lvgl:
                   text_color: 0x000000
                   text: !lambda |-
                     static char buf[16];
-                    sprintf(buf, "%.1f", id(total_runtime).state);
+                    sprintf(buf, "%.1f", id(total_runtime_multiple));
                     return  buf;
 
 #-------------------------------------------
