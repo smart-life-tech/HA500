@@ -72,7 +72,6 @@ esphome:
             static char buf[20];
             snprintf(buf, sizeof(buf), "%.2f", id(total_runtime_multiple));
             return buf;
-      
 
 esp32:
   board: esp32-s3-devkitc-1
@@ -321,7 +320,7 @@ wifi:
   #   - ssid: !secret wifi_ssid
   #     password: !secret wifi_password
   #     priority: 80
-  
+
   # Added parameters for better connection reliability
   # power_save_mode: LIGHT
   # fast_connect: false # Disable for better reliability with multiple networks
@@ -334,7 +333,6 @@ wifi:
   ap:
     ssid: "PhiJo Smart Products"
     password: !secret wifi_fallback_password
-  
 
   # Existing event handlers
   on_connect:
@@ -421,7 +419,6 @@ time:
             then:
               - script.execute: time_display_update
 
-
 # For the sun component, we need to use fixed values initially
 sun:
   latitude: 37.1 # Default value matching the initial_value in location_latitude
@@ -454,7 +451,7 @@ number:
               snprintf(buf, sizeof(buf), "%.2f", 
                        id(global_pool_length) * id(global_pool_width) * id(global_pool_depth));
               return buf;
-        - lvgl.widget.redraw:  # Refresh all widgets on the current page
+        - lvgl.widget.redraw: # Refresh all widgets on the current page
   - platform: template
     name: "Pool Width"
     id: pool_width
@@ -1012,8 +1009,6 @@ text_sensor:
           - delay: 1s
           #- script.execute: update_qr_display
 
-
-
   - platform: template
     id: location_name
     name: "Weather Location"
@@ -1131,8 +1126,8 @@ globals:
     restore_value: yes
   - id: cycles_count
     type: float
-    restore_value: true   # keep value after reboot
-    initial_value: '1.00'
+    restore_value: true # keep value after reboot
+    initial_value: "1.00"
   - id: total_runtime_multiple
     type: float
     restore_value: true
@@ -1554,7 +1549,7 @@ lvgl:
             x: 10
             y: 30
             border_width: 0
-            scrollable: false 
+            scrollable: false
             widgets:
               # Clock - positioned below title (fixed positioning)
               - label:
@@ -2161,8 +2156,7 @@ lvgl:
             width: 480
             height: 480
             align: TOP_LEFT
-        
-            
+
         # Seasonal Pump Settings Toggle
         - obj:
             scrollable: false
@@ -2512,7 +2506,6 @@ lvgl:
                   text_color: 0xFFFFFF
                   x: 0
                   y: 5
-              
 
               # Center Time
               - label:
@@ -4126,7 +4119,7 @@ lvgl:
                           id(lvgl_comp).show_page(1, LV_SCR_LOAD_ANIM_OVER_RIGHT, 300);
 
         # Editable settings section
-        
+
         - obj:
             width: 460
             height: 380
@@ -4141,10 +4134,16 @@ lvgl:
                   text_color: 0x000000
                   x: 50
                   y: 0
-                 
 
               # Pool Length
-              - label: {text: "Length (m):", text_font: roboto, x: 10, y: 50, text_color: 0x000000}
+              - label:
+                  {
+                    text: "Length (m):",
+                    text_font: roboto,
+                    x: 10,
+                    y: 50,
+                    text_color: 0x000000,
+                  }
               - label:
                   id: pool_length_number
                   x: 170
@@ -4163,7 +4162,7 @@ lvgl:
                   on_press:
                     - lambda: |-
                         id(global_pool_length) += 0.1f;
-              
+
                         id(pool_volume).publish_state(id(global_pool_length) * id(global_pool_width) * id(global_pool_depth));
                         float volume = id(global_pool_length) * id(global_pool_width) * id(global_pool_depth); // m³
                         float flow = id(pump_flow_rate); // m³ per hour
@@ -4183,7 +4182,7 @@ lvgl:
                         if (temp > 40.0f) temp_factor = 1.3f;   // hot water, longer filtering
                         else if (temp < 20.0f) temp_factor = 0.8f; // cold water, shorter filtering
                         ESP_LOGI("pool_pump", "Calculated temp factor: %.2f hours", temp_factor);
-                        float runtime = (volume / flow) * cycles * temp_factor;
+                        float runtime = (volume / (flow*0.001)) * cycles * temp_factor;
                         if (runtime > 24.0f) runtime = 24.0f; // limit to 24 hours
                         ESP_LOGI("pool_pump", "Calculated runtime: %.2f hours", runtime);
                         id(total_runtime).publish_state(runtime);
@@ -4193,16 +4192,16 @@ lvgl:
                     - lvgl.label.update:
                         id: pool_volume_number
                         text: !lambda |-
-                            static char text[20];
-                            snprintf(text, sizeof(text), "%.1f", id(pool_volume).state);
-                            return text;
+                          static char text[20];
+                          snprintf(text, sizeof(text), "%.1f", id(pool_volume).state);
+                          return text;
                     - lvgl.label.update:
                         id: pool_length_number
                         text: !lambda |-
-                            static char text[20];
-                            snprintf(text, sizeof(text), "%.2f", id(global_pool_length));
-                            return text;
-                    - lvgl.label.update: 
+                          static char text[20];
+                          snprintf(text, sizeof(text), "%.2f", id(global_pool_length));
+                          return text;
+                    - lvgl.label.update:
                         id: pump_runtime_label
                         text: !lambda |-
                           static char buf[16];
@@ -4211,9 +4210,9 @@ lvgl:
                     - globals.set:
                         id: total_runtime_multiple
                         value: !lambda "return id(total_runtime_multiple);"
-                            
+
                   widgets:
-                    - label: {text: "+", text_font: roboto, align: CENTER}
+                    - label: { text: "+", text_font: roboto, align: CENTER }
               - button:
                   x: 275
                   y: 44
@@ -4237,7 +4236,7 @@ lvgl:
                         if (temp > 40.0f) temp_factor = 1.3f;   // hot water, longer filtering
                         else if (temp < 20.0f) temp_factor = 0.8f; // cold water, shorter filtering
 
-                        float runtime = (volume / flow) * cycles * temp_factor;
+                        float runtime = (volume / (flow*0.001)) * cycles * temp_factor;
                         if (runtime > 24.0f) runtime = 24.0f; // limit to 24 hours
                         ESP_LOGI("pool_pump", "Calculated runtime: %.2f hours", runtime);
                         id(total_runtime).publish_state(runtime);
@@ -4247,29 +4246,36 @@ lvgl:
                     - lvgl.label.update:
                         id: pool_volume_number
                         text: !lambda |-
-                            static char text[20];
-                            snprintf(text, sizeof(text), "%.1f", id(pool_volume).state);
-                            return text;
+                          static char text[20];
+                          snprintf(text, sizeof(text), "%.1f", id(pool_volume).state);
+                          return text;
                     - lvgl.label.update:
                         id: pool_length_number
                         text: !lambda |-
-                            static char text[20];
-                            snprintf(text, sizeof(text), "%.2f", id(global_pool_length));
-                            return text;
+                          static char text[20];
+                          snprintf(text, sizeof(text), "%.2f", id(global_pool_length));
+                          return text;
                     - globals.set:
                         id: total_runtime_multiple
                         value: !lambda "return id(total_runtime_multiple);"
-                    - lvgl.label.update: 
+                    - lvgl.label.update:
                         id: pump_runtime_label
                         text: !lambda |-
                           static char buf[16];
                           sprintf(buf, "%.1f", id(total_runtime).state);
                           return buf;
                   widgets:
-                    - label: {text: "-", text_font: roboto, align: CENTER}
+                    - label: { text: "-", text_font: roboto, align: CENTER }
 
               # Pool Width
-              - label: {text: "Width (m):", text_font: roboto, x: 10, y: 90, text_color: 0x000000}
+              - label:
+                  {
+                    text: "Width (m):",
+                    text_font: roboto,
+                    x: 10,
+                    y: 90,
+                    text_color: 0x000000,
+                  }
               - label:
                   id: pool_width_number
                   x: 170
@@ -4292,20 +4298,20 @@ lvgl:
                     - globals.set:
                         id: global_pool_width
                         value: !lambda "return id(global_pool_width);"
-                    
+
                     - lvgl.label.update:
                         id: pool_volume_number
                         text: !lambda |-
-                            static char text[20];
-                            snprintf(text, sizeof(text), "%.1f", id(pool_volume).state);
-                            return text;
+                          static char text[20];
+                          snprintf(text, sizeof(text), "%.1f", id(pool_volume).state);
+                          return text;
                     - lvgl.label.update:
                         id: pool_width_number
                         text: !lambda |-
-                            static char text[20];
-                            snprintf(text, sizeof(text), "%.2f", id(global_pool_width));
-                            return text;
-                    - lvgl.label.update: 
+                          static char text[20];
+                          snprintf(text, sizeof(text), "%.2f", id(global_pool_width));
+                          return text;
+                    - lvgl.label.update:
                         id: pump_runtime_label
                         text: !lambda |-
                           static char buf[16];
@@ -4329,7 +4335,7 @@ lvgl:
                           id(total_runtime).publish_state(runtime);
                           return buf;
                   widgets:
-                    - label: {text: "+", text_font: roboto, align: CENTER}
+                    - label: { text: "+", text_font: roboto, align: CENTER }
               - button:
                   x: 275
                   y: 84
@@ -4346,16 +4352,16 @@ lvgl:
                     - lvgl.label.update:
                         id: pool_volume_number
                         text: !lambda |-
-                            static char text[20];
-                            snprintf(text, sizeof(text), "%.1f", id(pool_volume).state);
-                            return text;
+                          static char text[20];
+                          snprintf(text, sizeof(text), "%.1f", id(pool_volume).state);
+                          return text;
                     - lvgl.label.update:
                         id: pool_width_number
                         text: !lambda |-
-                            static char text[20];
-                            snprintf(text, sizeof(text), "%.2f", id(global_pool_width));
-                            return text;
-                    - lvgl.label.update: 
+                          static char text[20];
+                          snprintf(text, sizeof(text), "%.2f", id(global_pool_width));
+                          return text;
+                    - lvgl.label.update:
                         id: pump_runtime_label
                         text: !lambda |-
                           static char buf[16];
@@ -4379,10 +4385,17 @@ lvgl:
                           id(total_runtime).publish_state(runtime);
                           return buf;
                   widgets:
-                    - label: {text: "-", text_font: roboto, align: CENTER}
+                    - label: { text: "-", text_font: roboto, align: CENTER }
 
               # Pool Depth
-              - label: {text: "Depth (m):", text_font: roboto, x: 10, y: 130, text_color: 0x000000}
+              - label:
+                  {
+                    text: "Depth (m):",
+                    text_font: roboto,
+                    x: 10,
+                    y: 130,
+                    text_color: 0x000000,
+                  }
               - label:
                   id: pool_depth_number
                   x: 170
@@ -4405,20 +4418,20 @@ lvgl:
                     - globals.set:
                         id: global_pool_depth
                         value: !lambda "return id(global_pool_depth);"
-                    
+
                     - lvgl.label.update:
                         id: pool_volume_number
                         text: !lambda |-
-                            static char text[20];
-                            snprintf(text, sizeof(text), "%.1f", id(pool_volume).state);
-                            return text;
+                          static char text[20];
+                          snprintf(text, sizeof(text), "%.1f", id(pool_volume).state);
+                          return text;
                     - lvgl.label.update:
                         id: pool_depth_number
                         text: !lambda |-
-                            static char text[20];
-                            snprintf(text, sizeof(text), "%.2f", id(global_pool_depth));
-                            return text;
-                    - lvgl.label.update: 
+                          static char text[20];
+                          snprintf(text, sizeof(text), "%.2f", id(global_pool_depth));
+                          return text;
+                    - lvgl.label.update:
                         id: pump_runtime_label
                         text: !lambda |-
                           static char buf[16];
@@ -4442,7 +4455,7 @@ lvgl:
                           id(total_runtime).publish_state(runtime);
                           return buf;
                   widgets:
-                    - label: {text: "+", text_font: roboto, align: CENTER}
+                    - label: { text: "+", text_font: roboto, align: CENTER }
               - button:
                   x: 275
                   y: 124
@@ -4455,20 +4468,20 @@ lvgl:
                     - globals.set:
                         id: global_pool_depth
                         value: !lambda "return id(global_pool_depth);"
-                    
+
                     - lvgl.label.update:
                         id: pool_volume_number
                         text: !lambda |-
-                            static char text[20];
-                            snprintf(text, sizeof(text), "%.1f", id(pool_volume).state);
-                            return text;
+                          static char text[20];
+                          snprintf(text, sizeof(text), "%.1f", id(pool_volume).state);
+                          return text;
                     - lvgl.label.update:
                         id: pool_depth_number
                         text: !lambda |-
-                            static char text[20];
-                            snprintf(text, sizeof(text), "%.2f", id(global_pool_depth));
-                            return text;
-                    - lvgl.label.update: 
+                          static char text[20];
+                          snprintf(text, sizeof(text), "%.2f", id(global_pool_depth));
+                          return text;
+                    - lvgl.label.update:
                         id: pump_runtime_label
                         text: !lambda |-
                           static char buf[16];
@@ -4492,10 +4505,17 @@ lvgl:
                           id(total_runtime).publish_state(runtime);
                           return buf;
                   widgets:
-                    - label: {text: "-", text_font: roboto, align: CENTER}
+                    - label: { text: "-", text_font: roboto, align: CENTER }
 
               # Pump Flow Rate
-              - label: {text: "Flow Rate(L/H):", text_font: roboto, x: 10, y: 170, text_color: 0x000000}
+              - label:
+                  {
+                    text: "Flow Rate(L/H):",
+                    text_font: roboto,
+                    x: 10,
+                    y: 170,
+                    text_color: 0x000000,
+                  }
               - label:
                   id: pump_flow_number
                   x: 170
@@ -4517,10 +4537,10 @@ lvgl:
                     - lvgl.label.update:
                         id: pump_flow_number
                         text: !lambda |-
-                            static char text[20];
-                            snprintf(text, sizeof(text), "%.1f", id(pump_flow_rate));
-                            return text;
-                    - lvgl.label.update: 
+                          static char text[20];
+                          snprintf(text, sizeof(text), "%.1f", id(pump_flow_rate));
+                          return text;
+                    - lvgl.label.update:
                         id: pump_runtime_label
                         text: !lambda |-
                           static char buf[16];
@@ -4544,7 +4564,7 @@ lvgl:
                           id(total_runtime).publish_state(runtime);
                           return buf;
                   widgets:
-                    - label: {text: "+", text_font: roboto, align: CENTER}
+                    - label: { text: "+", text_font: roboto, align: CENTER }
               - button:
                   x: 275
                   y: 164
@@ -4557,10 +4577,10 @@ lvgl:
                     - lvgl.label.update:
                         id: pump_flow_number
                         text: !lambda |-
-                            static char text[20];
-                            snprintf(text, sizeof(text), "%.1f", id(pump_flow_rate));
-                            return text;
-                    - lvgl.label.update: 
+                          static char text[20];
+                          snprintf(text, sizeof(text), "%.1f", id(pump_flow_rate));
+                          return text;
+                    - lvgl.label.update:
                         id: pump_runtime_label
                         text: !lambda |-
                           static char buf[16];
@@ -4584,10 +4604,17 @@ lvgl:
                           id(total_runtime).publish_state(runtime);
                           return buf;
                   widgets:
-                    - label: {text: "-", text_font: roboto, align: CENTER}
+                    - label: { text: "-", text_font: roboto, align: CENTER }
 
               # Number of Blocks
-              - label: {text: "Blocks:", text_font: roboto, x: 10, y: 210, text_color: 0x000000}
+              - label:
+                  {
+                    text: "Blocks:",
+                    text_font: roboto,
+                    x: 10,
+                    y: 210,
+                    text_color: 0x000000,
+                  }
               - label:
                   id: blocks_number
                   x: 170
@@ -4605,18 +4632,18 @@ lvgl:
                   height: 35
                   on_press:
                     - lambda: |-
-                         id(pump_runtime_blocks) += 1;
-                         if ( id(pump_runtime_blocks) > 4)  id(pump_runtime_blocks) = 4;
-                         if ( id(pump_runtime_blocks) < 1)  id(pump_runtime_blocks) = 1;
+                        id(pump_runtime_blocks) += 1;
+                        if ( id(pump_runtime_blocks) > 4)  id(pump_runtime_blocks) = 4;
+                        if ( id(pump_runtime_blocks) < 1)  id(pump_runtime_blocks) = 1;
                     - lvgl.label.update:
                         id: blocks_number
                         text: !lambda |-
-                            static char text[20];
-                            snprintf(text, sizeof(text), "%d",  id(pump_runtime_blocks));
-                            return text;
-                    - lvgl.label.update: 
+                          static char text[20];
+                          snprintf(text, sizeof(text), "%d",  id(pump_runtime_blocks));
+                          return text;
+                    - lvgl.label.update:
                         id: runtime_blocks_display
-                    - lvgl.label.update: 
+                    - lvgl.label.update:
                         id: runtime_info_display
                         text: !lambda |-
                           static char buf[16];
@@ -4640,7 +4667,7 @@ lvgl:
                           id(total_runtime).publish_state(runtime);
                           return buf;
                   widgets:
-                    - label: {text: "+", text_font: roboto, align: CENTER}
+                    - label: { text: "+", text_font: roboto, align: CENTER }
               - button:
                   x: 275
                   y: 204
@@ -4651,13 +4678,13 @@ lvgl:
                         id(pump_runtime_blocks) -= 1;
                         if ( id(pump_runtime_blocks) > 4)  id(pump_runtime_blocks) = 4;
                         if ( id(pump_runtime_blocks) < 1)  id(pump_runtime_blocks) = 1;
-                        
+
                     - lvgl.label.update:
                         id: blocks_number
                         text: !lambda |-
-                            static char text[20];
-                            snprintf(text, sizeof(text), "%d",  id(pump_runtime_blocks));
-                            return text;
+                          static char text[20];
+                          snprintf(text, sizeof(text), "%d",  id(pump_runtime_blocks));
+                          return text;
                     - lvgl.label.update:
                         id: runtime_blocks_display
                     - lvgl.label.update:
@@ -4684,10 +4711,17 @@ lvgl:
                           id(total_runtime).publish_state(runtime);
                           return buf;
                   widgets:
-                    - label: {text: "-", text_font: roboto, align: CENTER}
+                    - label: { text: "-", text_font: roboto, align: CENTER }
 
               # Cycles
-              - label: {text: "Cycles:", text_font: roboto, x: 10, y: 250, text_color: 0x000000}
+              - label:
+                  {
+                    text: "Cycles:",
+                    text_font: roboto,
+                    x: 10,
+                    y: 250,
+                    text_color: 0x000000,
+                  }
               - label:
                   id: cycles_number
                   x: 170
@@ -4710,10 +4744,10 @@ lvgl:
                     - lvgl.label.update:
                         id: cycles_number
                         text: !lambda |-
-                            static char text[20];
-                            snprintf(text, sizeof(text), "%.1f", id(cycles_count));
-                            return text;
-                    - lvgl.label.update: 
+                          static char text[20];
+                          snprintf(text, sizeof(text), "%.1f", id(cycles_count));
+                          return text;
+                    - lvgl.label.update:
                         id: pump_runtime_label
                         text: !lambda |-
                           static char buf[16];
@@ -4737,7 +4771,7 @@ lvgl:
                           id(total_runtime).publish_state(runtime);
                           return buf;
                   widgets:
-                    - label: {text: "+", text_font: roboto, align: CENTER}
+                    - label: { text: "+", text_font: roboto, align: CENTER }
               - button:
                   x: 275
                   y: 244
@@ -4750,11 +4784,11 @@ lvgl:
                     - lvgl.label.update:
                         id: cycles_number
                         text: !lambda |-
-                            static char text[20];
-                            snprintf(text, sizeof(text), "%.1f", id(cycles_count));
-                            return text;
+                          static char text[20];
+                          snprintf(text, sizeof(text), "%.1f", id(cycles_count));
+                          return text;
 
-                    - lvgl.label.update: 
+                    - lvgl.label.update:
                         id: pump_runtime_label
                         text: !lambda |-
                           static char buf[16];
@@ -4778,10 +4812,17 @@ lvgl:
                           id(total_runtime).publish_state(runtime);
                           return buf;
                   widgets:
-                    - label: {text: "-", text_font: roboto, align: CENTER}
+                    - label: { text: "-", text_font: roboto, align: CENTER }
 
               # Pool volume calculation
-              - label: {text: "Volume (m^3):", text_font: roboto, x: 10, y: 290, text_color: 0x000000}
+              - label:
+                  {
+                    text: "Volume (m^3):",
+                    text_font: roboto,
+                    x: 10,
+                    y: 290,
+                    text_color: 0x000000,
+                  }
               - label:
                   id: pool_volume_number
                   x: 170
@@ -4793,7 +4834,14 @@ lvgl:
                     sprintf(buf, "%.2f", id(pool_volume).state);
                     return buf;
               # Pump runtime calculation
-              - label: {text: "Runtime (hrs):", text_font: roboto, x: 10, y: 320, text_color: 0x000000}
+              - label:
+                  {
+                    text: "Runtime (hrs):",
+                    text_font: roboto,
+                    x: 10,
+                    y: 320,
+                    text_color: 0x000000,
+                  }
               - label:
                   id: pump_runtime_label
                   x: 170
