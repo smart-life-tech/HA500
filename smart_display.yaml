@@ -6066,21 +6066,42 @@ interval:
           then:
             - logger.log: "fechting  request..."
             - http_request.get:
-                url: "http://ip-api.com/json"
+                url: "https://api.ip2location.io/"  #  Replace 'demo' with your API key
                 capture_response: true
                 on_response:
                   then:
                     - lambda: |-
-                        size_t lat_pos = body.find("\"lat\":");
-                        size_t lon_pos = body.find("\"lon\":");
+                        ESP_LOGI("geo", "Location API response: %s", body.c_str());
+                        
+                        size_t lat_pos = body.find("\"latitude\":");
+                        size_t lon_pos = body.find("\"longitude\":");
+                        size_t city_pos = body.find("\"city_name\":\"");
+                        
                         if (lat_pos != std::string::npos && lon_pos != std::string::npos) {
-                          float lat = std::stof(body.substr(lat_pos + 6));
-                          float lon = std::stof(body.substr(lon_pos + 6));
+                          // Extract latitude
+                          size_t lat_start = lat_pos + 11;
+                          size_t lat_end = body.find(",", lat_start);
+                          float lat = std::stof(body.substr(lat_start, lat_end - lat_start));
+
+                          // Extract longitude
+                          size_t lon_start = lon_pos + 12;
+                          size_t lon_end = body.find(",", lon_start);
+                          float lon = std::stof(body.substr(lon_start, lon_end - lon_start));
+
                           id(current_lat) = lat;
                           id(current_lon) = lon;
-                          ESP_LOGI("geo", "Auto location: lat=%.4f, lon=%.4f", lat, lon);
+
+                          ESP_LOGI("geo", "Detected location: lat=%.4f, lon=%.4f", lat, lon);
                         }
 
+                        if (city_pos != std::string::npos) {
+                          size_t start = city_pos + 13;
+                          size_t end = body.find("\"", start);
+                          if (end != std::string::npos) {
+                            id(location_name_str) = body.substr(start, end - start);
+                            ESP_LOGI("geo", "Detected city: %s", id(location_name_str).c_str());
+                          }
+                        }
   - interval: 60s
     then:
       - if:
