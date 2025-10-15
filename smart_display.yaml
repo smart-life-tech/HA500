@@ -170,7 +170,6 @@ sensor:
     id: total_runtime
     unit_of_measurement: "h"
     accuracy_decimals: 2
-    restore_value: true 
     update_interval: 30s
     lambda: |-
       float V = id(pool_length).state * id(pool_width).state * id(pool_depth).state;
