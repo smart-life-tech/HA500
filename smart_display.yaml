@@ -6063,6 +6063,8 @@ interval:
           text: !lambda |-
             static char buf[20];
             snprintf(buf, sizeof(buf), "%.2f", id(total_runtime_multiple));
+            ESP_LOGD("UPDATING RUNTIME ", "Test remaining runtime: %.2f minutes", id(total_runtime_multiple));
+            ESP_LOGD("UPDATING RUNTIME state", "Test remaining runtime: %.2f minutes", id(total_runtime).state);
             return buf;
 
   - interval: 30s
