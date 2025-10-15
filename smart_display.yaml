@@ -4206,6 +4206,7 @@ lvgl:
                         if (runtime > 24.0f) runtime = 24.0f; // limit to 24 hours
                         ESP_LOGI("pool_pump", "Calculated runtime: %.2f hours", runtime);
                         id(total_runtime).publish_state(runtime);
+                        id(total_runtime_multiple) = runtime;
                     - globals.set:
                         id: global_pool_length
                         value: !lambda "return id(global_pool_length);"
@@ -4260,6 +4261,7 @@ lvgl:
                         if (runtime > 24.0f) runtime = 24.0f; // limit to 24 hours
                         ESP_LOGI("pool_pump", "Calculated runtime: %.2f hours", runtime);
                         id(total_runtime).publish_state(runtime);
+                        id(total_runtime_multiple) = runtime;
                     - globals.set:
                         id: global_pool_length
                         value: !lambda "return id(global_pool_length);"
@@ -4353,6 +4355,7 @@ lvgl:
 
                           sprintf(buf, "%.1f", runtime);
                           id(total_runtime).publish_state(runtime);
+                          id(total_runtime_multiple) = runtime;
                           return buf;
                   widgets:
                     - label: { text: "+", text_font: roboto, align: CENTER }
@@ -4403,6 +4406,7 @@ lvgl:
 
                           sprintf(buf, "%.1f", runtime);
                           id(total_runtime).publish_state(runtime);
+                          id(total_runtime_multiple) = runtime;
                           return buf;
                   widgets:
                     - label: { text: "-", text_font: roboto, align: CENTER }
@@ -4473,6 +4477,7 @@ lvgl:
 
                           sprintf(buf, "%.1f", runtime);
                           id(total_runtime).publish_state(runtime);
+                          id(total_runtime_multiple) = runtime;
                           return buf;
                   widgets:
                     - label: { text: "+", text_font: roboto, align: CENTER }
@@ -4523,6 +4528,7 @@ lvgl:
 
                           sprintf(buf, "%.1f", runtime);
                           id(total_runtime).publish_state(runtime);
+                          id(total_runtime_multiple) = runtime;
                           return buf;
                   widgets:
                     - label: { text: "-", text_font: roboto, align: CENTER }
@@ -4582,6 +4588,7 @@ lvgl:
 
                           sprintf(buf, "%.1f", runtime);
                           id(total_runtime).publish_state(runtime);
+                          id(total_runtime_multiple) = runtime;
                           return buf;
                   widgets:
                     - label: { text: "+", text_font: roboto, align: CENTER }
@@ -4622,6 +4629,7 @@ lvgl:
 
                           sprintf(buf, "%.1f", runtime);
                           id(total_runtime).publish_state(runtime);
+                          id(total_runtime_multiple) = runtime;
                           return buf;
                   widgets:
                     - label: { text: "-", text_font: roboto, align: CENTER }
@@ -4685,6 +4693,7 @@ lvgl:
 
                           sprintf(buf, "%.1f", runtime);
                           id(total_runtime).publish_state(runtime);
+                          id(total_runtime_multiple) = runtime;
                           return buf;
                   widgets:
                     - label: { text: "+", text_font: roboto, align: CENTER }
@@ -4729,6 +4738,7 @@ lvgl:
 
                           sprintf(buf, "%.1f", runtime);
                           id(total_runtime).publish_state(runtime);
+                          id(total_runtime_multiple) = runtime;
                           return buf;
                   widgets:
                     - label: { text: "-", text_font: roboto, align: CENTER }
@@ -4789,6 +4799,7 @@ lvgl:
 
                           sprintf(buf, "%.1f", runtime);
                           id(total_runtime).publish_state(runtime);
+                          id(total_runtime_multiple) = runtime;
                           return buf;
                   widgets:
                     - label: { text: "+", text_font: roboto, align: CENTER }
@@ -4830,6 +4841,7 @@ lvgl:
 
                           sprintf(buf, "%.1f", runtime);
                           id(total_runtime).publish_state(runtime);
+                          id(total_runtime_multiple) = runtime;
                           return buf;
                   widgets:
                     - label: { text: "-", text_font: roboto, align: CENTER }
