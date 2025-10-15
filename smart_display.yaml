@@ -35,6 +35,7 @@ esphome:
       # Push global into number on startup
       - lambda: |-
           id(total_runtime).publish_state(id(total_runtime_multiple));
+          ESP_LOGD("BOOT RUNTIME", ": %.2f minutes", id(total_runtime_multiple));
       - number.set:
           id: pool_length
           value: !lambda "return id(global_pool_length);"
