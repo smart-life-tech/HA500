@@ -2629,7 +2629,7 @@ lvgl:
                         align: center
                   on_click:
                     then:
-                      - number.increment: pump_runtime_blocks
+                      - number.increment: runtime_blocks_input
                       - lvgl.label.update:
                           id: runtime_blocks_display
                           text: !lambda |-
