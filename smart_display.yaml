@@ -1757,6 +1757,13 @@ lvgl:
                   y: 110
                   border_width: 0
                   width: 440
+                  clickable: true        
+                  on_press:
+                    - lambda: |-
+                        // Go to location settings page
+                        id(lvgl_comp).show_page(7, LV_SCR_LOAD_ANIM_OVER_RIGHT, 300);
+                        ESP_LOGI("ui", "Location label clicked — navigating to Set Location page");
+
 
         # Status and IP section
         - obj:
@@ -4884,6 +4891,145 @@ lvgl:
                     static char buf[16];
                     sprintf(buf, "%.2f", id(total_runtime).state);
                     return  buf;
+#-------------------------------------------
+    - id: location_setup_screen
+      widgets:
+        # Title
+        - label:
+            text: "Manual Location Setup"
+            text_font: roboto_bold_20
+            align: TOP_MID
+            y: 10
+            text_color: 0x000000
+
+        # Latitude label
+        - label:
+            text: "Latitude:"
+            x: 10
+            y: 60
+            text_color: 0x000000
+
+        # Latitude value
+        - label:
+            id: latitude_label
+            x: 160
+            y: 60
+            width: 100
+            text_color: 0x000000
+            text: !lambda |-
+              static char buf[16];
+              sprintf(buf, "%.4f", id(current_lat));
+              return buf;
+
+        # Latitude +
+        - button:
+            x: 270
+            y: 55
+            width: 35
+            height: 35
+            on_press:
+              - lambda: |-
+                  id(current_lat) += 0.1;
+              - lvgl.label.update:
+                  id: latitude_label
+                  text: !lambda |-
+                    static char t[16];
+                    sprintf(t, "%.4f", id(current_lat));
+                    return t;
+            widgets:
+              - label: { text: "+", text_font: roboto, align: CENTER }
+
+        # Latitude -
+        - button:
+            x: 310
+            y: 55
+            width: 35
+            height: 35
+            on_press:
+              - lambda: |-
+                  id(current_lat) -= 0.1;
+              - lvgl.label.update:
+                  id: latitude_label
+                  text: !lambda |-
+                    static char t[16];
+                    sprintf(t, "%.4f", id(current_lat));
+                    return t;
+            widgets:
+              - label: { text: "-", text_font: roboto, align: CENTER }
+
+        # Longitude label
+        - label:
+            text: "Longitude:"
+            x: 10
+            y: 110
+            text_color: 0x000000
+
+        # Longitude value
+        - label:
+            id: longitude_label
+            x: 160
+            y: 110
+            width: 100
+            text_color: 0x000000
+            text: !lambda |-
+              static char buf[16];
+              sprintf(buf, "%.4f", id(current_lon));
+              return buf;
+
+        # Longitude +
+        - button:
+            x: 270
+            y: 105
+            width: 35
+            height: 35
+            on_press:
+              - lambda: |-
+                  id(current_lon) += 0.1;
+              - lvgl.label.update:
+                  id: longitude_label
+                  text: !lambda |-
+                    static char t[16];
+                    sprintf(t, "%.4f", id(current_lon));
+                    return t;
+            widgets:
+              - label: { text: "+", text_font: roboto, align: CENTER }
+
+        # Longitude -
+        - button:
+            x: 310
+            y: 105
+            width: 35
+            height: 35
+            on_press:
+              - lambda: |-
+                  id(current_lon) -= 0.1;
+              - lvgl.label.update:
+                  id: longitude_label
+                  text: !lambda |-
+                    static char t[16];
+                    sprintf(t, "%.4f", id(current_lon));
+                    return t;
+            widgets:
+              - label: { text: "-", text_font: roboto, align: CENTER }
+
+        # Save button
+        - button:
+            x: 100
+            y: 170
+            width: 150
+            height: 40
+            bg_color: 0x009688
+            on_press:
+              - globals.save:
+              - logger.log: "Manual location saved to flash"
+              - lambda: |-
+                  // go to home page from clocation page
+                  id(lvgl_comp).show_page(1, LV_SCR_LOAD_ANIM_OVER_RIGHT, 300);
+            widgets:
+              - label:
+                  text: "Save Location"
+                  text_font: roboto_bold_18
+                  align: CENTER
 
 #-------------------------------------------
 # Internal outputs
