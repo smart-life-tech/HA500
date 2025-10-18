@@ -2322,6 +2322,9 @@ lvgl:
                           id: winter_min_display
                           text: !lambda |-
                             static char text[15];
+                            if (id(winter_min_runtime) > id(summer_max_runtime)) {
+                              id(winter_min_runtime) = id(summer_max_runtime);
+                            }
                             snprintf(text, sizeof(text), "%d min", id(winter_min_runtime));
                             return text;
               - label:
@@ -2350,6 +2353,9 @@ lvgl:
                           id: winter_min_display
                           text: !lambda |-
                             static char text[15];
+                            if (id(winter_min_runtime) > id(summer_max_runtime)) {
+                              id(winter_min_runtime) = id(summer_max_runtime);
+                            }
                             snprintf(text, sizeof(text), "%d min", id(winter_min_runtime));
                             return text;
 
@@ -2364,6 +2370,7 @@ lvgl:
                   x: 310
                   y: 30
                   width: 30
+                  hidden: true
                   height: 25
                   widgets:
                     - label:
@@ -2392,6 +2399,7 @@ lvgl:
                   x: 410
                   y: 30
                   width: 30
+                  hidden:  true
                   height: 25
                   widgets:
                     - label:
