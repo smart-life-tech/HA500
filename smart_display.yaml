@@ -1453,7 +1453,6 @@ lvgl:
 
   bg_color: 0x000000
   on_ready:
-  then:
     - lambda: |-
         auto *img = id(splash_logo);
         lv_obj_clear_flag(img, LV_OBJ_FLAG_HIDDEN);  // show splash
