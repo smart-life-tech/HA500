@@ -1540,7 +1540,7 @@ lvgl:
           - lvgl.widget.hide: splash_logo
           - lvgl.page.show:
               id: main_page
-              animation: fade_on
+              animation: fade_in
               time: 400ms
       widgets:
         # Background image - fixed position
