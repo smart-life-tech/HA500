@@ -35,7 +35,7 @@ esphome:
       - lambda: |-
           auto *img = id(splash_logo);
           lv_obj_clear_flag(img, LV_OBJ_FLAG_HIDDEN);  // show
-      - delay: 3s
+      - delay: 5s
       - lambda: |-
           auto *img = id(splash_logo);
           lv_obj_add_flag(img, LV_OBJ_FLAG_HIDDEN);    // hide
@@ -4913,6 +4913,14 @@ lvgl:
 #-------------------------------------------
     - id: location_setup_screen
       widgets:
+        - image:
+            src: background_image
+            x: 0
+            y: 0
+            width: 480
+            height: 480
+            align: TOP_LEFT
+
         # Title
         - label:
             text: "Manual Location Setup"
@@ -5043,7 +5051,7 @@ lvgl:
               - logger.log: "Manual location saved to flash"
               - lambda: |-
                   // go to home page from clocation page
-                  id(lvgl_comp).show_page(1, LV_SCR_LOAD_ANIM_OVER_RIGHT, 300);
+                  id(lvgl_comp).show_page(0, LV_SCR_LOAD_ANIM_OVER_RIGHT, 300);
             widgets:
               - label:
                   text: "Save Location"
