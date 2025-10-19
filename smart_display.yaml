@@ -1456,6 +1456,13 @@ lvgl:
   then:
     - lambda: |-
         auto *img = id(splash_logo);
+        lv_obj_clear_flag(img, LV_OBJ_FLAG_HIDDEN);  // show splash
+    - delay: 3s
+    - lambda: |-
+        auto *img = id(splash_logo);
+        lv_obj_add_flag(img, LV_OBJ_FLAG_HIDDEN);    // hide splash
+        id(lvgl_comp).show_page(0, LV_SCR_LOAD_ANIM_FADE_ON, 400);
+
   on_idle:
     - timeout: 30s
       then:
