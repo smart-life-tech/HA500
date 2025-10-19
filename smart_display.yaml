@@ -1453,14 +1453,14 @@ lvgl:
 
   bg_color: 0x000000
   on_ready:
-    - lambda: |-
-        auto *img = id(splash_logo);
-        lv_obj_clear_flag(img, LV_OBJ_FLAG_HIDDEN);  // show splash
+    - logger.log: "LVGL ready → showing splash"
+    - lvgl.widget.show: splash_logo
     - delay: 3s
-    - lambda: |-
-        auto *img = id(splash_logo);
-        lv_obj_add_flag(img, LV_OBJ_FLAG_HIDDEN);    // hide splash
-        id(lvgl_comp).show_page(0, LV_SCR_LOAD_ANIM_FADE_ON, 400);
+    - lvgl.widget.hide: splash_logo
+    - lvgl.page.show:
+        id: main_page
+        animation: fade_in
+        time: 400ms
 
   on_idle:
     - timeout: 30s
