@@ -32,10 +32,18 @@ esphome:
   on_boot:
     priority: -100
     then:
+      - lvgl.image.show:
+          id: splash_logo
+      - delay: 3s
+      - lvgl.image.hide:
+          id: splash_logo
+          
       # Push global into number on startup
       - lambda: |-
           id(total_runtime).publish_state(id(total_runtime_multiple));
           ESP_LOGD("BOOT RUNTIME", ": %.2f minutes", id(total_runtime_multiple));
+          // Jump to your first page (id 0 or whatever main is)
+          id(lvgl_comp).show_page(0, LV_SCR_LOAD_ANIM_FADE_ON, 400);
       - number.set:
           id: pool_length
           value: !lambda "return id(global_pool_length);"
@@ -5028,7 +5036,7 @@ lvgl:
             height: 40
             bg_color: 0x009688
             on_press:
-              - globals.save:
+              
               - logger.log: "Manual location saved to flash"
               - lambda: |-
                   // go to home page from clocation page
@@ -5038,7 +5046,16 @@ lvgl:
                   text: "Save Location"
                   text_font: roboto_bold_18
                   align: CENTER
-
+  widgets:
+    - image:
+        id: splash_logo
+        src: logo.png
+        x: 0
+        y: 0
+        align: center
+        width: 220
+        height: 220
+        hidden: true     # initially invisible
 #-------------------------------------------
 # Internal outputs
 #-------------------------------------------
@@ -6129,6 +6146,11 @@ display:
 image:
   - file: "images/background.jpg"
     id: background_image
+    resize: 480x480
+    type: RGB565
+
+  - file: "images/logo.png"
+    id: logo_image
     resize: 480x480
     type: RGB565
 
