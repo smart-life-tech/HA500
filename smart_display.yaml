@@ -1531,6 +1531,17 @@ lvgl:
       #pad_all: 0
       border_width: 0
       scrollable: false
+      on_boot:
+        then:
+          - logger.log: "LVGL booted — showing splash logo"
+          - lvgl.widget.hide_all: true
+          - lvgl.widget.show: splash_logo
+          - delay: 3s
+          - lvgl.widget.hide: splash_logo
+          - lvgl.page.show:
+              id: main_page
+              animation: fade_on
+              time: 400ms
       widgets:
         # Background image - fixed position
         - image:
