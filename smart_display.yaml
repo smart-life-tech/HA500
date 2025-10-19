@@ -4916,7 +4916,7 @@ lvgl:
         # Title
         - label:
             text: "Manual Location Setup"
-            text_font: roboto_bold_20
+            text_font: roboto24
             align: TOP_MID
             y: 10
             text_color: 0x000000
