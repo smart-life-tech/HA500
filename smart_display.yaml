@@ -5052,7 +5052,7 @@ lvgl:
   widgets:
     - image:
         id: splash_logo
-        src: logo.png
+        src: logo_image
         x: 0
         y: 0
         align: center
