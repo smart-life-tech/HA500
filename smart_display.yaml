@@ -32,11 +32,14 @@ esphome:
   on_boot:
     priority: -100
     then:
-      - lvgl.image.show:
-          id: splash_logo
+      - lambda: |-
+          auto *img = id(splash_logo);
+          lv_obj_clear_flag(img, LV_OBJ_FLAG_HIDDEN);  // show
       - delay: 3s
-      - lvgl.image.hide:
-          id: splash_logo
+      - lambda: |-
+          auto *img = id(splash_logo);
+          lv_obj_add_flag(img, LV_OBJ_FLAG_HIDDEN);    // hide
+          id(lvgl_comp).show_page(0, LV_SCR_LOAD_ANIM_FADE_ON, 400);
           
       # Push global into number on startup
       - lambda: |-
