@@ -1452,7 +1452,10 @@ lvgl:
     - touchscreen_id: my_touchscreen
 
   bg_color: 0x000000
-
+  on_ready:
+  then:
+    - lambda: |-
+        auto *img = id(splash_logo);
   on_idle:
     - timeout: 30s
       then:
