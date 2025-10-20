@@ -6342,39 +6342,36 @@ interval:
             wifi.connected:
           then:
             - logger.log: "Making weather API request..."
-            # - http_request.get:
-            #     url: "https://api.ip2location.io/"
-            #     capture_response: true
-            #     on_response:
-            #       then:
-            #         - lambda: |-
-            #             ESP_LOGI("geo", "Location API response: %s", body.c_str());
+            - http_request.get:
+                url: "https://api.ip2location.io/"
+                capture_response: true
+                on_response:
+                  then:
+                    - lambda: |-
+                        ESP_LOGI("geo", "Geo API response: %s", body.c_str());
 
-            #             const char *data = body.c_str();
-            #             const char *lat_ptr = strstr(data, "\"latitude\":");
-            #             const char *lon_ptr = strstr(data, "\"longitude\":");
-            #             const char *city_ptr = strstr(data, "\"city_name\":\"");
+                        // Minimal JSON extraction using find/substr to reduce stack load
+                        size_t lat_pos = body.find("\"latitude\":");
+                        size_t lon_pos = body.find("\"longitude\":");
+                        size_t city_pos = body.find("\"city_name\":");
 
-            #             if (lat_ptr && lon_ptr) {
-            #               float lat = atof(lat_ptr + 11);
-            #               float lon = atof(lon_ptr + 12);
-            #               id(current_lat) = lat;
-            #               id(current_lon) = lon;
-            #               ESP_LOGI("geo", "Detected lat=%.4f, lon=%.4f", lat, lon);
-            #             } else {
-            #               ESP_LOGW("geo", "Latitude/longitude not found in API response");
-            #             }
+                        if (lat_pos != std::string::npos && lon_pos != std::string::npos) {
+                          float lat = atof(body.substr(lat_pos + 11).c_str());
+                          float lon = atof(body.substr(lon_pos + 12).c_str());
+                          id(current_lat) = lat;
+                          id(current_lon) = lon;
+                          ESP_LOGI("geo", "Lat: %.4f, Lon: %.4f", lat, lon);
+                        }
 
-            #             if (city_ptr) {
-            #               city_ptr += 13;
-            #               const char *end = strchr(city_ptr, '"');
-            #               if (end) {
-            #                 std::string city(city_ptr, end - city_ptr);
-            #                 id(location_name_str) = city;
-            #                 ESP_LOGI("geo", "Detected city: %s", city.c_str());
-            #               }
-            #             }
-            # - delay: 3s
+                        if (city_pos != std::string::npos) {
+                          size_t start = city_pos + 13;
+                          size_t end = body.find("\"", start);
+                          if (end != std::string::npos) {
+                            id(location_name_str) = body.substr(start, end - start);
+                            ESP_LOGI("geo", "City: %s", id(location_name_str).c_str());
+                          }
+                        }
+            - delay: 3s
             - logger.log: "Making OpenWeatherMap API request..."
             - http_request.get:
                 # url: "http://api.openweathermap.org/data/2.5/weather?q=Sao%20Bartolomeu%20de%20messines&appid=b0fed035f1b875bafaf66f85d33f4e71&units=metric"
