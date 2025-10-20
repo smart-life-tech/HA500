@@ -34,7 +34,7 @@ esphome:
   on_boot:
     priority: -100.0
     then:
-      - delay: 5s  # Wait for LVGL to be ready
+      - delay: 8s  # Wait for LVGL to be ready
       - lambda: |-
           id(lvgl_comp).show_page(8, LV_SCR_LOAD_ANIM_FADE_ON, 400);
           ESP_LOGD("BOOT", "Displaying splash logo");
@@ -354,6 +354,7 @@ wifi:
   # Existing event handlers
   on_connect:
     then:
+      - delay: 10s
       - logger.log: "WiFi connected, starting web server"
       #- script.execute: update_qr_display  # Update QR code
       - delay: 1s
