@@ -359,37 +359,37 @@ wifi:
       - delay: 1s
       - script.execute: notify_web_portal
       - http_request.get:
-        url: "https://api.ip2location.io/"
-        capture_response: true
-        on_response:
-          then:
-            - lambda: |-
-                ESP_LOGI("geo", "Location API response: %s", body.c_str());
+          url: "https://api.ip2location.io/"
+          capture_response: true
+          on_response:
+            then:
+              - lambda: |-
+                  ESP_LOGI("geo", "Location API response: %s", body.c_str());
 
-                const char *data = body.c_str();
-                const char *lat_ptr = strstr(data, "\"latitude\":");
-                const char *lon_ptr = strstr(data, "\"longitude\":");
-                const char *city_ptr = strstr(data, "\"city_name\":\"");
+                  const char *data = body.c_str();
+                  const char *lat_ptr = strstr(data, "\"latitude\":");
+                  const char *lon_ptr = strstr(data, "\"longitude\":");
+                  const char *city_ptr = strstr(data, "\"city_name\":\"");
 
-                if (lat_ptr && lon_ptr) {
-                  float lat = atof(lat_ptr + 11);
-                  float lon = atof(lon_ptr + 12);
-                  id(current_lat) = lat;
-                  id(current_lon) = lon;
-                  ESP_LOGI("geo", "Detected lat=%.4f, lon=%.4f", lat, lon);
-                } else {
-                  ESP_LOGW("geo", "Latitude/longitude not found in API response");
-                }
-
-                if (city_ptr) {
-                  city_ptr += 13;
-                  const char *end = strchr(city_ptr, '"');
-                  if (end) {
-                    std::string city(city_ptr, end - city_ptr);
-                    id(location_name_str) = city;
-                    ESP_LOGI("geo", "Detected city: %s", city.c_str());
+                  if (lat_ptr && lon_ptr) {
+                    float lat = atof(lat_ptr + 11);
+                    float lon = atof(lon_ptr + 12);
+                    id(current_lat) = lat;
+                    id(current_lon) = lon;
+                    ESP_LOGI("geo", "Detected lat=%.4f, lon=%.4f", lat, lon);
+                  } else {
+                    ESP_LOGW("geo", "Latitude/longitude not found in API response");
                   }
-                }
+
+                  if (city_ptr) {
+                    city_ptr += 13;
+                    const char *end = strchr(city_ptr, '"');
+                    if (end) {
+                      std::string city(city_ptr, end - city_ptr);
+                      id(location_name_str) = city;
+                      ESP_LOGI("geo", "Detected city: %s", city.c_str());
+                    }
+                  }
   on_disconnect:
     then:
       - logger.log: "WiFi disconnected, attempting to reconnect"
