@@ -30,16 +30,19 @@ esphome:
     build_unflags: "-f"
     build_flags: "-shared"
   on_boot:
-    priority: -100
+    priority: -100.0
     then:
+      - delay: 10s  # Wait for LVGL to be ready
       - lambda: |-
           auto *img = id(splash_logo);
           lv_obj_clear_flag(img, LV_OBJ_FLAG_HIDDEN);  // show
+          ESP_LOGD("BOOT", "Displaying splash logo");
       - delay: 5s
       - lambda: |-
           auto *img = id(splash_logo);
           lv_obj_add_flag(img, LV_OBJ_FLAG_HIDDEN);    // hide
           id(lvgl_comp).show_page(0, LV_SCR_LOAD_ANIM_FADE_ON, 400);
+          ESP_LOGD("BOOT", "Hiding splash logo and showing main page");
           
       # Push global into number on startup
       - lambda: |-
@@ -1531,17 +1534,6 @@ lvgl:
       #pad_all: 0
       border_width: 0
       scrollable: false
-      on_boot:
-        then:
-          - logger.log: "LVGL booted — showing splash logo"
-          
-          - lvgl.widget.show: splash_logo
-          - delay: 3s
-          - lvgl.widget.hide: splash_logo
-          - lvgl.page.show:
-              id: main_page
-              animation: fade_in
-              time: 400ms
       widgets:
         # Background image - fixed position
         - image:
