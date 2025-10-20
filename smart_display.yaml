@@ -32,7 +32,7 @@ esphome:
   on_boot:
     priority: -100.0
     then:
-      - delay: 10s  # Wait for LVGL to be ready
+      #- delay: 10s  # Wait for LVGL to be ready
       - lambda: |-
           auto *img = id(splash_logo);
           lv_obj_clear_flag(img, LV_OBJ_FLAG_HIDDEN);  // show
