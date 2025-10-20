@@ -5068,15 +5068,21 @@ lvgl:
                   align: CENTER
 #-------------------------------------------
     - id: splash_screen
+      skip: false
+      bg_color: 0x000000
+      bg_opa: cover
+      #pad_all: 0
+      border_width: 0
+      scrollable: false
       widgets:
-    - image:
-        id: splash_logo
-        src: logo_image
-        x: 0
-        y: 0
-        align: center
-        width: 480
-        height: 490
+        - image:
+            id: splash_logo
+            src: logo_image
+            x: 0
+            y: 0
+            align: center
+            width: 480
+            height: 490 
         
 #-------------------------------------------
 # Internal outputs
