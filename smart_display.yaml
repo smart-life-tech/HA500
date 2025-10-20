@@ -6374,6 +6374,8 @@ interval:
                             ESP_LOGI("geo", "Detected city: %s", city.c_str());
                           }
                         }
+            - delay: 3s
+            - logger.log: "Making OpenWeatherMap API request..."
             - http_request.get:
                 # url: "http://api.openweathermap.org/data/2.5/weather?q=Sao%20Bartolomeu%20de%20messines&appid=b0fed035f1b875bafaf66f85d33f4e71&units=metric"
                 url: !lambda |-
