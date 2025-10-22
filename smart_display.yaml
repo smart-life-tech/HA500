@@ -966,6 +966,16 @@ binary_sensor:
     lambda: "return id(valve_training_mode);"
 
 text_sensor:
+  - platform: lvgl
+    widget: zip_text
+    id: zip_text_sensor
+    name: "ZIP Code"
+
+  - platform: lvgl
+    widget: country_text
+    id: country_text_sensor
+    name: "Country"
+
   - platform: wifi_info
     ssid:
       name: "Connected SSID"
@@ -4934,6 +4944,9 @@ lvgl:
                     sprintf(buf, "%.2f", id(total_runtime).state);
                     return  buf;
 #-------------------------------------------
+    # -------------------------------
+    # LOCATION SETUP PAGE (ZIP + COUNTRY)
+    # -------------------------------
     - id: location_setup_screen
       widgets:
         - image:
@@ -4952,16 +4965,16 @@ lvgl:
             y: 10
             text_color: 0x000000
 
-        # ZIP label
+        # ZIP code label
         - label:
             text: "ZIP Code:"
             x: 10
             y: 70
             text_color: 0x000000
 
-        # ZIP text box (text_input)
-        - text_input:
-            id: zip_input
+        # ZIP code input (textarea)
+        - textarea:
+            id: zip_text
             x: 160
             y: 65
             width: 160
@@ -4972,13 +4985,10 @@ lvgl:
             border_width: 1
             border_color: 0x000000
             placeholder_text: "e.g. 94040"
-            on_value:
-              - lambda: |-
-                  id(user_zip_code) = x.c_str();
             on_focus:
               - lvgl.keyboard.attach:
                   id: keyboard_1
-                  text_input: zip_input
+                  textarea: zip_text
             on_defocus:
               - lvgl.keyboard.detach: keyboard_1
 
@@ -4989,9 +4999,9 @@ lvgl:
             y: 130
             text_color: 0x000000
 
-        # Country text box
-        - text_input:
-            id: country_input
+        # Country input (textarea)
+        - textarea:
+            id: country_text
             x: 160
             y: 125
             width: 160
@@ -5002,17 +5012,14 @@ lvgl:
             border_width: 1
             border_color: 0x000000
             placeholder_text: "e.g. US"
-            on_value:
-              - lambda: |-
-                  id(user_country) = x.c_str();
             on_focus:
               - lvgl.keyboard.attach:
                   id: keyboard_1
-                  text_input: country_input
+                  textarea: country_text
             on_defocus:
               - lvgl.keyboard.detach: keyboard_1
 
-        # On-screen keyboard (hidden until focused)
+        # On-screen keyboard
         - keyboard:
             id: keyboard_1
             mode: text_lower
@@ -5022,24 +5029,23 @@ lvgl:
         # Save button
         - button:
             x: 100
-            y: 190
+            y: 200
             width: 180
             height: 45
             bg_color: 0x009688
             on_press:
               - lvgl.keyboard.hide: keyboard_1
-              - logger.log: "Manual ZIP and country saved"
+              - logger.log: "Manual ZIP and Country Saved"
               - lambda: |-
-                  ESP_LOGI("geo", "ZIP: %s, Country: %s",
-                          id(user_zip_code).c_str(),
-                          id(user_country).c_str());
+                  ESP_LOGI("geo", "Saved ZIP: %s, Country: %s",
+                          id(zip_text_sensor).state.c_str(),
+                          id(country_text_sensor).state.c_str());
                   id(lvgl_comp).show_page(0, LV_SCR_LOAD_ANIM_OVER_RIGHT, 300);
             widgets:
               - label:
                   text: "Save Location"
                   text_font: roboto24
                   align: CENTER
-
 
 #-------------------------------------------
     - id: splash_screen
