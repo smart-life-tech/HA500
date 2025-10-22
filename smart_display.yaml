@@ -1119,6 +1119,16 @@ color:
 
 # Global variables for timer tracking and settings
 globals:
+  - id: user_zip_code
+    type: std::string
+    restore_value: true
+    initial_value: '"94040"'  # default ZIP
+
+  - id: user_country
+    type: std::string
+    restore_value: true
+    initial_value: '"US"'     # default country
+
   - id: current_lat
     type: float
     restore_value: true
@@ -4926,6 +4936,7 @@ lvgl:
 #-------------------------------------------
     - id: location_setup_screen
       widgets:
+        # Background
         - image:
             src: background_image
             x: 0
@@ -4942,134 +4953,84 @@ lvgl:
             y: 10
             text_color: 0x000000
 
-        # Latitude label
+        # ZIP Code label
         - label:
-            text: "Latitude:"
+            text: "ZIP Code:"
             x: 10
-            y: 60
+            y: 70
             text_color: 0x000000
 
-        # Latitude value
-        - label:
-            id: latitude_label
+        # ZIP input field
+        - text_input:
+            id: zip_input
             x: 160
-            y: 60
-            width: 100
+            y: 65
+            width: 160
+            height: 35
+            text_font: roboto
             text_color: 0x000000
-            text: !lambda |-
-              static char buf[16];
-              sprintf(buf, "%.4f", id(current_lat));
-              return buf;
-
-        # Latitude +
-        - button:
-            x: 270
-            y: 55
-            width: 35
-            height: 35
-            on_press:
+            bg_color: 0xFFFFFF
+            border_width: 1
+            border_color: 0x000000
+            placeholder_text: "e.g. 94040"
+            on_value:
               - lambda: |-
-                  id(current_lat) += 0.1;
-              - lvgl.label.update:
-                  id: latitude_label
-                  text: !lambda |-
-                    static char t[16];
-                    sprintf(t, "%.4f", id(current_lat));
-                    return t;
-            widgets:
-              - label: { text: "+", text_font: roboto, align: CENTER }
+                  id(user_zip_code) = x.c_str();
+            on_focus:
+              - lvgl.keyboard.attach:
+                  id: keyboard_1
+                  text_input: zip_input
+            on_defocus:
+              - lvgl.keyboard.detach: keyboard_1
 
-        # Latitude -
-        - button:
-            x: 310
-            y: 55
-            width: 35
-            height: 35
-            on_press:
-              - lambda: |-
-                  id(current_lat) -= 0.1;
-              - lvgl.label.update:
-                  id: latitude_label
-                  text: !lambda |-
-                    static char t[16];
-                    sprintf(t, "%.4f", id(current_lat));
-                    return t;
-            widgets:
-              - label: { text: "-", text_font: roboto, align: CENTER }
+        # On-screen keyboard (hidden by default)
+        - keyboard:
+            id: keyboard_1
+            mode: text_lower
+            align: BOTTOM_MID
+            hidden: true
 
-        # Longitude label
+        # Country label
         - label:
-            text: "Longitude:"
+            text: "Country:"
             x: 10
-            y: 110
+            y: 130
             text_color: 0x000000
 
-        # Longitude value
-        - label:
-            id: longitude_label
+        # Country selector (roller)
+        - roller:
+            id: country_selector
             x: 160
-            y: 110
-            width: 100
-            text_color: 0x000000
-            text: !lambda |-
-              static char buf[16];
-              sprintf(buf, "%.4f", id(current_lon));
-              return buf;
-
-        # Longitude +
-        - button:
-            x: 270
-            y: 105
-            width: 35
-            height: 35
-            on_press:
+            y: 125
+            width: 160
+            height: 60
+            text_font: roboto
+            options: "US\nUK\nCA\nDE\nFR\nPT\nNG\nIN\nBR\nAU"
+            selected: 0
+            on_value:
               - lambda: |-
-                  id(current_lon) += 0.1;
-              - lvgl.label.update:
-                  id: longitude_label
-                  text: !lambda |-
-                    static char t[16];
-                    sprintf(t, "%.4f", id(current_lon));
-                    return t;
-            widgets:
-              - label: { text: "+", text_font: roboto, align: CENTER }
-
-        # Longitude -
-        - button:
-            x: 310
-            y: 105
-            width: 35
-            height: 35
-            on_press:
-              - lambda: |-
-                  id(current_lon) -= 0.1;
-              - lvgl.label.update:
-                  id: longitude_label
-                  text: !lambda |-
-                    static char t[16];
-                    sprintf(t, "%.4f", id(current_lon));
-                    return t;
-            widgets:
-              - label: { text: "-", text_font: roboto, align: CENTER }
+                  id(user_country) = x.c_str();
 
         # Save button
         - button:
             x: 100
-            y: 170
-            width: 150
-            height: 40
+            y: 220
+            width: 180
+            height: 45
             bg_color: 0x009688
+            radius: 10
             on_press:
-              
-              - logger.log: "Manual location saved to flash"
+              - logger.log: "Manual ZIP and Country saved"
               - lambda: |-
-                  // go to home page from clocation page
+                  ESP_LOGI("location", "Saved ZIP: %s, Country: %s", id(user_zip_code).c_str(), id(user_country).c_str());
+                  // Navigate back to home page
                   id(lvgl_comp).show_page(0, LV_SCR_LOAD_ANIM_OVER_RIGHT, 300);
             widgets:
               - label:
                   text: "Save Location"
                   text_font: roboto24
                   align: CENTER
+
 #-------------------------------------------
     - id: splash_screen
       skip: false
@@ -6375,12 +6336,19 @@ interval:
             - logger.log: "Making OpenWeatherMap API request..."
             - http_request.get:
                 # url: "http://api.openweathermap.org/data/2.5/weather?q=Sao%20Bartolomeu%20de%20messines&appid=b0fed035f1b875bafaf66f85d33f4e71&units=metric"
+                # url: !lambda |-
+                #   char url[512];
+                #   sprintf(url,
+                #     "http://api.openweathermap.org/data/2.5/weather?lat=%.4f&lon=%.4f&appid=b0fed035f1b875bafaf66f85d33f4e71&units=metric",
+                #     id(current_lat), id(current_lon));
+                #   return std::string(url);
                 url: !lambda |-
-                  char url[512];
+                  char url[256];
                   sprintf(url,
-                    "http://api.openweathermap.org/data/2.5/weather?lat=%.4f&lon=%.4f&appid=b0fed035f1b875bafaf66f85d33f4e71&units=metric",
-                    id(current_lat), id(current_lon));
+                    "http://api.openweathermap.org/data/2.5/weather?zip=%s,%s&appid=b0fed035f1b875bafaf66f85d33f4e71&units=metric",
+                    id(user_zip_code).c_str(), id(user_country).c_str());
                   return std::string(url);
+
                 request_headers:
                   User-Agent: "ESPHome/1.0"
                 capture_response: true
