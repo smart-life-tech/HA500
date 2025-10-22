@@ -4943,7 +4943,7 @@ lvgl:
                     static char buf[16];
                     sprintf(buf, "%.2f", id(total_runtime).state);
                     return  buf;
-#-------------------------------------------
+    #-------------------------------------------
     - id: location_setup_screen
       widgets:
         - image:
@@ -4952,21 +4952,21 @@ lvgl:
             y: 0
             width: 480
             height: 480
-            align: TOP_LEFT
+            align: LV_ALIGN_TOP_LEFT
 
         - label:
             text: "Manual Location Setup"
             text_font: roboto24
-            align: TOP_MID
+            align: LV_ALIGN_TOP_MID
             y: 10
-            text_color: 0x000000
+            text_color: 0
 
         # ZIP Code label
         - label:
             text: "ZIP Code:"
             x: 10
             y: 70
-            text_color: 0x000000
+            text_color: 0
 
         # ZIP Code input
         - textarea:
@@ -4976,16 +4976,16 @@ lvgl:
             width: 180
             height: 35
             text_font: roboto
-            text_color: 0x000000
-            bg_color: 0xFFFFFF
+            text_color: 0
+            bg_color: 16777215
             border_width: 1
-            border_color: 0x000000
+            border_color: 0
             placeholder_text: "e.g. 94040"
             text: !lambda 'return id(user_zip_code).c_str();'
             on_focus:
               - lvgl.keyboard.update:
                   id: keyboard_1
-                  mode: NUMBER
+                  mode: LV_KEYBOARD_MODE_NUMBER
                   textarea: zip_text
             on_defocus:
               - lvgl.keyboard.update:
@@ -4997,7 +4997,7 @@ lvgl:
             text: "Country:"
             x: 10
             y: 120
-            text_color: 0x000000
+            text_color: 0
 
         # Country input
         - textarea:
@@ -5007,16 +5007,16 @@ lvgl:
             width: 180
             height: 35
             text_font: roboto
-            text_color: 0x000000
-            bg_color: 0xFFFFFF
+            text_color: 0
+            bg_color: 16777215
             border_width: 1
-            border_color: 0x000000
+            border_color: 0
             placeholder_text: "e.g. US"
             text: !lambda 'return id(user_country).c_str();'
             on_focus:
               - lvgl.keyboard.update:
                   id: keyboard_1
-                  mode: TEXT_UPPER
+                  mode: LV_KEYBOARD_MODE_TEXT_UPPER
                   textarea: country_text
             on_defocus:
               - lvgl.keyboard.update:
@@ -5029,7 +5029,7 @@ lvgl:
             y: 300
             width: 480
             height: 180
-            mode: TEXT_LOWER
+            mode: LV_KEYBOARD_MODE_TEXT_LOWER
             on_ready:
               - logger.log: "Keyboard input complete"
 
@@ -5039,25 +5039,18 @@ lvgl:
             y: 170
             width: 200
             height: 45
-            bg_color: 0x009688
+            bg_color: 38536
             on_press:
               - lambda: |-
                   id(user_zip_code) = id(zip_text).state;
                   id(user_country) = id(country_text).state;
                   ESP_LOGI("location", "Saved ZIP=%s, Country=%s",
-                           id(user_zip_code).c_str(),
-                           id(user_country).c_str());
+                          id(user_zip_code).c_str(),
+                          id(user_country).c_str());
               - lvgl.keyboard.update:
                   id: keyboard_1
                   textarea: null
               - logger.log: "Manual location saved"
-              - lambda: |-
-                  id(lvgl_comp).show_page(0, LV_SCR_LOAD_ANIM_OVER_RIGHT, 300);
-            widgets:
-              - label:
-                  text: "Save Location"
-                  text_font: roboto24
-                  align: CENTER
 
 #-------------------------------------------
     - id: splash_screen
