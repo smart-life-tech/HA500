@@ -4969,7 +4969,7 @@ lvgl:
             text_color: 0x000000
 
         # ZIP Code input
-        - textarea:
+        - label:
             id: zip_text
             x: 160
             y: 65
@@ -5000,7 +5000,7 @@ lvgl:
             text_color: 0x000000
 
         # Country input
-        - textarea:
+        - label:
             id: country_text
             x: 160
             y: 115
