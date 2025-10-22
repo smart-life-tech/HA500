@@ -5001,7 +5001,7 @@ lvgl:
 
         # Country input
         - textarea:
-            id: country_text
+            id: zip_text
             x: 160
             y: 115
             width: 180
