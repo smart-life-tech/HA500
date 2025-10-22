@@ -4936,7 +4936,6 @@ lvgl:
 #-------------------------------------------
     - id: location_setup_screen
       widgets:
-        # Background
         - image:
             src: background_image
             x: 0
@@ -4953,14 +4952,14 @@ lvgl:
             y: 10
             text_color: 0x000000
 
-        # ZIP Code label
+        # ZIP label
         - label:
             text: "ZIP Code:"
             x: 10
             y: 70
             text_color: 0x000000
 
-        # ZIP input field
+        # ZIP text box (text_input)
         - text_input:
             id: zip_input
             x: 160
@@ -4983,13 +4982,6 @@ lvgl:
             on_defocus:
               - lvgl.keyboard.detach: keyboard_1
 
-        # On-screen keyboard (hidden by default)
-        - keyboard:
-            id: keyboard_1
-            mode: text_lower
-            align: BOTTOM_MID
-            hidden: true
-
         # Country label
         - label:
             text: "Country:"
@@ -4997,39 +4989,57 @@ lvgl:
             y: 130
             text_color: 0x000000
 
-        # Country selector (roller)
-        - roller:
-            id: country_selector
+        # Country text box
+        - text_input:
+            id: country_input
             x: 160
             y: 125
             width: 160
-            height: 60
+            height: 35
             text_font: roboto
-            options: "US\nUK\nCA\nDE\nFR\nPT\nNG\nIN\nBR\nAU"
-            selected: 0
+            text_color: 0x000000
+            bg_color: 0xFFFFFF
+            border_width: 1
+            border_color: 0x000000
+            placeholder_text: "e.g. US"
             on_value:
               - lambda: |-
                   id(user_country) = x.c_str();
+            on_focus:
+              - lvgl.keyboard.attach:
+                  id: keyboard_1
+                  text_input: country_input
+            on_defocus:
+              - lvgl.keyboard.detach: keyboard_1
+
+        # On-screen keyboard (hidden until focused)
+        - keyboard:
+            id: keyboard_1
+            mode: text_lower
+            align: BOTTOM_MID
+            hidden: true
 
         # Save button
         - button:
             x: 100
-            y: 220
+            y: 190
             width: 180
             height: 45
             bg_color: 0x009688
-            radius: 10
             on_press:
-              - logger.log: "Manual ZIP and Country saved"
+              - lvgl.keyboard.hide: keyboard_1
+              - logger.log: "Manual ZIP and country saved"
               - lambda: |-
-                  ESP_LOGI("location", "Saved ZIP: %s, Country: %s", id(user_zip_code).c_str(), id(user_country).c_str());
-                  // Navigate back to home page
+                  ESP_LOGI("geo", "ZIP: %s, Country: %s",
+                          id(user_zip_code).c_str(),
+                          id(user_country).c_str());
                   id(lvgl_comp).show_page(0, LV_SCR_LOAD_ANIM_OVER_RIGHT, 300);
             widgets:
               - label:
                   text: "Save Location"
                   text_font: roboto24
                   align: CENTER
+
 
 #-------------------------------------------
     - id: splash_screen
