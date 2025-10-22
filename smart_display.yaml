@@ -4957,7 +4957,6 @@ lvgl:
             height: 480
             align: TOP_LEFT
 
-        # Title
         - label:
             text: "Manual Location Setup"
             text_font: roboto24
@@ -4965,19 +4964,19 @@ lvgl:
             y: 10
             text_color: 0x000000
 
-        # ZIP code label
+        # ZIP Code Label
         - label:
             text: "ZIP Code:"
             x: 10
             y: 70
             text_color: 0x000000
 
-        # ZIP code input (textarea)
+        # ZIP Code Textarea
         - textarea:
             id: zip_text
             x: 160
             y: 65
-            width: 160
+            width: 180
             height: 35
             text_font: roboto
             text_color: 0x000000
@@ -4986,25 +4985,28 @@ lvgl:
             border_color: 0x000000
             placeholder_text: "e.g. 94040"
             on_focus:
-              - lvgl.widget.attach_keyboard:
+              - lvgl.keyboard.update:
                   id: keyboard_1
+                  mode: NUMBER
                   textarea: zip_text
             on_defocus:
-              - lvgl.widget.detach_keyboard: keyboard_1
+              - lvgl.keyboard.update:
+                  id: keyboard_1
+                  textarea: null
 
-        # Country label
+        # Country Label
         - label:
             text: "Country:"
             x: 10
-            y: 130
+            y: 120
             text_color: 0x000000
 
-        # Country input (textarea)
+        # Country Textarea
         - textarea:
             id: country_text
             x: 160
-            y: 125
-            width: 160
+            y: 115
+            width: 180
             height: 35
             text_font: roboto
             text_color: 0x000000
@@ -5013,39 +5015,50 @@ lvgl:
             border_color: 0x000000
             placeholder_text: "e.g. US"
             on_focus:
-              - lvgl.keyboard.attach:
+              - lvgl.keyboard.update:
                   id: keyboard_1
+                  mode: TEXT_UPPER
                   textarea: country_text
             on_defocus:
-              - lvgl.keyboard.detach: keyboard_1
+              - lvgl.keyboard.update:
+                  id: keyboard_1
+                  textarea: null
 
-        # On-screen keyboard
+        # On-screen Keyboard
         - keyboard:
             id: keyboard_1
-            mode: text_lower
-            align: BOTTOM_MID
-            hidden: true
+            y: 300
+            width: 480
+            height: 180
+            mode: TEXT_LOWER
+            on_ready:
+              then:
+                - logger.log: "Keyboard input complete"
 
-        # Save button
+        # Save Button
         - button:
             x: 100
-            y: 200
-            width: 180
+            y: 170
+            width: 200
             height: 45
             bg_color: 0x009688
             on_press:
-              - lvgl.keyboard.hide: keyboard_1
-              - logger.log: "Manual ZIP and Country Saved"
+              - logger.log: "Manual location saved"
+              - lvgl.keyboard.update:
+                  id: keyboard_1
+                  textarea: null   # hide keyboard
               - lambda: |-
-                  ESP_LOGI("geo", "Saved ZIP: %s, Country: %s",
-                          id(zip_text_sensor).state.c_str(),
-                          id(country_text_sensor).state.c_str());
+                  auto zip = id(zip_text).state;
+                  auto country = id(country_text).state;
+                  ESP_LOGI("location", "ZIP: %s, Country: %s", zip.c_str(), country.c_str());
+                  // Transition back to main screen
                   id(lvgl_comp).show_page(0, LV_SCR_LOAD_ANIM_OVER_RIGHT, 300);
             widgets:
               - label:
                   text: "Save Location"
                   text_font: roboto24
                   align: CENTER
+
 
 #-------------------------------------------
     - id: splash_screen
