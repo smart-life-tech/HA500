@@ -4986,11 +4986,11 @@ lvgl:
             border_color: 0x000000
             placeholder_text: "e.g. 94040"
             on_focus:
-              - lvgl.keyboard.attach:
+              - lvgl.widget.attach_keyboard:
                   id: keyboard_1
                   textarea: zip_text
             on_defocus:
-              - lvgl.keyboard.detach: keyboard_1
+              - lvgl.widget.detach_keyboard: keyboard_1
 
         # Country label
         - label:
