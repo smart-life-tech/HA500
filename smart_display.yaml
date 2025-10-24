@@ -6185,7 +6185,7 @@ image:
     resize: 50x50
     type: RGB565
 
-  - file: "images/wifi_icons.jpg"
+  - file: "images/wt.jpg"
     id: wifi_icon_online
     resize: 50x50
     type: RGB565
