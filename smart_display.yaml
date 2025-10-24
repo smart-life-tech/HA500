@@ -4978,17 +4978,16 @@ lvgl:
             text: !lambda 'return id(user_zip_code).c_str();'
             on_value:
               then:
-                - lvgl.textarea.update:
-                    id: zip_text
-                    text: !lambda 'id(user_zip_code) = text;'
+                - lambda: |-
+                    id(user_zip_code) = text;
             on_focus:
               then:
-                - lvgl.keyboard.attach:
+                - lvgl.keyboard.update:
                     id: keyboard_1
                     textarea: zip_text
             on_defocus:
               then:
-                - lvgl.keyboard.detach: keyboard_1
+                - lvgl.keyboard.update: keyboard_1
 
         # Country Field
         - label:
@@ -5007,17 +5006,16 @@ lvgl:
             text: !lambda 'return id(user_country).c_str();'
             on_value:
               then:
-                - lvgl.textarea.update:
-                    id: country_text
-                    text: !lambda 'id(user_country) = text;'
+                - lambda: |-
+                    id(user_country) = text;
             on_focus:
               then:
-                - lvgl.keyboard.attach:
+                - lvgl.keyboard.update:
                     id: keyboard_1
                     textarea: country_text
             on_defocus:
               then:
-                - lvgl.keyboard.detach: keyboard_1
+                - lvgl.keyboard.update: keyboard_1
 
         # On-screen Keyboard
         - keyboard:
