@@ -6376,7 +6376,7 @@ interval:
                 #     id(current_lat), id(current_lon));
                 #   return std::string(url);
                 url: !lambda |-
-                  char url[256];
+                  char url[1024];
                   sprintf(url,
                     "http://api.openweathermap.org/data/2.5/weather?zip=%s,%s&appid=b0fed035f1b875bafaf66f85d33f4e71&units=metric",
                     id(user_zip_code).c_str(), id(user_country).c_str());
@@ -6563,6 +6563,7 @@ interval:
                             if (end != std::string::npos) {
                               std::string city_name = body.substr(start, end - start);
                               id(location_name_str) = city_name;
+                              ESP_LOGD("weather", "City name: %s", city_name.c_str());
                               //id(weather_city).publish_state(city_name);
                             }
                           }
