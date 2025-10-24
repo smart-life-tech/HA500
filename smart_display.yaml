@@ -4945,6 +4945,9 @@ lvgl:
                     return  buf;
     #-------------------------------------------
     - id: location_setup_screen
+      pad_all: 0
+      border_width: 0
+      scrollable: false
       widgets:
         - image:
             src: background_image
@@ -5049,6 +5052,9 @@ lvgl:
                   text: "Save Location"
             on_press:
               then:
+                - lambda: |-
+                    // go to main page
+                    id(lvgl_comp).show_page(0, LV_SCR_LOAD_ANIM_OVER_RIGHT, 300);
                 - logger.log:
                     format: "Manual location saved: ZIP=%s, Country=%s"
                     args: [ id(user_zip_code).c_str(), id(user_country).c_str() ]
@@ -5070,7 +5076,7 @@ lvgl:
             src: logo_image
             x: 0
             y: 0
-            align: center
+            align: TOP_LEFT
             width: 480
             height: 480 
         
