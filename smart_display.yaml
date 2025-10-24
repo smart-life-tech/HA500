@@ -4987,7 +4987,9 @@ lvgl:
                     textarea: zip_text
             on_defocus:
               then:
-                - lvgl.keyboard.update: keyboard_1
+                - lvgl.keyboard.update: 
+                    id: keyboard_1
+                    textarea: none
 
         # Country Field
         - label:
@@ -5015,7 +5017,9 @@ lvgl:
                     textarea: country_text
             on_defocus:
               then:
-                - lvgl.keyboard.update: keyboard_1
+                - lvgl.keyboard.update: 
+                    id: keyboard_1
+                    textarea: none
 
         # On-screen Keyboard
         - keyboard:
