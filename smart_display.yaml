@@ -4978,7 +4978,10 @@ lvgl:
             width: 200
             one_line: true
             placeholder_text: "e.g. 94040"
-            text: !lambda 'return id(user_zip_code).c_str();'
+            text: 
+              - lambda: |-
+                  id(user_zip_code) = text;
+                  return id(user_zip_code).c_str();
             on_value:
               then:
                 - lambda: |-
@@ -5010,7 +5013,10 @@ lvgl:
             width: 200
             one_line: true
             placeholder_text: "e.g. US"
-            text: !lambda 'return id(user_country).c_str();'
+            text: 
+              - lambda: |-
+                  id(user_country) = text;
+                  return id(user_country).c_str();
             on_value:
               then:
                 - lambda: |-
@@ -6361,7 +6367,7 @@ interval:
                           size_t start = city_pos + 13;
                           size_t end = body.find("\"", start);
                           if (end != std::string::npos) {
-                            id(location_name_str) = body.substr(start, end - start);
+                           // id(location_name_str) = body.substr(start, end - start);
                             ESP_LOGI("geo", "City: %s", id(location_name_str).c_str());
                           }
                         }
@@ -6555,7 +6561,18 @@ interval:
 
                             }
                           }
-                          
+                          // Parse city name (e.g., "London")
+                          size_t name_pos = body.find("\"name\":\"");
+                          if (name_pos != std::string::npos) {
+                            size_t start = name_pos + 8;  // skip `"name":"`
+                            size_t end = body.find("\"", start);
+                            if (end != std::string::npos) {
+                              std::string city_name = body.substr(start, end - start);
+                              id(location_name_str) = city_name;
+                              //id(weather_city).publish_state(city_name);
+                            }
+                          }
+
                           ESP_LOGD("weather", "Weather data parsing complete - updating display");
                         } else {
                           ESP_LOGW("weather", "Empty response from weather API");
