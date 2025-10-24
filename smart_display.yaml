@@ -5042,8 +5042,9 @@ lvgl:
             width: 200
             height: 45
             bg_color: 38536
-            label:
-              text: "Save Location"
+            widgets:
+              - label:
+                  text: "Save Location"
             on_press:
               then:
                 - logger.log:
