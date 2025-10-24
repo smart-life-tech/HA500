@@ -4990,7 +4990,7 @@ lvgl:
                 - lvgl.keyboard.update: 
                     id: keyboard_1
                     mode: number
-                    textarea: none
+                    #textarea: none
 
         # Country Field
         - label:
@@ -5021,7 +5021,7 @@ lvgl:
               then:
                 - lvgl.keyboard.update: 
                     id: keyboard_1
-                    textarea: none
+                    #textarea: none
 
         # On-screen Keyboard
         - keyboard:
