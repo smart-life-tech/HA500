@@ -6186,12 +6186,12 @@ image:
     type: RGB565
 
   - file: "images/wifi_icons.jpg"
-    id: wifi_icon_onlines
+    id: wifi_icon_online
     resize: 50x50
     type: RGB565
 
   - file: "images/wt.png"
-    id: wifi_icon_online
+    id: wifi_icon_onlines
     resize: 50x50
     type: RGB565
 
