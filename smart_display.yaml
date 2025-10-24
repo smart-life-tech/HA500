@@ -575,20 +575,20 @@ number:
   # Seasonal settings
   - platform: template
     id: winter_min_input
-    min_value: 30
+    min_value: 0
     max_value: 180
-    step: 5
+    step: 0.1
     optimistic: true
-    initial_value: 60
+    initial_value: 1
     on_value:
       then:
         - lambda: "id(winter_min_runtime) = (int)x;"
 
   - platform: template
     id: summer_max_input
-    min_value: 120
+    min_value: 0
     max_value: 600
-    step: 15
+    step: 0.1
     optimistic: true
     initial_value: 300
     on_value:
@@ -1198,8 +1198,8 @@ globals:
     initial_value: "true"
     restore_value: yes
   - id: winter_min_runtime
-    type: int
-    initial_value: "60"
+    type: float
+    initial_value: "2.00"
   - id: summer_max_runtime
     type: int
     initial_value: "300"
@@ -2366,16 +2366,16 @@ lvgl:
                           id: winter_min_display
                           text: !lambda |-
                             static char text[15];
-                            if (id(winter_min_runtime) > id(summer_max_runtime)) {
-                              id(winter_min_runtime) = id(summer_max_runtime);
+                            if (id(winter_min_runtime) < 0) {
+                              id(winter_min_runtime) = 0;
                             }
-                            snprintf(text, sizeof(text), "%d min", id(winter_min_runtime));
+                            snprintf(text, sizeof(text), "%.2f min", id(winter_min_runtime));
                             return text;
               - label:
                   id: winter_min_display
                   text: !lambda |-
                     static char text[15];
-                    snprintf(text, sizeof(text), "%d min", id(winter_min_runtime));
+                    snprintf(text, sizeof(text), "%d hrs", id(winter_min_runtime));
                     return text;
                   text_font: roboto
                   text_color: 0xFFFFFF
@@ -2400,7 +2400,7 @@ lvgl:
                             if (id(winter_min_runtime) > id(summer_max_runtime)) {
                               id(winter_min_runtime) = id(summer_max_runtime);
                             }
-                            snprintf(text, sizeof(text), "%d min", id(winter_min_runtime));
+                            snprintf(text, sizeof(text), "%.0f hrs", id(winter_min_runtime));
                             return text;
 
               # Summer Max Runtime
@@ -2427,7 +2427,7 @@ lvgl:
                           id: summer_max_display
                           text: !lambda |-
                             static char text[15];
-                            snprintf(text, sizeof(text), "%d min", id(summer_max_runtime));
+                            snprintf(text, sizeof(text), "%d hrs", id(summer_max_runtime));
                             return text;
               - label:
                   id: summer_max_display
