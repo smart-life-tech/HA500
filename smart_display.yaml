@@ -5017,11 +5017,11 @@ lvgl:
               - lvgl.keyboard.update:
                   id: keyboard_1
                   mode: LV_KEYBOARD_MODE_TEXT_UPPER
-                  textarea: country_text
+                  #textarea: country_text
             on_defocus:
               - lvgl.keyboard.update:
                   id: keyboard_1
-                  #textarea: null
+                  textarea: null
 
         # Keyboard widget
         - keyboard:
