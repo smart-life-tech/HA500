@@ -5044,8 +5044,8 @@ lvgl:
 
         # Save Button
         - button:
-            x: 100
-            y: 240
+            x: 70
+            y: 300
             width: 200
             height: 45
             bg_color: 38536
