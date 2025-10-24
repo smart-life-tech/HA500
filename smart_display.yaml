@@ -4978,10 +4978,7 @@ lvgl:
             width: 200
             one_line: true
             placeholder_text: "e.g. 94040"
-            text: 
-              - lambda: |-
-                 
-                  return id(user_zip_code).c_str();
+            text: !lambda 'return id(user_zip_code).c_str();'
             on_value:
               then:
                 - lambda: |-
@@ -5013,10 +5010,7 @@ lvgl:
             width: 200
             one_line: true
             placeholder_text: "e.g. US"
-            text: 
-              - lambda: |-
-                  
-                  return id(user_country).c_str();
+            text: !lambda 'return id(user_country).c_str();'
             on_value:
               then:
                 - lambda: |-
