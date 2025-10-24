@@ -4980,7 +4980,7 @@ lvgl:
             placeholder_text: "e.g. 94040"
             text: 
               - lambda: |-
-                  id(user_zip_code) = text;
+                 
                   return id(user_zip_code).c_str();
             on_value:
               then:
@@ -5015,7 +5015,7 @@ lvgl:
             placeholder_text: "e.g. US"
             text: 
               - lambda: |-
-                  id(user_country) = text;
+                  
                   return id(user_country).c_str();
             on_value:
               then:
