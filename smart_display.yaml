@@ -4983,6 +4983,7 @@ lvgl:
               then:
                 - lambda: |-
                     id(user_zip_code) = text;
+                    ESP_LOGI("location_setup", "ZIP Code set to: %s", id(user_zip_code).c_str());
             on_focus:
               then:
                 - lvgl.keyboard.update:
@@ -5014,6 +5015,7 @@ lvgl:
               then:
                 - lambda: |-
                     id(user_country) = text;
+                    ESP_LOGI("location_setup", "Country set to: %s", id(user_country).c_str());
             on_focus:
               then:
                 - lvgl.keyboard.update:
@@ -5043,14 +5045,14 @@ lvgl:
         # Save Button
         - button:
             x: 100
-            y: 170
+            y: 240
             width: 200
             height: 45
             bg_color: 38536
             widgets:
               - label:
                   text: "Save Location"
-            on_press:
+            on_click:
               then:
                 - lambda: |-
                     // go to main page
