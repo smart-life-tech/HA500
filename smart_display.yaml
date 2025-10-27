@@ -5053,7 +5053,7 @@ lvgl:
               - label:
                   text: "Save Location"
                   x: 15
-                  y: -5
+                  y: 0
             on_click:
               then:
                 - lambda: |-
