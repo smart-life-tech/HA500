@@ -5052,8 +5052,8 @@ lvgl:
             widgets:
               - label:
                   text: "Save Location"
-                  x: CENTER
-                  y: CENTER
+                  x: 20
+                  #y: CENTER
             on_click:
               then:
                 - lambda: |-
