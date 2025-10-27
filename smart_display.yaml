@@ -5078,7 +5078,7 @@ lvgl:
             align: CENTER
             width: 480
             height: 480
-            zoom: 2.0
+            zoom: 1.0
             antialias: true
             # Prevent repeating or tiling
             #tiled: false
