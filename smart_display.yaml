@@ -5052,7 +5052,7 @@ lvgl:
             widgets:
               - label:
                   text: "Save Location"
-                  x: 20
+                  x: 15
                   #y: CENTER
             on_click:
               then:
