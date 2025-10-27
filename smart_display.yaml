@@ -34,7 +34,7 @@ esphome:
   on_boot:
     priority: -100.0
     then:
-      - delay: 8s  # Wait for LVGL to be ready
+      - delay: 6s  # Wait for LVGL to be ready
       - lambda: |-
           id(lvgl_comp).show_page(8, LV_SCR_LOAD_ANIM_FADE_ON, 400);
           ESP_LOGD("BOOT", "Displaying splash logo");
@@ -5078,7 +5078,7 @@ lvgl:
             align: CENTER
             width: 480
             height: 480
-            zoom: 1.0
+            zoom: 2.0
             antialias: true
             # Prevent repeating or tiling
             tiled: false
