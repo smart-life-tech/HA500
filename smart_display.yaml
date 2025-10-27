@@ -5064,23 +5064,25 @@ lvgl:
                     tag: location_setup
 
 
-#-------------------------------------------
+    #-------------------------------------------
     - id: splash_screen
       skip: false
       bg_color: 0x000000
-      bg_opa: cover
-      #pad_all: 0
+      bg_opa: COVER
       border_width: 0
       scrollable: false
       widgets:
         - image:
             id: splash_logo
             src: logo_image
-            x: 0
-            y: 0
-            align: TOP_LEFT
+            align: CENTER
             width: 480
-            height: 480 
+            height: 480
+            zoom: 1.0
+            antialias: true
+            # Prevent repeating or tiling
+            tiled: false
+
         
 #-------------------------------------------
 # Internal outputs
