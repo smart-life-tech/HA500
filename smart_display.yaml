@@ -5081,7 +5081,7 @@ lvgl:
             zoom: 2.0
             antialias: true
             # Prevent repeating or tiling
-            tiled: false
+            #tiled: false
 
         
 #-------------------------------------------
