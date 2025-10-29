@@ -2218,6 +2218,10 @@ lvgl:
     # New Pump/Watering Settings Page
     - id: pump_settings_page
       scrollable: false
+      on_show: !lambda |-
+        static char buf[16];
+        sprintf(buf, "%.1f", id(total_runtime).state);
+        lv_label_set_text(id(summer_max_display).get_obj(), buf);
       widgets:
         # Background image for controls page
         - image:
@@ -2409,7 +2413,7 @@ lvgl:
                   text_font: roboto
                   text_color: 0xCCCCCC
                   x: 215
-                  y: 35
+                  y: 45
               - button:
                   x: 310
                   y: 30
