@@ -6283,7 +6283,14 @@ interval:
     then:
       - script.execute: notify_web_portal
       - script.execute: check_light_schedules
-      - lvgl.widget.refresh: summer_max_display
+      #- lvgl.widget.refresh: summer_max_display
+      - on_page_change:
+          - from: pool_pump_settings_page
+            to: pump_settings_page
+            then:
+              - lvgl.widget.refresh: summer_max_display
+              - lambda: |-
+                  ESP_LOGD("display", "Page changed from ppol to 2");
       # - lvgl.label.update:
       #     id: summer_max_display
       #     text: !lambda |-
