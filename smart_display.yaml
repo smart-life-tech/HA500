@@ -6175,12 +6175,13 @@ display:
         - 7 #b4
         - 15 #b5
     on_page_change:
+      - lvgl.widget.refresh: summer_max_display
       #- from: pool_pump_settings_page
-      - to: pump_settings_page
-        then:
-          - lvgl.widget.refresh: summer_max_display
-          - lambda: |-
-              ESP_LOGD("display", "Page changed from ppol to 2");
+      # - to: pump_settings_page
+      #   then:
+      #     - lvgl.widget.refresh: summer_max_display
+      #     - lambda: |-
+      #         ESP_LOGD("display", "Page changed from ppol to 2");
 image:
   - file: "images/background.jpg"
     id: background_image
