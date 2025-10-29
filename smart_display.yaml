@@ -2218,11 +2218,7 @@ lvgl:
     # New Pump/Watering Settings Page
     - id: pump_settings_page
       scrollable: false
-      on_load:
-      - lambda: |-
-          static char buf[16];
-          sprintf(buf, "%.1f", id(total_runtime).state);
-          lv_label_set_text(id(summer_max_display).get_obj(), buf);
+      
       widgets:
         # Background image for controls page
         - image:
@@ -6282,10 +6278,12 @@ interval:
           }
       - script.execute: time_display_update
       #- script.execute: update_qr_display
+
   - interval: 10s
     then:
       - script.execute: notify_web_portal
       - script.execute: check_light_schedules
+      - lvgl.widget.refresh: summer_max_display
       # - lvgl.label.update:
       #     id: summer_max_display
       #     text: !lambda |-
