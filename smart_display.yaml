@@ -6175,7 +6175,13 @@ display:
         - 7 #b4
         - 15 #b5
     on_page_change:
-      - lvgl.widget.refresh: summer_max_display
+      #- lvgl.widget.refresh: summer_max_display
+      - lvgl.label.update:
+          id: summer_max_display
+          text: !lambda |-
+            static char buf[16];
+            sprintf(buf, "%.1f", id(total_runtime).state);
+            return buf;
       #- from: pool_pump_settings_page
       # - to: pump_settings_page
       #   then:
