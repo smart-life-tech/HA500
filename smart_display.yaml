@@ -4990,6 +4990,13 @@ lvgl:
               then:
                 - lvgl.keyboard.update:
                     id: keyboard_1
+                    
+                    textarea: zip_text
+            on_click:
+              then:
+                - lvgl.keyboard.update:
+                    id: keyboard_1
+                    mode: LV_KEYBOARD_MODE_TEXT_LOWER
                     textarea: zip_text
             # on_defocus:
             #   then:
@@ -5019,6 +5026,13 @@ lvgl:
                     id(user_country) = text;
                     ESP_LOGI("location_setup", "Country set to: %s", id(user_country).c_str());
             on_ready:
+              then:
+                - lvgl.keyboard.update:
+                    id: keyboard_1
+                    mode: LV_KEYBOARD_MODE_TEXT_LOWER
+                    textarea: country_text
+
+            on_click:
               then:
                 - lvgl.keyboard.update:
                     id: keyboard_1
