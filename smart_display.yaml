@@ -2310,6 +2310,7 @@ lvgl:
                   x: 200
                   y: -7
                   width: 100
+                  radius: 10
                   height: 35
                   styles: nav_button_style
                   bg_color: 0x00FF00
@@ -2409,8 +2410,8 @@ lvgl:
                   text: "Sum max:"
                   text_font: roboto
                   text_color: 0xCCCCCC
-                  x: 215
-                  y: 45
+                  x: 225
+                  y: 35
               - button:
                   x: 310
                   y: 30
@@ -6180,7 +6181,7 @@ display:
           id: summer_max_display
           text: !lambda |-
             static char buf[16];
-            sprintf(buf, "%.1f", id(total_runtime).state);
+            sprintf(buf, "%.2f", id(total_runtime_multiple));
             return buf;
       #- from: pool_pump_settings_page
       # - to: pump_settings_page
