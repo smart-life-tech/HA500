@@ -4986,7 +4986,7 @@ lvgl:
                 - lambda: |-
                     id(user_zip_code) = text;
                     ESP_LOGI("location_setup", "ZIP Code set to: %s", id(user_zip_code).c_str());
-            on_focus:
+            on_ready:
               then:
                 - lvgl.keyboard.update:
                     id: keyboard_1
@@ -5018,7 +5018,7 @@ lvgl:
                 - lambda: |-
                     id(user_country) = text;
                     ESP_LOGI("location_setup", "Country set to: %s", id(user_country).c_str());
-            on_focus:
+            on_ready:
               then:
                 - lvgl.keyboard.update:
                     id: keyboard_1
@@ -5033,7 +5033,7 @@ lvgl:
         # On-screen Keyboard
         - keyboard:
             id: keyboard_1
-            y: 200
+            y: 50
             width: 480
             height: 180
             mode: LV_KEYBOARD_MODE_TEXT_LOWER
