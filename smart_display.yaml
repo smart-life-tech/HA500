@@ -5033,7 +5033,7 @@ lvgl:
         # On-screen Keyboard
         - keyboard:
             id: keyboard_1
-            y: 300
+            y: 200
             width: 480
             height: 180
             mode: LV_KEYBOARD_MODE_TEXT_LOWER
