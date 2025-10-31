@@ -113,7 +113,7 @@ logger:
   baud_rate: 115200
 
 preferences:
-  flash_write_interval: 100s # Save preferences every 60 seconds
+  flash_write_interval: 60s # Save preferences every 60 seconds
 # logger:
 #   level: DEBUG
 #   baud_rate: 115200
@@ -128,7 +128,7 @@ web_server:
   port: 80
   version: 2
   include_internal: false
-  local: false
+  local: true
 
 # Enable Home Assistant API
 api:
@@ -1132,7 +1132,7 @@ globals:
   - id: user_zip_code
     type: std::string
     restore_value: true
-    max_restore_data_length: 10esto 
+    max_restore_data_length: 10
     initial_value: '"94040"'  # default ZIP
 
   - id: user_country
