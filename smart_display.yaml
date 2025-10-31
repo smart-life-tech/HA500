@@ -1132,11 +1132,13 @@ globals:
   - id: user_zip_code
     type: std::string
     restore_value: true
+    max_restore_data_length: 10esto 
     initial_value: '"94040"'  # default ZIP
 
   - id: user_country
     type: std::string
     restore_value: true
+    max_restore_data_length: 5
     initial_value: '"US"'     # default country
 
   - id: current_lat
@@ -5047,7 +5049,7 @@ lvgl:
         # On-screen Keyboard
         - keyboard:
             id: keyboard_1
-            y: 50
+            y: 0
             width: 480
             height: 180
             mode: LV_KEYBOARD_MODE_TEXT_LOWER
