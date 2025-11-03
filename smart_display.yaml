@@ -102,6 +102,7 @@ esp32:
       CONFIG_ESP32S3_DATA_CACHE_LINE_64B: "y"
       CONFIG_SPIRAM_FETCH_INSTRUCTIONS: y
       CONFIG_SPIRAM_RODATA: y
+      CONFIG_FATFS_LFN_STACK: "y"
 
 psram:
   mode: octal
@@ -111,6 +112,22 @@ psram:
 logger:
   level: DEBUG
   baud_rate: 115200
+
+external_components:
+  source:
+    type: git
+    url: http://github.com/n-serrette/esphome_sd_card.git
+    ref: branch_or_tag
+
+sd_mmc_card:
+  id: sd_mmc_card
+  mode_1bit: false
+  clk_pin: GPIO14
+  cmd_pin: GPIO15
+  data0_pin: GPIO2
+  data1_pin: GPIO4
+  data2_pin: GPIO12
+  data3_pin: GPIO13
 
 preferences:
   flash_write_interval: 60s # Save preferences every 60 seconds
