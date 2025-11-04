@@ -114,10 +114,7 @@ logger:
   baud_rate: 115200
 
 external_components:
-  source:
-    type: git
-    url: http://github.com/n-serrette/esphome_sd_card.git
-    ref: main
+  source: components
 
 sd_mmc_card:
   id: sd_mmc_card
