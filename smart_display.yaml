@@ -125,7 +125,7 @@ sd_mmc_card:
   data1_pin: GPIO4
   data2_pin: GPIO12
   data3_pin: GPIO13
-  
+
 preferences:
   flash_write_interval: 60s # Save preferences every 60 seconds
 # logger:
@@ -6186,26 +6186,26 @@ display:
       # Custom sequences are an array, first byte is command, the rest are data.
       - [0xFF, 0x77, 0x01, 0x00, 0x00, 0x10] # CMD2_BKSEL_BK0
       - [0xCD, 0x00] # disable MDT flag
-    data_pins:
-      red:
-        - 11 #r1
-        - 12 #r2
-        - 13 #r3
-        - 14 #r4
-        - 0 #r5
-      green:
-        - 8 #g0
-        - 20 #g1
-        - 3 #g2
-        - 46 #g3
-        - 9 #g4
-        - 10 #g5
-      blue:
-        - 4 #b1
-        - 5 #b2
-        - 6 #b3
-        - 7 #b4
-        - 15 #b5
+    # data_pins:
+    #   red:
+    #     - 11 #r1
+    #     - 12 #r2
+    #     - 13 #r3
+    #     - 14 #r4
+    #     - 0 #r5
+    #   green:
+    #     - 8 #g0
+    #     - 20 #g1
+    #     - 3 #g2
+    #     - 46 #g3
+    #     - 9 #g4
+    #     - 10 #g5
+    #   blue:
+    #     - 4 #b1
+    #     - 5 #b2
+    #     - 6 #b3
+    #     - 7 #b4
+    #     - 15 #b5
     on_page_change:
       #- lvgl.widget.refresh: summer_max_display
       - lvgl.label.update:
