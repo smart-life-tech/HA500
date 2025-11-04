@@ -116,12 +116,11 @@ logger:
 external_components:
   source: components
 
-sd_card:
+sd_mmc_card:
   id: sdcard
+  use_spi_mode: true
   cs_pin: GPIO42
-  spi_id: lcd_spi
-  card_mount_point: /sdcard
-  update_interval: 60s
+  spi_id: spi_bus
 
 
 
