@@ -121,10 +121,8 @@ sd_mmc_card:
   clk_pin: GPIO48
   cmd_pin: GPIO47
   data0_pin: GPIO21
-  data1_pin: GPIO41
-  data2_pin: GPIO42
-  data3_pin: GPIO42
-  mode_1bit: false
+  mode_1bit: true
+
 
 
 preferences:
