@@ -118,13 +118,14 @@ external_components:
 
 sd_mmc_card:
   id: sdcard
-  mode_1bit: true
+  mode_1bit: false  # full 4-bit mode (faster)
   clk_pin: GPIO14
   cmd_pin: GPIO15
   data0_pin: GPIO2
-
-
-
+  data1_pin: GPIO4
+  data2_pin: GPIO12
+  data3_pin: GPIO13
+  
 preferences:
   flash_write_interval: 60s # Save preferences every 60 seconds
 # logger:
