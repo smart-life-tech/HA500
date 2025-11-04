@@ -6187,6 +6187,9 @@ display:
       - [0xFF, 0x77, 0x01, 0x00, 0x00, 0x10] # CMD2_BKSEL_BK0
       - [0xCD, 0x00] # disable MDT flag
     data_pins:
+      red:
+      green:
+      blue:
       
     # data_pins:
     #   red:
