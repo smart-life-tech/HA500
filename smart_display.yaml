@@ -116,12 +116,12 @@ logger:
 external_components:
   source: components
 
-sd_mmc_card:
+sd_card:
   id: sdcard
-  clk_pin: GPIO48
-  cmd_pin: GPIO47
-  data0_pin: GPIO21
-  mode_1bit: true
+  cs_pin: GPIO42
+  spi_id: lcd_spi
+  card_mount_point: /sdcard
+  update_interval: 60s
 
 
 
@@ -6154,6 +6154,7 @@ spi:
   - id: lcd_spi
     clk_pin: GPIO48
     mosi_pin: GPIO47
+    miso_pin: GPIO21
 
 display:
   - platform: st7701s
