@@ -125,7 +125,7 @@ sd_mmc_card:
   data1_pin: GPIO4
   data2_pin: GPIO12
   data3_pin: GPIO13
-
+  
 preferences:
   flash_write_interval: 60s # Save preferences every 60 seconds
 # logger:
@@ -6186,6 +6186,8 @@ display:
       # Custom sequences are an array, first byte is command, the rest are data.
       - [0xFF, 0x77, 0x01, 0x00, 0x00, 0x10] # CMD2_BKSEL_BK0
       - [0xCD, 0x00] # disable MDT flag
+    data_pins:
+      
     # data_pins:
     #   red:
     #     - 11 #r1
