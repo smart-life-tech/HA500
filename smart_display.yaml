@@ -117,14 +117,15 @@ external_components:
   source: components
 
 sd_mmc_card:
-  id: sd_mmc_cards
+  id: sdcard
+  clk_pin: GPIO48
+  cmd_pin: GPIO47
+  data0_pin: GPIO21
+  data1_pin: GPIO41
+  data2_pin: GPIO42
+  data3_pin: GPIO42
   mode_1bit: false
-  clk_pin: GPIO14
-  cmd_pin: GPIO15
-  data0_pin: GPIO2
-  data1_pin: GPIO4
-  data2_pin: GPIO12
-  data3_pin: GPIO13
+
 
 preferences:
   flash_write_interval: 60s # Save preferences every 60 seconds
