@@ -6188,9 +6188,24 @@ display:
       - [0xCD, 0x00] # disable MDT flag
     data_pins:
       red:
+        - 111 #r1
+        - 121 #r2
+        - 13 #r3
+        - 14 #r4
+        - 0 #r5
       green:
+        - 8 #g0
+        - 20 #g1
+        - 3 #g2
+        - 46 #g3
+        - 9 #g4
+        - 10 #g5
       blue:
-      
+        - 4 #b1
+        - 5 #b2
+        - 6 #b3
+        - 7 #b4
+        - 15 #b5
     # data_pins:
     #   red:
     #     - 11 #r1
