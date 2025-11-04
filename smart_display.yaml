@@ -116,9 +116,10 @@ logger:
 external_components:
   source: components
 
+
 sd_mmc_card:
   id: sdcard
-  mode_1bit: false  # full 4-bit mode (faster)
+  mode_1bit: false
   clk_pin: GPIO14
   cmd_pin: GPIO15
   data0_pin: GPIO2
@@ -6188,8 +6189,8 @@ display:
       - [0xCD, 0x00] # disable MDT flag
     data_pins:
       red:
-        - 111 #r1
-        - 121 #r2
+        - 11 #r1
+        - 12 #r2
         - 13 #r3
         - 14 #r4
         - 0 #r5
@@ -6206,26 +6207,6 @@ display:
         - 6 #b3
         - 7 #b4
         - 15 #b5
-    # data_pins:
-    #   red:
-    #     - 11 #r1
-    #     - 12 #r2
-    #     - 13 #r3
-    #     - 14 #r4
-    #     - 0 #r5
-    #   green:
-    #     - 8 #g0
-    #     - 20 #g1
-    #     - 3 #g2
-    #     - 46 #g3
-    #     - 9 #g4
-    #     - 10 #g5
-    #   blue:
-    #     - 4 #b1
-    #     - 5 #b2
-    #     - 6 #b3
-    #     - 7 #b4
-    #     - 15 #b5
     on_page_change:
       #- lvgl.widget.refresh: summer_max_display
       - lvgl.label.update:
