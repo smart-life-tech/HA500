@@ -4988,7 +4988,7 @@ lvgl:
             y: 65
             width: 200
             one_line: true
-            placeholder_text: "e.g. 94040"
+            placeholder_text: !lambda 'return id(user_zip_code).c_str();'
             text: !lambda 'return id(user_zip_code).c_str();'
             on_value:
               then:
@@ -5027,7 +5027,7 @@ lvgl:
             y: 115
             width: 200
             one_line: true
-            placeholder_text: "e.g. US"
+            placeholder_text: !lambda 'return id(user_country).c_str();'
             text: !lambda 'return id(user_country).c_str();'
             on_value:
               then:
@@ -6376,10 +6376,10 @@ interval:
             #               }
             #             }
 
-      - lvgl.label.update:
-          id: location_display_label
-          text: !lambda |-
-            return id(location_name_str).c_str();
+      # - lvgl.label.update:
+      #     id: location_display_label
+      #     text: !lambda |-
+      #       return id(location_name_str).c_str();
 
   - interval: 60s
     then:
