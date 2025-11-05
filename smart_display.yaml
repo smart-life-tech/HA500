@@ -1145,7 +1145,7 @@ globals:
   - id: user_country
     type: std::string
     restore_value: true
-    max_restore_data_length: 5
+    max_restore_data_length: 10
     initial_value: '"US"'     # default country
 
   - id: current_lat
