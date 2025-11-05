@@ -1328,7 +1328,7 @@ globals:
 
   - id: location_name_str
     type: std::string
-    #restore_value: yes
+    restore_value: true
     initial_value: '"Sao Bartolomeu de Messines, Portugal"'
   # Timer tracking
   - id: sw1_off_time
