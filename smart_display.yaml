@@ -6148,7 +6148,7 @@ spi:
   - id: lcd_spi
     clk_pin: GPIO48
     mosi_pin: GPIO47
-    miso_pin: GPIO21
+    
 
 display:
   - platform: st7701s
