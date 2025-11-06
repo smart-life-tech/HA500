@@ -461,7 +461,7 @@ number:
     step: 0.1
     initial_value: 1.0
     optimistic: true
-    restore_value: true
+    #restore_value: true
     on_value:
       then:
         - globals.set:
@@ -481,7 +481,7 @@ number:
               snprintf(buf, sizeof(buf), "%.2f", 
                        id(global_pool_length) * id(global_pool_width) * id(global_pool_depth));
               return buf;
-       - lvgl.widget.redraw: # Refresh all widgets on the current page
+        - lvgl.widget.redraw: # Refresh all widgets on the current page
   - platform: template
     name: "Pool Width"
     id: pool_width
