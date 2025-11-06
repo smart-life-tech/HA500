@@ -45,8 +45,8 @@ esphome:
           
       # Push global into number on startup
       - lambda: |-
-          id(total_runtime).publish_state(id(total_runtime_multiple));
-          ESP_LOGD("BOOT RUNTIME", ": %.2f minutes", id(total_runtime_multiple));
+          //id(total_runtime).publish_state(id(total_runtime_multiple));
+          //ESP_LOGD("BOOT RUNTIME", ": %.2f minutes", id(total_runtime_multiple));
           // Jump to your first page (id 0 or whatever main is)
           id(lvgl_comp).show_page(0, LV_SCR_LOAD_ANIM_FADE_ON, 400);
       - number.set:
@@ -82,12 +82,12 @@ esphome:
             static char buf[20];
             snprintf(buf, sizeof(buf), "%.1f", id(pump_flow_rate));
             return buf;
-      - lvgl.label.update:
-          id: pump_runtime_label
-          text: !lambda |-
-            static char buf[20];
-            snprintf(buf, sizeof(buf), "%.2f", id(total_runtime_multiple));
-            return buf;
+      # - lvgl.label.update:
+      #     id: pump_runtime_label
+      #     text: !lambda |-
+      #       static char buf[20];
+      #       snprintf(buf, sizeof(buf), "%.2f", id(total_runtime_multiple));
+      #       return buf;
 
 esp32:
   board: esp32-s3-devkitc-1
@@ -6298,6 +6298,13 @@ interval:
             // Reset the timer to prevent constant page switching
             //id(last_touch_time) = millis();
           }
+          ESP_LOGI("POOL Length", ": %.2f meters", id(pool_length).state);
+          ESP_LOGI("runtime multiple", ": %.2f minutes", id(total_runtime_multiple));
+          ESP_LOGI("runtime", ": %.2f minutes", id(total_runtime).state);
+          ESP_LOGI("POOL Width", ": %.2f meters", id(pool_width).state);
+          ESP_LOGI("POOL Depth", ": %.2f meters", id(pool_depth).state);
+          ESP_LOGI("POOL Volume", ": %.2f liters", id(pool_volume).state);
+
 
   - interval: 60s # Every 5 minutes
     then:
