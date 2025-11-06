@@ -814,7 +814,7 @@ number:
 
   - platform: template
     id: valve_flow_rate_input
-    name: "Valve Flow Rate (L/min)"
+    name: "Valve Flow Rate (L/H)"
     min_value: 1
     max_value: 100
     step: 0.5
@@ -4647,6 +4647,9 @@ lvgl:
                           static char text[20];
                           snprintf(text, sizeof(text), "%.1f", id(pump_flow_rate));
                           return text;
+                    - number.set:
+                        id: "valve_flow_rate_input"
+                        value: !lambda "return id(pump_flow_rate);"
                     - lvgl.label.update:
                         id: pump_runtime_label
                         text: !lambda |-
@@ -4682,6 +4685,9 @@ lvgl:
                     - lambda: |-
                         id(pump_flow_rate) -= 50.0f;
                         if (id(pump_flow_rate) < 0) id(pump_flow_rate) = 50.0;
+                    - number.set:
+                        id: "valve_flow_rate_input"
+                        value: !lambda "return id(pump_flow_rate);"
                     - lvgl.label.update:
                         id: pump_flow_number
                         text: !lambda |-
@@ -6315,8 +6321,8 @@ interval:
           ESP_LOGI("POOL Width", ": %.2f meters", id(pool_width).state);
           ESP_LOGI("POOL Depth", ": %.2f meters", id(pool_depth).state);
           ESP_LOGI("POOL Volume", ": %.2f liters", id(pool_volume).state);
-          ESP_LOGI("PUMP Flow Rate", ": %.2f L/min", id(pump_flow_rate).state);
-          ESP_LOGI("CALCULATED cycle", ": %.2f minutes", id(cycles_count).state);
+          ESP_LOGI("PUMP Flow Rate", ": %.2f L/min", id(valve_flow_rate_input).state);
+          ESP_LOGI("CALCULATED cycle", ": %.2f minutes", id(cycles_count));
           ESP_LOGI("BLOCKS ", ": %d", id(pump_runtime_blocks));
         
 
