@@ -82,13 +82,19 @@ esphome:
             static char buf[20];
             snprintf(buf, sizeof(buf), "%.1f", id(pump_flow_rate));
             return buf;
-      # - lvgl.label.update:
-      #     id: pump_runtime_label
-      #     text: !lambda |-
-      #       static char buf[20];
-      #       snprintf(buf, sizeof(buf), "%.2f", id(total_runtime_multiple));
-      #       return buf;
-
+      
+      - lvgl.label.update:
+          id: cycles_number
+          text: !lambda |-
+            static char buf[20];
+            sprintf(buf, "%.1f", id(cycles_count));
+            return buf;
+      - lvgl.label.update:
+          id: blocks_number
+          text: !lambda |-
+            static char buf[20];
+            sprintf(buf, "%d", id(pump_runtime_blocks));
+            return buf;
 esp32:
   board: esp32-s3-devkitc-1
   variant: esp32s3
@@ -467,7 +473,7 @@ number:
             id: cycles_count
             value: !lambda "return (int)x;"
         - lvgl.widget.redraw: # Refresh all widgets on the current page
-        
+
   - platform: template
     name: "block number"
     id: block_number
@@ -6366,6 +6372,7 @@ interval:
           ESP_LOGI("CALCULATED cycle", ": %.2f minutes", id(cycle_number).state);
           ESP_LOGI("BLOCKS ", ": %d", id(pump_runtime_blocks));
           ESP_LOGI("CENTER BLOCK ", ": %.2f ", id(block_number).state);
+          ESP_LOGI("PUMP RUNTIME BLOCKS ", ": %.2f minutes", id(center_block_runtime).state);
   - interval: 60s # Every 5 minutes
     then:
       - script.execute: calculate_irrigation_needs
