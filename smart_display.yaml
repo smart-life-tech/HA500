@@ -120,7 +120,7 @@ external_components:
 
   
 preferences:
-  flash_write_interval: 60s # Save preferences every 60 seconds
+  flash_write_interval: 30s # Save preferences every 60 seconds
 # logger:
 #   level: DEBUG
 #   baud_rate: 115200
@@ -481,7 +481,7 @@ number:
               snprintf(buf, sizeof(buf), "%.2f", 
                        id(global_pool_length) * id(global_pool_width) * id(global_pool_depth));
               return buf;
-        - lvgl.widget.redraw: # Refresh all widgets on the current page
+       - lvgl.widget.redraw: # Refresh all widgets on the current page
   - platform: template
     name: "Pool Width"
     id: pool_width
