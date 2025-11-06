@@ -454,6 +454,35 @@ sun:
 # Add this to update the sun component when location changes
 number:
   - platform: template
+    name: "cycle number"
+    id: cycle_number
+    min_value: 1
+    max_value: 3
+    step: 1
+    initial_value: 1
+    optimistic: true
+    on_value:
+      then:
+        - globals.set:
+            id: cycles_count
+            value: !lambda "return (int)x;"
+        - lvgl.widget.redraw: # Refresh all widgets on the current page
+  - platform: template
+    name: "block number"
+    id: block_number
+    min_value: 1
+    max_value: 4
+    step: 1
+    initial_value: 1
+    optimistic: true
+    on_value:
+      then:
+        - globals.set:
+            id: pump_runtime_blocks
+            value: !lambda "return (int)x;"
+        - lvgl.widget.redraw: # Refresh all widgets on the current page
+
+  - platform: template
     name: "Pool Length"
     id: pool_length
     min_value: 0.1
@@ -4756,6 +4785,9 @@ lvgl:
                           static char text[20];
                           snprintf(text, sizeof(text), "%d",  id(pump_runtime_blocks));
                           return text;
+                    - number.set: 
+                        id: block_number
+                        value: !lambda "return id(pump_runtime_blocks);"
                     - lvgl.label.update:
                         id: runtime_blocks_display
                     - lvgl.label.update:
@@ -4801,6 +4833,9 @@ lvgl:
                           static char text[20];
                           snprintf(text, sizeof(text), "%d",  id(pump_runtime_blocks));
                           return text;
+                    - number.set: 
+                        id: block_number
+                        value: !lambda "return id(pump_runtime_blocks);"
                     - lvgl.label.update:
                         id: runtime_blocks_display
                     - lvgl.label.update:
@@ -4864,6 +4899,9 @@ lvgl:
                           static char text[20];
                           snprintf(text, sizeof(text), "%.1f", id(cycles_count));
                           return text;
+                    - number.set: 
+                        id: cycle_number
+                        value: !lambda "return id(cycles_count);"
                     - lvgl.label.update:
                         id: pump_runtime_label
                         text: !lambda |-
@@ -4905,7 +4943,9 @@ lvgl:
                           static char text[20];
                           snprintf(text, sizeof(text), "%.1f", id(cycles_count));
                           return text;
-
+                    - number.set: 
+                        id: cycle_number
+                        value: !lambda "return id(cycles_count);"
                     - lvgl.label.update:
                         id: pump_runtime_label
                         text: !lambda |-
@@ -6322,12 +6362,9 @@ interval:
           ESP_LOGI("POOL Depth", ": %.2f meters", id(pool_depth).state);
           ESP_LOGI("POOL Volume", ": %.2f liters", id(pool_volume).state);
           ESP_LOGI("PUMP Flow Rate", ": %.2f L/min", id(valve_flow_rate_input).state);
-          ESP_LOGI("CALCULATED cycle", ": %.2f minutes", id(cycles_count));
+          ESP_LOGI("CALCULATED cycle", ": %.2f minutes", id(cycle_number).state);
           ESP_LOGI("BLOCKS ", ": %d", id(pump_runtime_blocks));
-        
-
-
-
+          ESP_LOGI("CENTER BLOCK ", ": %d ", id(block_number).state);
   - interval: 60s # Every 5 minutes
     then:
       - script.execute: calculate_irrigation_needs
