@@ -490,7 +490,7 @@ number:
     step: 0.1
     initial_value: 1.0
     optimistic: true
-    restore_value: true
+    #restore_value: true
     on_value:
       then:
         - globals.set:
@@ -518,7 +518,7 @@ number:
     step: 0.1
     initial_value: 1.0
     optimistic: true
-    restore_value: true
+    #restore_value: true
     on_value:
       then:
         - globals.set:
