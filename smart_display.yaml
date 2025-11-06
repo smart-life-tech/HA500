@@ -1205,7 +1205,7 @@ globals:
     type: float
     restore_value: true
     initial_value: "5.00"
-    
+
   - id: pool_temp
     type: float
     initial_value: "25.0" # Default pool temperature
@@ -1236,7 +1236,8 @@ globals:
   - id: pump_runtime_blocks
     type: int
     initial_value: "1" # 1, 2, 3, or 4 blocks
-    #restore_value: yes
+    restore_value: true
+
   - id: calculated_daily_runtime
     type: int
     initial_value: "0"
@@ -6314,6 +6315,11 @@ interval:
           ESP_LOGI("POOL Width", ": %.2f meters", id(pool_width).state);
           ESP_LOGI("POOL Depth", ": %.2f meters", id(pool_depth).state);
           ESP_LOGI("POOL Volume", ": %.2f liters", id(pool_volume).state);
+          ESP_LOGI("PUMP Flow Rate", ": %.2f L/min", id(pump_flow_rate).state);
+          ESP_LOGI("CALCULATED cycle", ": %.2f minutes", id(cycles_count).state);
+          ESP_LOGI("BLOCKS ", ": %d", id(pump_runtime_blocks));
+        
+
 
 
   - interval: 60s # Every 5 minutes
