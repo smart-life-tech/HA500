@@ -4354,7 +4354,7 @@ lvgl:
                         id: pump_runtime_label
                         text: !lambda |-
                           static char buf[16];
-                          sprintf(buf, "%.1f", id(total_runtime).state);
+                          sprintf(buf, "%.2f", id(total_runtime).state);
                           return buf;
                   widgets:
                     - label: { text: "-", text_font: roboto, align: CENTER }
@@ -6330,14 +6330,14 @@ interval:
       #       static char buf[16];
       #       sprintf(buf, "%.1f", id(total_runtime).state);
       #       return buf;
-      - lvgl.label.update:
-          id: pump_runtime_label
-          text: !lambda |-
-            static char buf[20];
-            snprintf(buf, sizeof(buf), "%.2f", id(total_runtime_multiple));
-            ESP_LOGD("UPDATING RUNTIME ", "Test remaining runtime: %.2f minutes", id(total_runtime_multiple));
-            ESP_LOGD("UPDATING RUNTIME state", "Test remaining runtime: %.2f minutes", id(total_runtime).state);
-            return buf;
+      # - lvgl.label.update:
+      #     id: pump_runtime_label
+      #     text: !lambda |-
+      #       static char buf[20];
+      #       snprintf(buf, sizeof(buf), "%.2f", id(total_runtime_multiple));
+      #       ESP_LOGD("UPDATING RUNTIME ", "Test remaining runtime: %.2f minutes", id(total_runtime_multiple));
+      #       ESP_LOGD("UPDATING RUNTIME state", "Test remaining runtime: %.2f minutes", id(total_runtime).state);
+      #       return buf;
 
   - interval: 30s
     then:
