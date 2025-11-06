@@ -6372,7 +6372,7 @@ interval:
           ESP_LOGI("CALCULATED cycle", ": %.2f minutes", id(cycle_number).state);
           ESP_LOGI("BLOCKS ", ": %d", id(pump_runtime_blocks));
           ESP_LOGI("CENTER BLOCK ", ": %.2f ", id(block_number).state);
-          ESP_LOGI("PUMP RUNTIME BLOCKS ", ": %.2f minutes", id(center_block_runtime).state);
+          ESP_LOGI("PUMP RUNTIME BLOCKS ", ": %.2f minutes", id(center_block_runtime));
   - interval: 60s # Every 5 minutes
     then:
       - script.execute: calculate_irrigation_needs
