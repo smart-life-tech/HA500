@@ -87,7 +87,7 @@ esphome:
           id: cycles_number
           text: !lambda |-
             static char buf[20];
-            sprintf(buf, "%.2", id(cycles_count));
+            sprintf(buf, "%.1", id(cycles_count));
             return buf;
       - lvgl.label.update:
           id: blocks_number
@@ -463,7 +463,7 @@ number:
     name: "cycle number"
     id: cycle_number
     min_value: 1
-    max_value: 3
+    max_value: 4
     step: 0.5
     initial_value: 1
     optimistic: true
@@ -1235,7 +1235,7 @@ globals:
   - id: cycles_count
     type: float
     restore_value: true # keep value after reboot
-    initial_value: "1.00"
+    initial_value: "1.0"
 
   - id: total_runtime_multiple
     type: float
