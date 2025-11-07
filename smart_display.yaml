@@ -1234,7 +1234,7 @@ globals:
 
   - id: cycles_count
     type: float
-    restore_value: true # keep value after reboot
+    restore_value: true 
     initial_value: "1.0"
 
   - id: total_runtime_multiple
@@ -4906,6 +4906,9 @@ lvgl:
                           static char text[20];
                           snprintf(text, sizeof(text), "%.1f", id(cycles_count));
                           return text;
+                    - globals.set:
+                        id: cycles_count
+                        value: !lambda "return id(cycles_count);"
                     - number.set: 
                         id: cycle_number
                         value: !lambda "return id(cycles_count);"
@@ -4950,6 +4953,9 @@ lvgl:
                           static char text[20];
                           snprintf(text, sizeof(text), "%.1f", id(cycles_count));
                           return text;
+                    - globals.set:
+                        id: cycles_count
+                        value: !lambda "return id(cycles_count);"
                     - number.set: 
                         id: cycle_number
                         value: !lambda "return id(cycles_count);"
