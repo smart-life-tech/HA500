@@ -87,7 +87,7 @@ esphome:
           id: cycles_number
           text: !lambda |-
             static char buf[20];
-            sprintf(buf, "%.1", id(cycles_count));
+            sprintf(buf, "%.2", id(cycles_count));
             return buf;
       - lvgl.label.update:
           id: blocks_number
@@ -467,12 +467,12 @@ number:
     step: 0.5
     initial_value: 0.5
     optimistic: true
-    on_value:
-      then:
-        - globals.set:
-            id: cycles_count
-            value: !lambda "return (int)x;"
-        - lvgl.widget.redraw: # Refresh all widgets on the current page
+    # on_value:
+    #   then:
+    #     - globals.set:
+    #         id: cycles_count
+    #         value: !lambda "return (int)x;"
+    #     - lvgl.widget.redraw: # Refresh all widgets on the current page
 
   - platform: template
     name: "block number"
