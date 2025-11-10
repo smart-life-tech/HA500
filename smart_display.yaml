@@ -1238,7 +1238,7 @@ globals:
   - id: cycles_count
     type: float
     restore_value: true 
-    initial_value: "1.0"
+    initial_value: "1.00"
 
   - id: total_runtime_multiple
     type: float
@@ -4907,7 +4907,7 @@ lvgl:
                         id: cycles_number
                         text: !lambda |-
                           static char text[20];
-                          snprintf(text, sizeof(text), "%.1f", id(cycles_count));
+                          snprintf(text, sizeof(text), "%.2f", id(cycles_count));
                           return text;
                     - globals.set:
                         id: cycles_count
