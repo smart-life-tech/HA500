@@ -6379,7 +6379,7 @@ interval:
           ESP_LOGI("POOL Volume", ": %.2f liters", id(pool_volume).state);
           ESP_LOGI("PUMP Flow Rate", ": %.2f L/min", id(valve_flow_rate_input).state);
           ESP_LOGI("CALCULATED cycle", ": %.2f minutes", id(cycle_number).state);
-          ESP_LOGI("cycle", ": %.2f minutes", id(cycles_number));
+          ESP_LOGI("cycle", ": %.2f minutes", id(cycles_count));
           ESP_LOGI("BLOCKS ", ": %d", id(pump_runtime_blocks));
           ESP_LOGI("CENTER BLOCK ", ": %.2f ", id(block_number).state);
           ESP_LOGI("PUMP RUNTIME BLOCKS ", ": %.2f minutes", id(center_block_runtime));
