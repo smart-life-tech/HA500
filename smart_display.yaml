@@ -58,6 +58,9 @@ esphome:
       - number.set:
           id: pool_depth
           value: !lambda "return id(global_pool_depth);"
+      - number.set:
+          id: cycle_number
+          value: !lambda "return id(cycles_count);"
       - lvgl.label.update:
           id: pool_length_number
           text: !lambda |-
@@ -467,12 +470,12 @@ number:
     step: 0.5
     initial_value: 0.5
     optimistic: true
-    # on_value:
-    #   then:
-    #     - globals.set:
-    #         id: cycles_count
-    #         value: !lambda "return (int)x;"
-    #     - lvgl.widget.redraw: # Refresh all widgets on the current page
+    on_value:
+      then:
+        - globals.set:
+            id: cycles_count
+            value: !lambda "return (int)x;"
+        - lvgl.widget.redraw: # Refresh all widgets on the current page
 
   - platform: template
     name: "block number"
