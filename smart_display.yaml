@@ -46,7 +46,7 @@ esphome:
       # Push global into number on startup
       - lambda: |-
           //id(total_runtime).publish_state(id(total_runtime_multiple));
-          ESP_LOGD("BOOT RUNTIME", ": %.2f minutes", id(cycles_count));
+          ESP_LOGD("BOOT RUNTIME", ": %.2f minutes", id(global_cycles_count));
           // Jump to your first page (id 0 or whatever main is)
           id(lvgl_comp).show_page(0, LV_SCR_LOAD_ANIM_FADE_ON, 400);
           ESP_LOGD("BOOT", "Showing main page");
@@ -61,7 +61,7 @@ esphome:
           value: !lambda "return id(global_pool_depth);"
       - number.set:
           id: cycle_number
-          value: !lambda "return id(cycles_count);"
+          value: !lambda "return id(global_cycles_count);"
       - lvgl.label.update:
           id: pool_length_number
           text: !lambda |-
@@ -4312,7 +4312,7 @@ lvgl:
                         id(pool_volume).publish_state(id(global_pool_length) * id(global_pool_width) * id(global_pool_depth));
                         float volume = id(global_pool_length) * id(global_pool_width) * id(global_pool_depth); // m³
                         float flow = id(pump_flow_rate); // m³ per hour
-                        float cycles = id(cycles_count);
+                        float cycles = id(global_cycles_count);
 
                         float temp = id(owm_temperature).has_state() ? id(owm_temperature).state : 25.0f;
                         ESP_LOGI("pool_pump", "Calculated VOLUME: %.2f M3", volume);
@@ -4372,7 +4372,7 @@ lvgl:
                         id(pool_volume).publish_state(id(global_pool_length) * id(global_pool_width) * id(global_pool_depth));
                         float volume = id(global_pool_length) * id(global_pool_width) * id(global_pool_depth); // m³
                         float flow = id(pump_flow_rate); // m³ per hour
-                        float cycles = id(cycles_count);
+                        float cycles = id(global_cycles_count);
                         float temp = id(owm_temperature).has_state() ? id(owm_temperature).state : 25.0f;
 
                         // Prevent divide-by-zero
@@ -4465,7 +4465,7 @@ lvgl:
                           static char buf[16];
                           float volume = id(global_pool_length) * id(global_pool_width) * id(global_pool_depth); // m³
                           float flow = id(pump_flow_rate); // m³ per hour
-                          float cycles = id(cycles_count);
+                          float cycles = id(global_cycles_count);
                           float temp = id(owm_temperature).has_state() ? id(owm_temperature).state : 25.0f;
 
                           // Prevent divide-by-zero
@@ -4516,7 +4516,7 @@ lvgl:
                           static char buf[16];
                           float volume = id(global_pool_length) * id(global_pool_width) * id(global_pool_depth); // m³
                           float flow = id(pump_flow_rate); // m³ per hour
-                          float cycles = id(cycles_count);
+                          float cycles = id(global_cycles_count);
                           float temp = id(owm_temperature).has_state() ? id(owm_temperature).state : 25.0f;
 
                           // Prevent divide-by-zero
@@ -4587,7 +4587,7 @@ lvgl:
                           static char buf[16];
                           float volume = id(global_pool_length) * id(global_pool_width) * id(global_pool_depth); // m³
                           float flow = id(pump_flow_rate); // m³ per hour
-                          float cycles = id(cycles_count);
+                          float cycles = id(global_cycles_count);
                           float temp = id(owm_temperature).has_state() ? id(owm_temperature).state : 25.0f;
 
                           // Prevent divide-by-zero
@@ -4638,7 +4638,7 @@ lvgl:
                           static char buf[16];
                           float volume = id(global_pool_length) * id(global_pool_width) * id(global_pool_depth); // m³
                           float flow = id(pump_flow_rate); // m³ per hour
-                          float cycles = id(cycles_count);
+                          float cycles = id(global_cycles_count);
                           float temp = id(owm_temperature).has_state() ? id(owm_temperature).state : 25.0f;
 
                           // Prevent divide-by-zero
@@ -4701,7 +4701,7 @@ lvgl:
                           static char buf[16];
                           float volume = id(global_pool_length) * id(global_pool_width) * id(global_pool_depth); // m³
                           float flow = id(pump_flow_rate); // m³ per hour
-                          float cycles = id(cycles_count);
+                          float cycles = id(global_cycles_count);
                           float temp = id(owm_temperature).has_state() ? id(owm_temperature).state : 25.0f;
 
                           // Prevent divide-by-zero
@@ -4745,7 +4745,7 @@ lvgl:
                           static char buf[16];
                           float volume = id(global_pool_length) * id(global_pool_width) * id(global_pool_depth); // m³
                           float flow = id(pump_flow_rate); // m³ per hour
-                          float cycles = id(cycles_count);
+                          float cycles = id(global_cycles_count);
                           float temp = id(owm_temperature).has_state() ? id(owm_temperature).state : 25.0f;
 
                           // Prevent divide-by-zero
@@ -4812,7 +4812,7 @@ lvgl:
                           static char buf[16];
                           float volume = id(global_pool_length) * id(global_pool_width) * id(global_pool_depth); // m³
                           float flow = id(pump_flow_rate); // m³ per hour
-                          float cycles = id(cycles_count);
+                          float cycles = id(global_cycles_count);
                           float temp = id(owm_temperature).has_state() ? id(owm_temperature).state : 25.0f;
 
                           // Prevent divide-by-zero
@@ -4860,7 +4860,7 @@ lvgl:
                           static char buf[16];
                           float volume = id(global_pool_length) * id(global_pool_width) * id(global_pool_depth); // m³
                           float flow = id(pump_flow_rate); // m³ per hour
-                          float cycles = id(cycles_count);
+                          float cycles = id(global_cycles_count);
                           float temp = id(owm_temperature).has_state() ? id(owm_temperature).state : 25.0f;
 
                           // Prevent divide-by-zero
@@ -4908,7 +4908,7 @@ lvgl:
                   height: 35
                   on_press:
                     - lambda: |-
-                        id(cycles_count) += 0.5;
+                        id(global_cycles_count) += 0.5;
                         id(global_cycles_count) += 0.5;
                         if (id(global_cycles_count) > 3) id(global_cycles_count) = 3;
                     - lvgl.label.update:
@@ -4919,17 +4919,17 @@ lvgl:
                           return text;
                     - globals.set:
                         id: cycles_count
-                        value: !lambda "return id(cycles_count);"
+                        value: !lambda "return id(global_cycles_count);"
                     - number.set: 
                         id: cycle_number
-                        value: !lambda "return id(cycles_count);"
+                        value: !lambda "return id(global_cycles_count);"
                     - lvgl.label.update:
                         id: pump_runtime_label
                         text: !lambda |-
                           static char buf[16];
                           float volume = id(global_pool_length) * id(global_pool_width) * id(global_pool_depth); // m³
                           float flow = id(pump_flow_rate); // m³ per hour
-                          float cycles = id(cycles_count);
+                          float cycles = id(global_cycles_count);
                           float temp = id(owm_temperature).has_state() ? id(owm_temperature).state : 25.0f;
 
                           // Prevent divide-by-zero
@@ -4956,7 +4956,7 @@ lvgl:
                   height: 35
                   on_press:
                     - lambda: |-
-                        id(cycles_count) -= 0.5;
+                        id(global_cycles_count) -= 0.5;
                         id(global_cycles_count) -= 0.5;
                         if (id(global_cycles_count) < 0.5) id(global_cycles_count) = 0.5;
                     - lvgl.label.update:
@@ -4967,17 +4967,17 @@ lvgl:
                           return text;
                     - globals.set:
                         id: cycles_count
-                        value: !lambda "return id(cycles_count);"
+                        value: !lambda "return id(global_cycles_count);"
                     - number.set: 
                         id: cycle_number
-                        value: !lambda "return id(cycles_count);"
+                        value: !lambda "return id(global_cycles_count);"
                     - lvgl.label.update:
                         id: pump_runtime_label
                         text: !lambda |-
                           static char buf[16];
                           float volume = id(global_pool_length) * id(global_pool_width) * id(global_pool_depth); // m³
                           float flow = id(pump_flow_rate); // m³ per hour
-                          float cycles = id(cycles_count);
+                          float cycles = id(global_cycles_count);
                           float temp = id(owm_temperature).has_state() ? id(owm_temperature).state : 25.0f;
 
                           // Prevent divide-by-zero
