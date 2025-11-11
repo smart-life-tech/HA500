@@ -4893,12 +4893,12 @@ lvgl:
               - label:
                   id: cycles_number
                   x: 170
-                  y: 255
+                  y: 215
                   width: 80
                   text_color: 0x000000
                   text: !lambda |-
                     static char buf[16];
-                    sprintf(buf, ": %.2f", id(global_cycles_count));
+                    sprintf(buf, ":%.2f", id(global_cycles_count));
                     return buf;
               - button:
                   x: 230
