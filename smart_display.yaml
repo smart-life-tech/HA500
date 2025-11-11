@@ -42,13 +42,14 @@ esphome:
       - lambda: |-
           id(lvgl_comp).show_page(0, LV_SCR_LOAD_ANIM_FADE_ON, 400);
           ESP_LOGD("BOOT", "Hiding splash logo and showing main page");
-          
+      - delay: 2s
       # Push global into number on startup
       - lambda: |-
           //id(total_runtime).publish_state(id(total_runtime_multiple));
-          //ESP_LOGD("BOOT RUNTIME", ": %.2f minutes", id(total_runtime_multiple));
+          ESP_LOGD("BOOT RUNTIME", ": %.2f minutes", id(cycles_count));
           // Jump to your first page (id 0 or whatever main is)
           id(lvgl_comp).show_page(0, LV_SCR_LOAD_ANIM_FADE_ON, 400);
+          ESP_LOGD("BOOT", "Showing main page");
       - number.set:
           id: pool_length
           value: !lambda "return id(global_pool_length);"
@@ -6383,6 +6384,12 @@ interval:
           ESP_LOGI("BLOCKS ", ": %d", id(pump_runtime_blocks));
           ESP_LOGI("CENTER BLOCK ", ": %.2f ", id(block_number).state);
           ESP_LOGI("PUMP RUNTIME BLOCKS ", ": %.2f minutes", id(center_block_runtime));
+      - lvgl.label.update:
+          id: cycles_number
+          text: !lambda |-
+            static char buf[20];
+            sprintf(buf, "%.2", id(cycles_count));
+            return buf;
   - interval: 60s # Every 5 minutes
     then:
       - script.execute: calculate_irrigation_needs
