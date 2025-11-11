@@ -4909,7 +4909,6 @@ lvgl:
                   on_press:
                     - lambda: |-
                         id(global_cycles_count) += 0.5;
-                        id(global_cycles_count) += 0.5;
                         if (id(global_cycles_count) > 3) id(global_cycles_count) = 3;
                     - lvgl.label.update:
                         id: cycles_number
@@ -4956,7 +4955,6 @@ lvgl:
                   height: 35
                   on_press:
                     - lambda: |-
-                        id(global_cycles_count) -= 0.5;
                         id(global_cycles_count) -= 0.5;
                         if (id(global_cycles_count) < 0.5) id(global_cycles_count) = 0.5;
                     - lvgl.label.update:
