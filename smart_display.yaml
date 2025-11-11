@@ -2500,7 +2500,7 @@ lvgl:
                   id: summer_max_display
                   text: !lambda |-
                     static char text[15];
-                    snprintf(text, sizeof(text), "%.2f hrs", id(total_runtime).state);
+                    snprintf(text, sizeof(text), "%.2f hrs", id(total_runtime_multiple));
                     return text;
                   text_font: roboto
                   text_color: 0xFFFFFF
