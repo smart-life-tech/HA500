@@ -4893,8 +4893,9 @@ lvgl:
               - label:
                   id: cycles_number
                   x: 170
-                  y: 215
+                  y: 250
                   width: 80
+                  hidden: false
                   text_color: 0x000000
                   text: !lambda |-
                     static char buf[16];
