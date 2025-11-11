@@ -1241,6 +1241,11 @@ globals:
     restore_value: true 
     initial_value: "1.00"
 
+  - id: global_cycles_count
+    type: float
+    restore_value: true 
+    initial_value: "1.00"
+
   - id: total_runtime_multiple
     type: float
     restore_value: true
@@ -4893,7 +4898,7 @@ lvgl:
                   text_color: 0x000000
                   text: !lambda |-
                     static char buf[16];
-                    sprintf(buf, "%.1f", id(cycles_count));
+                    sprintf(buf, "%.2f", id(global_cycles_count));
                     return buf;
               - button:
                   x: 230
@@ -4903,6 +4908,7 @@ lvgl:
                   on_press:
                     - lambda: |-
                         id(cycles_count) += 0.5;
+                        id(global_cycles_count) += 0.5;
                         if (id(cycles_count) > 3) id(cycles_count) = 3;
                     - lvgl.label.update:
                         id: cycles_number
@@ -4950,6 +4956,7 @@ lvgl:
                   on_press:
                     - lambda: |-
                         id(cycles_count) -= 0.5;
+                        id(global_cycles_count) -= 0.5;
                         if (id(cycles_count) < 0.5) id(cycles_count) = 0.5;
                     - lvgl.label.update:
                         id: cycles_number
@@ -6380,7 +6387,7 @@ interval:
           ESP_LOGI("POOL Volume", ": %.2f liters", id(pool_volume).state);
           ESP_LOGI("PUMP Flow Rate", ": %.2f L/min", id(valve_flow_rate_input).state);
           ESP_LOGI("CALCULATED cycle", ": %.2f minutes", id(cycle_number).state);
-          ESP_LOGI("cycle", ": %.2f minutes", id(cycles_count));
+          ESP_LOGI("cycle", ": %.2f minutes", id(global_cycles_count));
           ESP_LOGI("BLOCKS ", ": %d", id(pump_runtime_blocks));
           ESP_LOGI("CENTER BLOCK ", ": %.2f ", id(block_number).state);
           ESP_LOGI("PUMP RUNTIME BLOCKS ", ": %.2f minutes", id(center_block_runtime));
