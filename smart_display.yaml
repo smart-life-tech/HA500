@@ -4895,7 +4895,7 @@ lvgl:
                   x: 170
                   y: 255
                   width: 80
-                  text_color: 0x000000
+                  text_color: 0x009980
                   text: !lambda |-
                     static char buf[16];
                     sprintf(buf, "%.2f", id(global_cycles_count));
@@ -4909,7 +4909,7 @@ lvgl:
                     - lambda: |-
                         id(cycles_count) += 0.5;
                         id(global_cycles_count) += 0.5;
-                        if (id(cycles_count) > 3) id(cycles_count) = 3;
+                        if (id(global_cycles_count) > 3) id(global_cycles_count) = 3;
                     - lvgl.label.update:
                         id: cycles_number
                         text: !lambda |-
@@ -4957,7 +4957,7 @@ lvgl:
                     - lambda: |-
                         id(cycles_count) -= 0.5;
                         id(global_cycles_count) -= 0.5;
-                        if (id(cycles_count) < 0.5) id(cycles_count) = 0.5;
+                        if (id(global_cycles_count) < 0.5) id(global_cycles_count) = 0.5;
                     - lvgl.label.update:
                         id: cycles_number
                         text: !lambda |-
