@@ -530,7 +530,7 @@ number:
     step: 0.1
     initial_value: 1.0
     optimistic: true
-    #restore_value: true
+    restore_value: true
     on_value:
       then:
         - globals.set:
@@ -5031,9 +5031,9 @@ lvgl:
                   width: 80
                   text_color: 0x000000
                   text: !lambda |-
-                    static char buf[16];
-                    sprintf(buf, "%.2f", id(total_runtime).state);
-                    return  buf;
+                    static char text[20];
+                    snprintf(text, sizeof(text), "%.2f", id(total_runtime_multiple));
+                    return text;
     #-------------------------------------------
     - id: location_setup_screen
       pad_all: 0
