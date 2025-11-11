@@ -4884,7 +4884,7 @@ lvgl:
               # Cycles
               - label:
                   {
-                    text: "Cycles:",
+                    text: "Cycles :",
                     text_font: roboto,
                     x: 10,
                     y: 250,
@@ -4899,7 +4899,7 @@ lvgl:
                   text_color: 0x000000
                   text: !lambda |-
                     static char buf[16];
-                    sprintf(buf, "test %.2f", id(global_cycles_count));
+                    sprintf(buf, "%.2f", id(global_cycles_count));
                     return buf;
               - button:
                   x: 230
@@ -6392,12 +6392,12 @@ interval:
           ESP_LOGI("BLOCKS ", ": %d", id(pump_runtime_blocks));
           ESP_LOGI("CENTER BLOCK ", ": %.2f ", id(block_number).state);
           ESP_LOGI("PUMP RUNTIME BLOCKS ", ": %.2f minutes", id(center_block_runtime));
-      # - lvgl.label.update:
-      #     id: cycles_number
-      #     text: !lambda |-
-      #       static char buf[20];
-      #       sprintf(buf, "%.2", id(cycles_count));
-      #       return buf;
+      - lvgl.label.update:
+          id: cycles_number
+          text: !lambda |-
+            static char buf[20];
+            sprintf(buf, "%.2", id(global_cycles_count));
+            return buf;
   - interval: 60s # Every 5 minutes
     then:
       - script.execute: calculate_irrigation_needs
