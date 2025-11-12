@@ -2215,8 +2215,8 @@ lvgl:
                   text: !lambda |-
                     static char line1_text[60];
                     snprintf(line1_text, sizeof(line1_text), 
-                            "Field: %.1f m2 | Flow: %.1f L/min", 
-                            id(field_area_m2), id(valve_liters_per_minute));
+                            "Field: %.1f m^3 | Flow: %.1f L/min", 
+                            id(pool_volume), id(pump_flow_rate));
                     return line1_text;
                   text_font: roboto
                   text_color: black_color
@@ -2227,6 +2227,7 @@ lvgl:
 
               - label:
                   id: irrigation_summary_line2
+                  hidden: true
                   text: !lambda |-
                     static char line2_text[60];
                     snprintf(line2_text, sizeof(line2_text), 
@@ -2293,7 +2294,11 @@ lvgl:
             width: 480
             height: 480
             align: TOP_LEFT
-
+        - on_boot:
+            then:
+              - logger.log: "Pump Settings Page loaded"
+              - lvgl.widget.redraw: # Refresh all widgets on the current page
+                id: pump_settings_page
         # Seasonal Pump Settings Toggle
         - obj:
             scrollable: false
@@ -2768,6 +2773,7 @@ lvgl:
               # Runtime Info Display
               - label:
                   id: runtime_info_display
+                  #hidden: true
                   text: !lambda |-
                     static char text[80];
                     int blocks = id(pump_runtime_blocks);
