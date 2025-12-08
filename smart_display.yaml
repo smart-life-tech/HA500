@@ -2805,7 +2805,7 @@ lvgl:
             x: 10
             y: 295
             border_width: 0
-            hidden: !lambda "return id(pump_runtime_blocks) < 2;"
+            hidden: !lambda "return id(pump_runtime_blocks) >= 2;"
             widgets:
               - label:
                   text: "Block 2 Start Time"
@@ -2886,7 +2886,7 @@ lvgl:
             border_width: 0
             x: 10
             y: 355
-            hidden: !lambda "return id(pump_runtime_blocks) < 3;"
+            hidden: !lambda "return id(pump_runtime_blocks) >= 3;"
             widgets:
               - label:
                   text: "Block 3 Start Time"
@@ -2967,7 +2967,7 @@ lvgl:
             border_width: 0
             x: 10
             y: 415
-            hidden: !lambda "return id(pump_runtime_blocks) < 4;"
+            hidden: !lambda "return id(pump_runtime_blocks) >= 4;"
             widgets:
               - label:
                   text: "Block 4 Start Time"
