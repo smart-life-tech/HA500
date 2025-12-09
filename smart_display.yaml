@@ -2805,7 +2805,7 @@ lvgl:
             x: 10
             y: 295
             border_width: 0
-            hidden: !lambda "return id(pump_runtime_blocks) >= 2;"
+            hidden: !lambda "return id(pump_runtime_blocks) < 2;"
             widgets:
               - label:
                   text: "Block 2 Start Time"
@@ -2886,7 +2886,7 @@ lvgl:
             border_width: 0
             x: 10
             y: 355
-            hidden: !lambda "return id(pump_runtime_blocks) >= 3;"
+            hidden: !lambda "return id(pump_runtime_blocks) < 3;"
             widgets:
               - label:
                   text: "Block 3 Start Time"
@@ -2967,7 +2967,7 @@ lvgl:
             border_width: 0
             x: 10
             y: 415
-            hidden: !lambda "return id(pump_runtime_blocks) >= 4;"
+            hidden: !lambda "return id(pump_runtime_blocks) < 4;"
             widgets:
               - label:
                   text: "Block 4 Start Time"
@@ -4812,6 +4812,10 @@ lvgl:
                         value: !lambda "return id(pump_runtime_blocks);"
                     - lvgl.label.update:
                         id: runtime_blocks_display
+                        text: !lambda |-
+                          static char text[5];
+                          snprintf(text, sizeof(text), "%d", id(pump_runtime_blocks));
+                          return text;
                     - lvgl.label.update:
                         id: runtime_info_display
                         text: !lambda |-
@@ -4860,6 +4864,32 @@ lvgl:
                         value: !lambda "return id(pump_runtime_blocks);"
                     - lvgl.label.update:
                         id: runtime_blocks_display
+                        text: !lambda |-
+                          static char text[5];
+                          snprintf(text, sizeof(text), "%d", id(pump_runtime_blocks));
+                          return text;
+                    # Show/hide free blocks based on blocks number
+                    - if:
+                        condition:
+                          lambda: "return id(pump_runtime_blocks) >= 2;"
+                        then:
+                          - lvgl.widget.show: free_block2_settings
+                        else:
+                          - lvgl.widget.hide: free_block2_settings
+                    - if:
+                        condition:
+                          lambda: "return id(pump_runtime_blocks) >= 3;"
+                        then:
+                          - lvgl.widget.show: free_block3_settings
+                        else:
+                          - lvgl.widget.hide: free_block3_settings
+                    - if:
+                        condition:
+                          lambda: "return id(pump_runtime_blocks) >= 4;"
+                        then:
+                          - lvgl.widget.show: free_block4_settings
+                        else:
+                          - lvgl.widget.hide: free_block4_settings
                     - lvgl.label.update:
                         id: runtime_info_display
                         text: !lambda |-
