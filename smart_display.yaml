@@ -2294,11 +2294,11 @@ lvgl:
             width: 480
             height: 480
             align: TOP_LEFT
-        - on_boot:
-            then:
-              - logger.log: "Pump Settings Page loaded"
-              - lvgl.widget.redraw: # Refresh all widgets on the current page
-                id: pump_settings_page
+        # - on_boot:
+        #     then:
+        #       - logger.log: "Pump Settings Page loaded"
+        #       - lvgl.widget.redraw: # Refresh all widgets on the current page
+        #         id: pump_settings_page
         # Seasonal Pump Settings Toggle
         - obj:
             scrollable: false
