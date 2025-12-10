@@ -486,6 +486,7 @@ number:
     step: 1
     initial_value: 1
     optimistic: true
+    restore_value: true
     on_value:
       then:
         - globals.set:
@@ -626,6 +627,7 @@ number:
     max_value: 90
     step: 0.1
     optimistic: true
+    restore_value: true
     initial_value: 1.00
     on_value:
       then:
@@ -659,6 +661,7 @@ number:
     max_value: 30
     step: 0.5
     optimistic: true
+    restore_value: true
     initial_value: 22
     on_value:
       then:
@@ -2771,27 +2774,27 @@ lvgl:
                           id: runtime_info_display
 
               # Runtime Info Display
-              - label:
-                  id: runtime_info_display
-                  #hidden: true
-                  text: !lambda |-
-                    static char text[80];
-                    int blocks = id(pump_runtime_blocks);
-                    int center_runtime = id(calculated_daily_runtime) / blocks;
-                    int free_runtime = (blocks > 1) ? id(calculated_daily_runtime) / blocks : 0;
+              # - label:
+              #     id: runtime_info_display
+              #     #hidden: true
+              #     text: !lambda |-
+              #       static char text[80];
+              #       int blocks = id(pump_runtime_blocks);
+              #       int center_runtime = id(calculated_daily_runtime) / blocks;
+              #       int free_runtime = (blocks > 1) ? id(calculated_daily_runtime) / blocks : 0;
 
-                    if (blocks == 1) {
-                      snprintf(text, sizeof(text), "1 Run: All %d min centered at %02d:00", 
-                               id(calculated_daily_runtime), id(center_pump_time_hour));
-                    } else {
-                      snprintf(text, sizeof(text), "%d Runs: Center %d min, Free blocks %d min each", 
-                               blocks, center_runtime, free_runtime);
-                    }
-                    return text;
-                  text_font: roboto
-                  text_color: 0x00FF00
-                  x: 5
-                  y: 60
+              #       if (blocks == 1) {
+              #         snprintf(text, sizeof(text), "1 Run: All %d min centered at %02d:00", 
+              #                  id(calculated_daily_runtime), id(center_pump_time_hour));
+              #       } else {
+              #         snprintf(text, sizeof(text), "%d Runs: Center %d min, Free blocks %d min each", 
+              #                  blocks, center_runtime, free_runtime);
+              #       }
+              #       return text;
+              #     text_font: roboto
+              #     text_color: 0x00FF00
+              #     x: 5
+              #     y: 60
 
         # Free Block 2 Settings (only show if blocks >= 2)
         - obj:
