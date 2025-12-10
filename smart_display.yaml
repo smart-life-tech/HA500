@@ -2776,7 +2776,7 @@ lvgl:
               # Runtime Info Display
               - label:
                   id: runtime_info_display
-                  hidden: true
+                  #hidden: true
                   text: !lambda |-
                     static char text[80];
                     int blocks = id(pump_runtime_blocks);
@@ -4841,30 +4841,30 @@ lvgl:
                           - lvgl.widget.show: free_block4_settings
                         else:
                           - lvgl.widget.hide: free_block4_settings
-                    - lvgl.label.update:
-                        id: runtime_info_display
-                        text: !lambda |-
-                          static char buf[16];
-                          float volume = id(global_pool_length) * id(global_pool_width) * id(global_pool_depth); // m³
-                          float flow = id(pump_flow_rate); // m³ per hour
-                          float cycles = id(global_cycles_count);
-                          float temp = id(owm_temperature).has_state() ? id(owm_temperature).state : 25.0f;
+                    # - lvgl.label.update:
+                    #     id: runtime_info_display
+                    #     text: !lambda |-
+                    #       static char buf[16];
+                    #       float volume = id(global_pool_length) * id(global_pool_width) * id(global_pool_depth); // m³
+                    #       float flow = id(pump_flow_rate); // m³ per hour
+                    #       float cycles = id(global_cycles_count);
+                    #       float temp = id(owm_temperature).has_state() ? id(owm_temperature).state : 25.0f;
 
-                          // Prevent divide-by-zero
-                          if (flow <= 0.1f) flow = 1.0f;
+                    #       // Prevent divide-by-zero
+                    #       if (flow <= 0.1f) flow = 1.0f;
 
-                          // Temperature correction
-                          float temp_factor = 1.0f;
-                          if (temp > 40.0f) temp_factor = 1.3f;   // hot water, longer filtering
-                          else if (temp < 20.0f) temp_factor = 0.8f; // cold water, shorter filtering
+                    #       // Temperature correction
+                    #       float temp_factor = 1.0f;
+                    #       if (temp > 40.0f) temp_factor = 1.3f;   // hot water, longer filtering
+                    #       else if (temp < 20.0f) temp_factor = 0.8f; // cold water, shorter filtering
 
-                          float runtime = (volume / (flow*0.001)) * cycles * temp_factor;
-                          if (runtime > 24.0f) runtime = 24.0f; // limit to 24 hours
+                    #       float runtime = (volume / (flow*0.001)) * cycles * temp_factor;
+                    #       if (runtime > 24.0f) runtime = 24.0f; // limit to 24 hours
 
-                          sprintf(buf, "%.1f", runtime);
-                          id(total_runtime).publish_state(runtime);
-                          id(total_runtime_multiple) = runtime;
-                          return buf;
+                    #       sprintf(buf, "%.1f", runtime);
+                    #       id(total_runtime).publish_state(runtime);
+                    #       id(total_runtime_multiple) = runtime;
+                    #       return buf;
                   widgets:
                     - label: { text: "+", text_font: roboto, align: CENTER }
               - button:
@@ -4915,30 +4915,30 @@ lvgl:
                           - lvgl.widget.show: free_block4_settings
                         else:
                           - lvgl.widget.hide: free_block4_settings
-                    - lvgl.label.update:
-                        id: runtime_info_display
-                        text: !lambda |-
-                          static char buf[16];
-                          float volume = id(global_pool_length) * id(global_pool_width) * id(global_pool_depth); // m³
-                          float flow = id(pump_flow_rate); // m³ per hour
-                          float cycles = id(global_cycles_count);
-                          float temp = id(owm_temperature).has_state() ? id(owm_temperature).state : 25.0f;
+                    # - lvgl.label.update:
+                    #     id: runtime_info_display
+                    #     text: !lambda |-
+                    #       static char buf[16];
+                    #       float volume = id(global_pool_length) * id(global_pool_width) * id(global_pool_depth); // m³
+                    #       float flow = id(pump_flow_rate); // m³ per hour
+                    #       float cycles = id(global_cycles_count);
+                    #       float temp = id(owm_temperature).has_state() ? id(owm_temperature).state : 25.0f;
 
-                          // Prevent divide-by-zero
-                          if (flow <= 0.1f) flow = 1.0f;
+                    #       // Prevent divide-by-zero
+                    #       if (flow <= 0.1f) flow = 1.0f;
 
-                          // Temperature correction
-                          float temp_factor = 1.0f;
-                          if (temp > 40.0f) temp_factor = 1.3f;   // hot water, longer filtering
-                          else if (temp < 20.0f) temp_factor = 0.8f; // cold water, shorter filtering
+                    #       // Temperature correction
+                    #       float temp_factor = 1.0f;
+                    #       if (temp > 40.0f) temp_factor = 1.3f;   // hot water, longer filtering
+                    #       else if (temp < 20.0f) temp_factor = 0.8f; // cold water, shorter filtering
 
-                          float runtime = (volume / (flow*0.001)) * cycles * temp_factor;
-                          if (runtime > 24.0f) runtime = 24.0f; // limit to 24 hours
+                    #       float runtime = (volume / (flow*0.001)) * cycles * temp_factor;
+                    #       if (runtime > 24.0f) runtime = 24.0f; // limit to 24 hours
 
-                          sprintf(buf, "%.1f", runtime);
-                          id(total_runtime).publish_state(runtime);
-                          id(total_runtime_multiple) = runtime;
-                          return buf;
+                    #       sprintf(buf, "%.1f", runtime);
+                    #       id(total_runtime).publish_state(runtime);
+                    #       id(total_runtime_multiple) = runtime;
+                    #       return buf;
                   widgets:
                     - label: { text: "-", text_font: roboto, align: CENTER }
 
