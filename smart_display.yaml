@@ -4816,6 +4816,28 @@ lvgl:
                           static char text[5];
                           snprintf(text, sizeof(text), "%d", id(pump_runtime_blocks));
                           return text;
+                    # Show/hide free blocks based on blocks number
+                    - if:
+                        condition:
+                          lambda: "return id(pump_runtime_blocks) >= 2;"
+                        then:
+                          - lvgl.widget.show: free_block2_settings
+                        else:
+                          - lvgl.widget.hide: free_block2_settings
+                    - if:
+                        condition:
+                          lambda: "return id(pump_runtime_blocks) >= 3;"
+                        then:
+                          - lvgl.widget.show: free_block3_settings
+                        else:
+                          - lvgl.widget.hide: free_block3_settings
+                    - if:
+                        condition:
+                          lambda: "return id(pump_runtime_blocks) >= 4;"
+                        then:
+                          - lvgl.widget.show: free_block4_settings
+                        else:
+                          - lvgl.widget.hide: free_block4_settings
                     - lvgl.label.update:
                         id: runtime_info_display
                         text: !lambda |-
