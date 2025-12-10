@@ -484,9 +484,10 @@ number:
     min_value: 1
     max_value: 4
     step: 1
-    initial_value: 1
     optimistic: true
     restore_value: true
+    lambda: |-
+      return id(pump_runtime_blocks);
     on_value:
       then:
         - globals.set:
@@ -628,7 +629,8 @@ number:
     step: 0.1
     optimistic: true
     restore_value: true
-    initial_value: 1.00
+    lambda: |-
+      return id(winter_min_runtime);
     on_value:
       then:
         - lambda: "id(winter_min_runtime) = x;"
@@ -662,7 +664,8 @@ number:
     step: 0.5
     optimistic: true
     restore_value: true
-    initial_value: 22
+    lambda: |-
+      return id(reference_temperature);
     on_value:
       then:
         - lambda: "id(reference_temperature) = x;"
@@ -1267,6 +1270,7 @@ globals:
   - id: winter_min_runtime
     type: float
     initial_value: "2.00"
+    restore_value: true
   - id: summer_max_runtime
     type: int
     initial_value: "300"
@@ -1276,6 +1280,7 @@ globals:
   - id: reference_temperature
     type: float
     initial_value: "22.0"
+    restore_value: true
   - id: temp_rate_percent
     type: float
     initial_value: "1.0"
