@@ -6248,12 +6248,42 @@ script:
     then:
       - lambda: |-
           auto now = id(time_comp).now();
-          if (!now.is_valid()) return; // Don't run if time is invalid
+          if (!now.is_valid()) {
+            ESP_LOGW("automation", "Time invalid - skipping automation check");
+            return;
+          }
+          
+          // Log automation status every 5 minutes
+          static int log_counter = 0;
+          if (++log_counter >= 30) { // 30 * 10s = 5 minutes
+            log_counter = 0;
+            ESP_LOGI("automation", "=== STATUS: SW1:%s SW2:%s SW3:%s | Overrides: SW1:%d SW2:%d SW3:%s ===",
+                    id(sw1).state ? "ON" : "OFF",
+                    id(sw2).state ? "ON" : "OFF", 
+                    id(sw3).state ? "ON" : "OFF",
+                    id(sw1_manual_override_time) > 0 ? 1 : 0,
+                    id(sw2_manual_override_time) > 0 ? 1 : 0,
+                    id(sw3_manual_override_time) > 0 ? "YES" : "NO");
+            ESP_LOGI("automation", "Seasonal pump: %s, Daily runtime: %d min, Blocks: %d",
+                    id(seasonal_pump_enabled) ? "ENABLED" : "DISABLED",
+                    id(calculated_daily_runtime), id(pump_runtime_blocks));
+          }
 
           // Check for manual override timeouts (24 hours = 86400 seconds)
           if (id(sw1_manual_override_time) > 0 && 
               now.timestamp - id(sw1_manual_override_time) > 86400) {
             id(sw1_manual_override_time) = 0;
+            ESP_LOGI("automation", "SW1 override expired - automation re-enabled");
+          }
+          if (id(sw2_manual_override_time) > 0 && 
+              now.timestamp - id(sw2_manual_override_time) > 86400) {
+            id(sw2_manual_override_time) = 0;
+            ESP_LOGI("automation", "SW2 override expired - automation re-enabled");
+          }
+          if (id(sw3_manual_override_time) > 0 && 
+              now.timestamp - id(sw3_manual_override_time) > 86400) {
+            id(sw3_manual_override_time) = 0;
+            ESP_LOGI("automation", "SW3 override expired - automation re-enabled");
           }
 
           // Only run automations if not in manual override mode
@@ -6329,6 +6359,70 @@ script:
             }
           }
 
+          // ---- SWITCH 2: SEASONAL POOL PUMP CONTROL ----
+          if (id(sw2_manual_override_time) == 0 && id(seasonal_pump_enabled)) {
+            // Calculate if pump should be running based on runtime blocks
+            bool in_runtime_window = false;
+            int blocks = id(pump_runtime_blocks);
+            int daily_runtime = id(calculated_daily_runtime);
+            
+            if (daily_runtime > 0) {
+              int block_duration = daily_runtime / blocks; // minutes per block
+              int center_hour = id(center_pump_time_hour);
+              int half_block = block_duration / 2;
+              
+              // Check center block
+              int center_start_min = (center_hour * 60) - half_block;
+              int center_end_min = (center_hour * 60) + half_block;
+              int current_min = (now.hour * 60) + now.minute;
+              
+              if (current_min >= center_start_min && current_min < center_end_min) {
+                in_runtime_window = true;
+                ESP_LOGD("pump", "In CENTER block: %02d:%02d - %02d:%02d", 
+                        center_start_min/60, center_start_min%60, center_end_min/60, center_end_min%60);
+              }
+              
+              // Check additional free blocks
+              if (!in_runtime_window && blocks >= 2) {
+                int block2_start = (id(free_block2_start_hour) * 60) + id(free_block2_start_minute);
+                int block2_end = block2_start + block_duration;
+                if (current_min >= block2_start && current_min < block2_end) {
+                  in_runtime_window = true;
+                  ESP_LOGD("pump", "In BLOCK 2: %02d:%02d", now.hour, now.minute);
+                }
+              }
+              
+              if (!in_runtime_window && blocks >= 3) {
+                int block3_start = (id(free_block3_start_hour) * 60) + id(free_block3_start_minute);
+                int block3_end = block3_start + block_duration;
+                if (current_min >= block3_start && current_min < block3_end) {
+                  in_runtime_window = true;
+                  ESP_LOGD("pump", "In BLOCK 3: %02d:%02d", now.hour, now.minute);
+                }
+              }
+              
+              if (!in_runtime_window && blocks >= 4) {
+                int block4_start = (id(free_block4_start_hour) * 60) + id(free_block4_start_minute);
+                int block4_end = block4_start + block_duration;
+                if (current_min >= block4_start && current_min < block4_end) {
+                  in_runtime_window = true;
+                  ESP_LOGD("pump", "In BLOCK 4: %02d:%02d", now.hour, now.minute);
+                }
+              }
+            }
+            
+            // Turn pump ON if in window and not already on
+            if (in_runtime_window && !id(sw2).state) {
+              id(sw2).turn_on();
+              ESP_LOGI("automation", "SW2 PUMP turned ON - runtime block active (daily: %d min)", daily_runtime);
+            }
+            // Turn pump OFF if outside window and currently on
+            else if (!in_runtime_window && id(sw2).state && id(sw2_off_time) == 0) {
+              id(sw2).turn_off();
+              ESP_LOGI("automation", "SW2 PUMP turned OFF - outside runtime window");
+            }
+          }
+
           // Similar logic for SW2 
           // ---- SWITCH 3: IRRIGATION VALVE CONTROL ----
           if (id(sw3_manual_override_time) == 0) {
@@ -6355,19 +6449,42 @@ script:
               float irrigation_minutes = id(irrigation_needed_liters) / id(valve_liters_per_minute);
               irrigation_minutes = std::min(irrigation_minutes, 30.0f); // Max 30 minutes
               
+              // Turn on valve first
               id(sw3).turn_on();
+              delay(2000); // Wait 2 seconds
+              
+              // Then turn on pump if not already on
+              if (!id(sw2).state) {
+                id(sw2).turn_on();
+                ESP_LOGI("automation", "SW2 PUMP turned ON - for irrigation");
+              }
+              
               id(sw3_off_time) = now.timestamp + (int)(irrigation_minutes * 60);
-              ESP_LOGI("automation", "SW3 irrigation started - %.1f minutes for %.1fL", 
-                      irrigation_minutes, id(irrigation_needed_liters));
+              ESP_LOGI("automation", "SW3 VALVE turned ON - %.1f min for %.1fL (mode: %s)", 
+                      irrigation_minutes, id(irrigation_needed_liters),
+                      id(sw3_winter_mode) ? "WINTER" : "SUMMER");
             }
             // Turn off irrigation when timer expires
             if (id(sw3).state && now.timestamp >= id(sw3_off_time) && id(sw3_off_time) > 0) {
+              // Turn off pump first (if it was turned on for irrigation)
+              bool pump_was_for_irrigation = id(sw2).state && !id(seasonal_pump_enabled);
+              if (pump_was_for_irrigation) {
+                id(sw2).turn_off();
+                ESP_LOGI("automation", "SW2 PUMP turned OFF - irrigation complete");
+              }
+              
               id(sw3).turn_off();
               id(sw3_off_time) = 0;
-              // Reset irrigation needs after Watering 
-              id(irrigation_needed_liters) = std::max(0.0f, id(irrigation_needed_liters) - 
-                                                      (id(valve_liters_per_minute) * ((now.timestamp - (id(sw3_off_time) - 1800)) / 60.0f)));
-              ESP_LOGI("automation", "SW3 Watering  completed");
+              
+              // Calculate actual water delivered
+              float actual_minutes = (now.timestamp - (id(sw3_off_time) - 1800)) / 60.0f;
+              float water_delivered = id(valve_liters_per_minute) * actual_minutes;
+              
+              // Reset irrigation needs after watering
+              id(irrigation_needed_liters) = std::max(0.0f, id(irrigation_needed_liters) - water_delivered);
+              
+              ESP_LOGI("automation", "SW3 VALVE OFF - Delivered %.1fL, Remaining need: %.1fL", 
+                      water_delivered, id(irrigation_needed_liters));
             }
           }
 
