@@ -2960,6 +2960,13 @@ lvgl:
                   on_click:
                     then:
                       - number.decrement: free_block2_hour_input
+                      - delay: 50ms
+                      - lvgl.label.update:
+                          id: free_block2_display
+                          text: !lambda |-
+                            static char text[10];
+                            snprintf(text, sizeof(text), "%02d:%02d", id(free_block2_start_hour), id(free_block2_start_minute));
+                            return text;
               - label:
                   id: free_block2_display
                   text: !lambda |-
@@ -2982,6 +2989,13 @@ lvgl:
                   on_click:
                     then:
                       - number.increment: free_block2_hour_input
+                      - delay: 50ms
+                      - lvgl.label.update:
+                          id: free_block2_display
+                          text: !lambda |-
+                            static char text[10];
+                            snprintf(text, sizeof(text), "%02d:%02d", id(free_block2_start_hour), id(free_block2_start_minute));
+                            return text;
               - button:
                   x: 320
                   y: 10
@@ -2995,6 +3009,13 @@ lvgl:
                   on_click:
                     then:
                       - number.decrement: free_block2_minute_input
+                      - delay: 50ms
+                      - lvgl.label.update:
+                          id: free_block2_display
+                          text: !lambda |-
+                            static char text[10];
+                            snprintf(text, sizeof(text), "%02d:%02d", id(free_block2_start_hour), id(free_block2_start_minute));
+                            return text;
               - button:
                   x: 350
                   y: 10
@@ -3008,6 +3029,13 @@ lvgl:
                   on_click:
                     then:
                       - number.increment: free_block2_minute_input
+                      - delay: 50ms
+                      - lvgl.label.update:
+                          id: free_block2_display
+                          text: !lambda |-
+                            static char text[10];
+                            snprintf(text, sizeof(text), "%02d:%02d", id(free_block2_start_hour), id(free_block2_start_minute));
+                            return text;
 
         # Free Block 3 Settings (only show if blocks >= 3)
         - obj:
@@ -3041,6 +3069,13 @@ lvgl:
                   on_click:
                     then:
                       - number.decrement: free_block3_hour_input
+                      - delay: 50ms
+                      - lvgl.label.update:
+                          id: free_block3_display
+                          text: !lambda |-
+                            static char text[10];
+                            snprintf(text, sizeof(text), "%02d:%02d", id(free_block3_start_hour), id(free_block3_start_minute));
+                            return text;
               - label:
                   id: free_block3_display
                   text: !lambda |-
@@ -3063,6 +3098,13 @@ lvgl:
                   on_click:
                     then:
                       - number.increment: free_block3_hour_input
+                      - delay: 50ms
+                      - lvgl.label.update:
+                          id: free_block3_display
+                          text: !lambda |-
+                            static char text[10];
+                            snprintf(text, sizeof(text), "%02d:%02d", id(free_block3_start_hour), id(free_block3_start_minute));
+                            return text;
               - button:
                   x: 320
                   y: 10
@@ -3076,6 +3118,13 @@ lvgl:
                   on_click:
                     then:
                       - number.decrement: free_block3_minute_input
+                      - delay: 50ms
+                      - lvgl.label.update:
+                          id: free_block3_display
+                          text: !lambda |-
+                            static char text[10];
+                            snprintf(text, sizeof(text), "%02d:%02d", id(free_block3_start_hour), id(free_block3_start_minute));
+                            return text;
               - button:
                   x: 350
                   y: 10
@@ -3089,6 +3138,13 @@ lvgl:
                   on_click:
                     then:
                       - number.increment: free_block3_minute_input
+                      - delay: 50ms
+                      - lvgl.label.update:
+                          id: free_block3_display
+                          text: !lambda |-
+                            static char text[10];
+                            snprintf(text, sizeof(text), "%02d:%02d", id(free_block3_start_hour), id(free_block3_start_minute));
+                            return text;
 
         # Free Block 4 Settings (only show if blocks >= 4)
         - obj:
@@ -3122,6 +3178,13 @@ lvgl:
                   on_click:
                     then:
                       - number.decrement: free_block4_hour_input
+                      - delay: 50ms
+                      - lvgl.label.update:
+                          id: free_block4_display
+                          text: !lambda |-
+                            static char text[10];
+                            snprintf(text, sizeof(text), "%02d:%02d", id(free_block4_start_hour), id(free_block4_start_minute));
+                            return text;
               - label:
                   id: free_block4_display
                   text: !lambda |-
@@ -3144,6 +3207,13 @@ lvgl:
                   on_click:
                     then:
                       - number.increment: free_block4_hour_input
+                      - delay: 50ms
+                      - lvgl.label.update:
+                          id: free_block4_display
+                          text: !lambda |-
+                            static char text[10];
+                            snprintf(text, sizeof(text), "%02d:%02d", id(free_block4_start_hour), id(free_block4_start_minute));
+                            return text;
               - button:
                   x: 320
                   y: 10
@@ -3157,6 +3227,13 @@ lvgl:
                   on_click:
                     then:
                       - number.decrement: free_block4_minute_input
+                      - delay: 50ms
+                      - lvgl.label.update:
+                          id: free_block4_display
+                          text: !lambda |-
+                            static char text[10];
+                            snprintf(text, sizeof(text), "%02d:%02d", id(free_block4_start_hour), id(free_block4_start_minute));
+                            return text;
               - button:
                   x: 350
                   y: 10
@@ -3170,6 +3247,13 @@ lvgl:
                   on_click:
                     then:
                       - number.increment: free_block4_minute_input
+                      - delay: 50ms
+                      - lvgl.label.update:
+                          id: free_block4_display
+                          text: !lambda |-
+                            static char text[10];
+                            snprintf(text, sizeof(text), "%02d:%02d", id(free_block4_start_hour), id(free_block4_start_minute));
+                            return text;
 
         # Current Status Display
         - obj:
