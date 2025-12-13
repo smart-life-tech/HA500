@@ -6440,8 +6440,9 @@ script:
               ESP_LOGI("automation", "✓✓✓ SW2 PUMP turned ON - runtime block active (daily: %d min)", daily_runtime);
             }
             // Turn pump OFF if outside window and currently on
-            else if (!in_runtime_window && id(sw2).state && id(sw2_off_time) == 0) {
+            else if (!in_runtime_window && id(sw2).state) {
               id(sw2).turn_off();
+              id(sw2_off_time) = 0;  // clear any pending timers when schedule says OFF
               ESP_LOGI("automation", "SW2 PUMP turned OFF - outside runtime window");
             }
             else if (in_runtime_window && id(sw2).state) {
