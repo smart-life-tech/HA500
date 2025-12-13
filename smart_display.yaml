@@ -2999,7 +2999,7 @@ lvgl:
                             snprintf(text, sizeof(text), "%02d:%02d", id(free_block2_start_hour), id(free_block2_start_minute));
                             return text;
               - button:
-                  x: 320
+                  x: 340
                   y: 10
                   width: 25
                   height: 25
@@ -3020,7 +3020,7 @@ lvgl:
                             snprintf(text, sizeof(text), "%02d:%02d", id(free_block2_start_hour), id(free_block2_start_minute));
                             return text;
               - button:
-                  x: 350
+                  x: 375
                   y: 10
                   width: 25
                   height: 25
@@ -3112,7 +3112,7 @@ lvgl:
                             snprintf(text, sizeof(text), "%02d:%02d", id(free_block3_start_hour), id(free_block3_start_minute));
                             return text;
               - button:
-                  x: 320
+                  x: 340
                   y: 10
                   width: 25
                   height: 25
@@ -3133,7 +3133,7 @@ lvgl:
                             snprintf(text, sizeof(text), "%02d:%02d", id(free_block3_start_hour), id(free_block3_start_minute));
                             return text;
               - button:
-                  x: 350
+                  x: 375
                   y: 10
                   width: 25
                   height: 25
@@ -3225,7 +3225,7 @@ lvgl:
                             snprintf(text, sizeof(text), "%02d:%02d", id(free_block4_start_hour), id(free_block4_start_minute));
                             return text;
               - button:
-                  x: 320
+                  x: 340
                   y: 10
                   width: 25
                   height: 25
@@ -3246,7 +3246,7 @@ lvgl:
                             snprintf(text, sizeof(text), "%02d:%02d", id(free_block4_start_hour), id(free_block4_start_minute));
                             return text;
               - button:
-                  x: 350
+                  x: 375
                   y: 10
                   width: 25
                   height: 25
