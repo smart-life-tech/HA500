@@ -6594,7 +6594,6 @@ font:
 #-------------------------------------------
 i2c:
   - id: bus_a
-                  ESP_LOGI("light_time", "SW1 sunset ON (mode %d), off_time ts=%lld", id(automation_mode), (long long)id(sw1_off_time));
     sda: GPIO19
     scl: GPIO45
 
