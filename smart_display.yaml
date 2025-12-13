@@ -6444,6 +6444,7 @@ script:
             else if (!in_runtime_window && !id(sw2).state) {
               // Already off - no action needed
             }          
+          }
 
           // Similar logic for SW2 
           // ---- SWITCH 3: IRRIGATION VALVE CONTROL ----
