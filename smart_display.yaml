@@ -6360,6 +6360,15 @@ script:
           }
 
           // ---- SWITCH 2: SEASONAL POOL PUMP CONTROL ----
+          // Debug: Check conditions every cycle
+          static int pump_debug_counter = 0;
+          if (++pump_debug_counter >= 1) { // Log every 60 seconds (6 * 10s)
+            pump_debug_counter = 0;
+            ESP_LOGI("pump_debug", "Check: override=%d, seasonal=%d, daily_runtime=%d, blocks=%d",
+                    id(sw2_manual_override_time), id(seasonal_pump_enabled), 
+                    id(calculated_daily_runtime), id(pump_runtime_blocks));
+          }
+          
           if (id(sw2_manual_override_time) == 0 && id(seasonal_pump_enabled)) {
             // Calculate if pump should be running based on runtime blocks
             bool in_runtime_window = false;
@@ -6376,10 +6385,13 @@ script:
               int center_end_min = (center_hour * 60) + half_block;
               int current_min = (now.hour * 60) + now.minute;
               
+              ESP_LOGD("pump_time", "Center block: start=%02d:%02d, end=%02d:%02d, now=%02d:%02d",
+                      center_start_min/60, center_start_min%60, center_end_min/60, center_end_min%60,
+                      now.hour, now.minute);
+              
               if (current_min >= center_start_min && current_min < center_end_min) {
                 in_runtime_window = true;
-                ESP_LOGD("pump", "In CENTER block: %02d:%02d - %02d:%02d", 
-                        center_start_min/60, center_start_min%60, center_end_min/60, center_end_min%60);
+                ESP_LOGI("pump_time", "✓ IN CENTER BLOCK NOW");
               }
               
               // Check additional free blocks
@@ -6414,14 +6426,19 @@ script:
             // Turn pump ON if in window and not already on
             if (in_runtime_window && !id(sw2).state) {
               id(sw2).turn_on();
-              ESP_LOGI("automation", "SW2 PUMP turned ON - runtime block active (daily: %d min)", daily_runtime);
+              ESP_LOGI("automation", "✓✓✓ SW2 PUMP turned ON - runtime block active (daily: %d min)", daily_runtime);
             }
             // Turn pump OFF if outside window and currently on
             else if (!in_runtime_window && id(sw2).state && id(sw2_off_time) == 0) {
               id(sw2).turn_off();
               ESP_LOGI("automation", "SW2 PUMP turned OFF - outside runtime window");
             }
-          }
+            else if (in_runtime_window && id(sw2).state) {
+              // Already on - no action needed
+            }
+            else if (!in_runtime_window && !id(sw2).state) {
+              // Already off - no action needed
+            }\n          }
 
           // Similar logic for SW2 
           // ---- SWITCH 3: IRRIGATION VALVE CONTROL ----
