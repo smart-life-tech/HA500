@@ -5961,6 +5961,12 @@ script:
           daily_runtime = (int)(daily_runtime * temp_multiplier);
           if (daily_runtime < id(winter_min_runtime)) daily_runtime = id(winter_min_runtime);
           if (daily_runtime > id(summer_max_runtime)) daily_runtime = id(summer_max_runtime);
+          
+          // Safety minimum: ensure at least 30 minutes for window to work
+          if (daily_runtime < 30) {
+            daily_runtime = 30;
+            ESP_LOGW("irrigation", "Daily runtime too small (%d min), using minimum 30 min. Check summer_max_runtime setting!", daily_runtime - 30);
+          }
 
           id(calculated_daily_runtime) = daily_runtime;
 
