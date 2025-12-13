@@ -796,7 +796,7 @@ number:
     id: free_block2_minute_input
     min_value: 0
     max_value: 59
-    step: 15
+    step: 1
     optimistic: true
     initial_value: 0
     on_value:
@@ -818,7 +818,7 @@ number:
     id: free_block3_minute_input
     min_value: 0
     max_value: 59
-    step: 15
+    step: 1
     optimistic: true
     initial_value: 0
     on_value:
@@ -840,7 +840,7 @@ number:
     id: free_block4_minute_input
     min_value: 0
     max_value: 59
-    step: 15
+    step: 1
     optimistic: true
     initial_value: 0
     on_value:
