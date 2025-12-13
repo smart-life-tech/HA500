@@ -170,6 +170,17 @@ esphome:
             static char buf[20];
             sprintf(buf, "%d", id(pump_runtime_blocks));
             return buf;
+      # Reset manual override timers to enable automation
+      - lambda: |-
+          id(sw1_manual_override_time) = 0;
+          id(sw2_manual_override_time) = 0;
+          id(sw3_manual_override_time) = 0;
+          ESP_LOGI("BOOT", "Manual override timers reset - automation enabled");
+      # Calculate irrigation needs to set up pump runtime
+      - delay: 100ms
+      - script.execute: calculate_irrigation_needs
+      - lambda: |-
+          ESP_LOGI("BOOT", "Irrigation calculation executed - daily_runtime=%d minutes", id(calculated_daily_runtime));
 esp32:
   board: esp32-s3-devkitc-1
   variant: esp32s3
@@ -6360,13 +6371,13 @@ script:
           }
 
           // ---- SWITCH 2: SEASONAL POOL PUMP CONTROL ----
-          // Debug: Check conditions every cycle
+          // Debug: Check conditions every 60 seconds
           static int pump_debug_counter = 0;
-          if (++pump_debug_counter >= 1) { // Log every 60 seconds (6 * 10s)
+          if (++pump_debug_counter >= 6) { // Log every 60 seconds (6 * 10s = 60s)
             pump_debug_counter = 0;
-            ESP_LOGI("pump_debug", "Check: override=%d, seasonal=%d, daily_runtime=%d, blocks=%d",
+            ESP_LOGI("pump_debug", "SW2 Check: override=%d, seasonal=%d, daily_runtime=%d, blocks=%d, center_hour=%d",
                     id(sw2_manual_override_time), id(seasonal_pump_enabled), 
-                    id(calculated_daily_runtime), id(pump_runtime_blocks));
+                    id(calculated_daily_runtime), id(pump_runtime_blocks), id(center_pump_time_hour));
           }
           
           if (id(sw2_manual_override_time) == 0 && id(seasonal_pump_enabled)) {
