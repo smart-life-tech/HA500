@@ -6300,6 +6300,11 @@ script:
           // Only run automations if not in manual override mode
           // ---- SWITCH 1: SUNRISE/SUNSET CONTROL WITH USER SETTINGS ----
           if (id(sw1_manual_override_time) == 0) {
+            // Clear stale off timer if light is OFF and timer already passed
+            if (!id(sw1).state && id(sw1_off_time) > 0 && now.timestamp >= id(sw1_off_time)) {
+              id(sw1_off_time) = 0;
+              ESP_LOGD("automation", "SW1 off_time cleared (stale timer)");
+            }
             auto sunrise_opt = id(sun_comp).sunrise(0.0);
             if (sunrise_opt.has_value()) {
               auto sunrise = sunrise_opt.value();
