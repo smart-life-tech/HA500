@@ -28,13 +28,13 @@ esphome:
   platformio_options:
     board_build.flash_mode: dio
     build_unflags: "-f"
-    build_flags: 
+    build_flags:
       - "-shared"
       #- "-DCONFIG_ESP_MAIN_TASK_STACK_SIZE=8192"
   on_boot:
     priority: -100.0
     then:
-      - delay: 6s  # Wait for LVGL to be ready
+      - delay: 6s # Wait for LVGL to be ready
       - lambda: |-
           id(lvgl_comp).show_page(8, LV_SCR_LOAD_ANIM_FADE_ON, 400);
           ESP_LOGD("BOOT", "Displaying splash logo");
@@ -157,7 +157,7 @@ esphome:
             static char buf[20];
             snprintf(buf, sizeof(buf), "%.1f", id(pump_flow_rate));
             return buf;
-      
+
       - lvgl.label.update:
           id: cycles_number
           text: !lambda |-
@@ -208,9 +208,6 @@ logger:
 external_components:
   source: components
 
-
-
-  
 preferences:
   flash_write_interval: 30s # Save preferences every 60 seconds
 # logger:
@@ -458,7 +455,7 @@ wifi:
       #- script.execute: update_qr_display  # Update QR code
       - delay: 1s
       - script.execute: notify_web_portal
-      
+
   on_disconnect:
     then:
       - logger.log: "WiFi disconnected, attempting to reconnect"
@@ -1280,11 +1277,11 @@ globals:
   - id: current_lat
     type: float
     restore_value: true
-    initial_value: '37.1'
+    initial_value: "37.1"
   - id: current_lon
     type: float
     restore_value: true
-    initial_value: '-8.0'
+    initial_value: "-8.0"
 
   - id: global_pool_length
     type: float
@@ -1327,12 +1324,12 @@ globals:
 
   - id: cycles_count
     type: float
-    restore_value: true 
+    restore_value: true
     initial_value: "1.00"
 
   - id: global_cycles_count
     type: float
-    restore_value: true 
+    restore_value: true
     initial_value: "1.50"
 
   - id: total_runtime_multiple
@@ -1966,13 +1963,12 @@ lvgl:
                   y: 110
                   border_width: 0
                   width: 440
-                  clickable: true        
+                  clickable: true
                   on_press:
                     - lambda: |-
                         // Go to location settings page
                         id(lvgl_comp).show_page(7, LV_SCR_LOAD_ANIM_OVER_RIGHT, 300);
                         ESP_LOGI("ui", "Location label clicked — navigating to Set Location page");
-
 
         # Status and IP section
         - obj:
@@ -2384,7 +2380,7 @@ lvgl:
     # New Pump/Watering Settings Page
     - id: pump_settings_page
       scrollable: false
-      
+
       widgets:
         # Background image for controls page
         - image:
@@ -2615,7 +2611,7 @@ lvgl:
                   x: 410
                   y: 30
                   width: 30
-                  hidden:  true
+                  hidden: true
                   height: 25
                   widgets:
                     - label:
@@ -5049,7 +5045,7 @@ lvgl:
                           static char text[20];
                           snprintf(text, sizeof(text), "%d",  id(pump_runtime_blocks));
                           return text;
-                    - number.set: 
+                    - number.set:
                         id: block_number
                         value: !lambda "return id(pump_runtime_blocks);"
                     - lvgl.label.update:
@@ -5123,7 +5119,7 @@ lvgl:
                           static char text[20];
                           snprintf(text, sizeof(text), "%d",  id(pump_runtime_blocks));
                           return text;
-                    - number.set: 
+                    - number.set:
                         id: block_number
                         value: !lambda "return id(pump_runtime_blocks);"
                     - lvgl.label.update:
@@ -5219,7 +5215,7 @@ lvgl:
                     - globals.set:
                         id: cycles_count
                         value: !lambda "return id(global_cycles_count);"
-                    - number.set: 
+                    - number.set:
                         id: cycle_number
                         value: !lambda "return id(global_cycles_count);"
                     - lvgl.label.update:
@@ -5266,7 +5262,7 @@ lvgl:
                     - globals.set:
                         id: cycles_count
                         value: !lambda "return id(global_cycles_count);"
-                    - number.set: 
+                    - number.set:
                         id: cycle_number
                         value: !lambda "return id(global_cycles_count);"
                     - lvgl.label.update:
@@ -5368,8 +5364,8 @@ lvgl:
             y: 65
             width: 200
             one_line: true
-            placeholder_text: !lambda 'return id(user_zip_code).c_str();'
-            text: !lambda 'return id(user_zip_code).c_str();'
+            placeholder_text: !lambda "return id(user_zip_code).c_str();"
+            text: !lambda "return id(user_zip_code).c_str();"
             on_value:
               then:
                 - lambda: |-
@@ -5379,7 +5375,7 @@ lvgl:
               then:
                 - lvgl.keyboard.update:
                     id: keyboard_1
-                    
+
                     textarea: zip_text
             on_click:
               then:
@@ -5389,10 +5385,10 @@ lvgl:
                     textarea: zip_text
             # on_defocus:
             #   then:
-            #     - lvgl.keyboard.update: 
+            #     - lvgl.keyboard.update:
             #         id: keyboard_1
             #         mode: number
-                    #textarea: none
+            #textarea: none
 
         # Country Field
         - label:
@@ -5408,8 +5404,8 @@ lvgl:
             width: 200
             one_line: true
             #placeholder_text: !lambda 'return id(user_country).c_str();'
-            placeholder_text: "e.g., US, CA, GB"  
-            text: !lambda 'return id(user_country).c_str();'
+            placeholder_text: "e.g., US, CA, GB"
+            text: !lambda "return id(user_country).c_str();"
             on_value:
               then:
                 - lambda: |-
@@ -5430,9 +5426,9 @@ lvgl:
                     textarea: country_text
             # on_defocus:
             #   then:
-            #     - lvgl.keyboard.update: 
+            #     - lvgl.keyboard.update:
             #         id: keyboard_1
-                    #textarea: none
+            #textarea: none
 
         # On-screen Keyboard
         - keyboard:
@@ -5467,10 +5463,9 @@ lvgl:
                     id(lvgl_comp).show_page(0, LV_SCR_LOAD_ANIM_OVER_RIGHT, 300);
                 - logger.log:
                     format: "Manual location saved: ZIP=%s, Country=%s"
-                    args: [ id(user_zip_code).c_str(), id(user_country).c_str() ]
+                    args: [id(user_zip_code).c_str(), id(user_country).c_str()]
                     level: DEBUG
                     tag: location_setup
-
 
     #-------------------------------------------
     - id: splash_screen
@@ -5491,7 +5486,6 @@ lvgl:
             # Prevent repeating or tiling
             #tiled: false
 
-        
 #-------------------------------------------
 # Internal outputs
 #-------------------------------------------
@@ -6263,7 +6257,7 @@ script:
             ESP_LOGW("automation", "Time invalid - skipping automation check");
             return;
           }
-          
+
           // Log automation status every 5 minutes
           static int log_counter = 0;
           if (++log_counter >= 30) { // 30 * 10s = 5 minutes
@@ -6379,7 +6373,7 @@ script:
                     id(sw2_manual_override_time), id(seasonal_pump_enabled), 
                     id(calculated_daily_runtime), id(pump_runtime_blocks), id(center_pump_time_hour));
           }
-          
+
           if (id(sw2_manual_override_time) == 0 && id(seasonal_pump_enabled)) {
             // Calculate if pump should be running based on runtime blocks
             bool in_runtime_window = false;
@@ -6449,7 +6443,7 @@ script:
             }
             else if (!in_runtime_window && !id(sw2).state) {
               // Already off - no action needed
-            }\n          }
+            }          
 
           // Similar logic for SW2 
           // ---- SWITCH 3: IRRIGATION VALVE CONTROL ----
@@ -6663,7 +6657,6 @@ spi:
   - id: lcd_spi
     clk_pin: GPIO48
     mosi_pin: GPIO47
-    
 
 display:
   - platform: st7701s
@@ -6855,7 +6848,7 @@ interval:
       - script.execute: notify_web_portal
       - script.execute: check_light_schedules
       #- lvgl.widget.refresh: summer_max_display
-      
+
       # - lvgl.label.update:
       #     id: summer_max_display
       #     text: !lambda |-
@@ -6954,7 +6947,7 @@ interval:
                 id: location_display_label
                 text: !lambda |-
                   return id(location_name_str).c_str();
-            
+
             # Step 1: Get coordinates from ZIP code
             - logger.log: "Fetching coordinates from ZIP code..."
             - http_request.get:
@@ -6971,7 +6964,7 @@ interval:
                   then:
                     - lambda: |-
                         ESP_LOGD("geo", "Geocoding response: %s", body.c_str());
-                        
+
                         // Parse latitude
                         size_t lat_pos = body.find("\"lat\":");
                         if (lat_pos != std::string::npos) {
@@ -6985,7 +6978,7 @@ interval:
                             ESP_LOGI("geo", "Latitude: %.4f", id(current_lat));
                           }
                         }
-                        
+
                         // Parse longitude
                         size_t lon_pos = body.find("\"lon\":");
                         if (lon_pos != std::string::npos) {
@@ -6999,7 +6992,7 @@ interval:
                             ESP_LOGI("geo", "Longitude: %.4f", id(current_lon));
                           }
                         }
-                        
+
                         // Parse location name
                         size_t name_pos = body.find("\"name\":\"");
                         if (name_pos != std::string::npos) {
@@ -7014,7 +7007,7 @@ interval:
                 on_error:
                   then:
                     - logger.log: "Failed to fetch coordinates from ZIP code"
-            
+
             # Step 2: Get weather data using coordinates
             - delay: 2s
             - logger.log: "Making OpenWeatherMap weather API request..."
