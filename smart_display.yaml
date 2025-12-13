@@ -5922,15 +5922,18 @@ script:
   - id: calculate_irrigation_needs
     then:
       - lambda: |-
-          // Calculate base daily runtime
+          // Calculate base daily runtime (inputs are in HOURS; convert to MINUTES for scheduling)
+          float winter_hours = id(winter_min_runtime);
+          float summer_hours = id(summer_max_runtime);
+          int winter_minutes = (int) roundf(winter_hours * 60.0f);
+          int summer_minutes = (int) roundf(summer_hours * 60.0f);
           int daily_runtime;
 
+          // Seasonal factor based on day of year
+          float seasonal_factor = 1.0;
           if (id(seasonal_pump_enabled)) {
-            // Seasonal calculation
             auto now = id(time_comp).now();
             int day_of_year = now.day_of_year;
-            float seasonal_factor;
-            
             if (day_of_year <= 80 || day_of_year >= 355) {
               seasonal_factor = 0.0; // Winter solstice
             } else if (day_of_year >= 172 && day_of_year <= 264) {
@@ -5940,35 +5943,38 @@ script:
             } else {
               seasonal_factor = 1.0 - ((day_of_year - 264) / 91.0); // Fall
             }
-            
-            // Interpolate between winter min and summer max
-            daily_runtime = id(winter_min_runtime) + 
-                           (int)((id(summer_max_runtime) - id(winter_min_runtime)) * seasonal_factor);
+
+            daily_runtime = winter_minutes + (int)((summer_minutes - winter_minutes) * seasonal_factor);
           } else {
             // Use summer max as fixed runtime
-            daily_runtime = id(summer_max_runtime);
+            daily_runtime = summer_minutes;
           }
 
           // Temperature adjustment
-          float temp_multiplier = 1.0;
+          float temp_multiplier = 1.0f;
+          float temp_now = NAN;
           if (id(owm_temperature).has_state()) {
-            float temp = id(owm_temperature).state;
-            float temp_diff = temp - id(reference_temperature);
-            temp_multiplier = 1.0 + (temp_diff * id(temp_rate_percent) / 100.0);
+            temp_now = id(owm_temperature).state;
+            float temp_diff = temp_now - id(reference_temperature);
+            temp_multiplier = 1.0f + (temp_diff * id(temp_rate_percent) / 100.0f);
           }
 
-          // Apply temperature adjustment
-          daily_runtime = (int)(daily_runtime * temp_multiplier);
-          if (daily_runtime < id(winter_min_runtime)) daily_runtime = id(winter_min_runtime);
-          if (daily_runtime > id(summer_max_runtime)) daily_runtime = id(summer_max_runtime);
+          // Apply temperature adjustment and clamp to min/max (all in minutes)
+          daily_runtime = (int) roundf(daily_runtime * temp_multiplier);
+          if (daily_runtime < winter_minutes) daily_runtime = winter_minutes;
+          if (daily_runtime > summer_minutes) daily_runtime = summer_minutes;
           
           // Safety minimum: ensure at least 30 minutes for window to work
           if (daily_runtime < 30) {
+            ESP_LOGW("irrigation", "Daily runtime too small (%d min), using minimum 30 min. Check summer_max_runtime setting!", daily_runtime);
             daily_runtime = 30;
-            ESP_LOGW("irrigation", "Daily runtime too small (%d min), using minimum 30 min. Check summer_max_runtime setting!", daily_runtime - 30);
           }
 
           id(calculated_daily_runtime) = daily_runtime;
+
+          ESP_LOGI("irrigation_calc", "seasonal=%d winter=%.2f h(%d m) summer=%.2f h(%d m) factor=%.2f temp=%.2fC mult=%.3f runtime=%d m",
+                   id(seasonal_pump_enabled), winter_hours, winter_minutes, summer_hours, summer_minutes,
+                   seasonal_factor, isnan(temp_now) ? -999.0f : temp_now, temp_multiplier, daily_runtime);
 
           // Calculate block runtimes based on number of blocks
           switch(id(pump_runtime_blocks)) {
@@ -6308,6 +6314,9 @@ script:
             auto sunrise_opt = id(sun_comp).sunrise(0.0);
             if (sunrise_opt.has_value()) {
               auto sunrise = sunrise_opt.value();
+              ESP_LOGD("light_time", "now=%02d:%02d sunrise=%02d:%02d sunset=? mode=%d off_time=%lld override=%d before=%d",
+                       now.hour, now.minute, sunrise.hour, sunrise.minute, id(automation_mode),
+                       (long long)id(sw1_off_time), id(sw1_manual_override_time) > 0 ? 1 : 0, id(sw1_before_sunrise));
               
               // Use user-defined sunrise duration
               int sunrise_seconds = id(sunrise_duration_hours) * 3600;
@@ -6334,6 +6343,13 @@ script:
             auto sunset_opt = id(sun_comp).sunset(0.0);
             if (sunset_opt.has_value()) {
               auto sunset = sunset_opt.value();
+                ESP_LOGD("light_time", "now=%02d:%02d sunrise=%02d:%02d sunset=%02d:%02d mode=%d off_time=%lld override=%d before=%d",
+                         now.hour, now.minute,
+                         sunrise_opt.has_value() ? sunrise_opt.value().hour : -1,
+                         sunrise_opt.has_value() ? sunrise_opt.value().minute : -1,
+                         sunset.hour, sunset.minute,
+                         id(automation_mode), (long long)id(sw1_off_time),
+                         id(sw1_manual_override_time) > 0 ? 1 : 0, id(sw1_before_sunrise));
               
               if (abs(sunset.timestamp - now.timestamp) < 60 && 
                   !id(sw1).state && id(sw1_off_time) == 0) {
@@ -6401,6 +6417,7 @@ script:
               int center_end_min = (center_hour * 60) + half_block;
               int current_min = (now.hour * 60) + now.minute;
               
+                    ESP_LOGI("pump_time", "runtime=%d min blocks=%d block_dur=%d half=%d", daily_runtime, blocks, block_duration, half_block);
               ESP_LOGD("pump_time", "Center block: start=%02d:%02d, end=%02d:%02d, now=%02d:%02d",
                       center_start_min/60, center_start_min%60, center_end_min/60, center_end_min%60,
                       now.hour, now.minute);
@@ -6577,6 +6594,7 @@ font:
 #-------------------------------------------
 i2c:
   - id: bus_a
+                  ESP_LOGI("light_time", "SW1 sunset ON (mode %d), off_time ts=%lld", id(automation_mode), (long long)id(sw1_off_time));
     sda: GPIO19
     scl: GPIO45
 
