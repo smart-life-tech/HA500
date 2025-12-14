@@ -38,6 +38,22 @@ esphome:
       - lambda: |-
           id(lvgl_comp).show_page(8, LV_SCR_LOAD_ANIM_FADE_ON, 400);
           ESP_LOGD("BOOT", "Displaying splash logo");
+      - lambda: |-
+          auto now = id(time_comp).now();
+          auto sunrise_opt = id(sun_comp).sunrise(0.0);
+          auto sunset_opt = id(sun_comp).sunset(0.0);
+          if (now.is_valid()) {
+            if (sunrise_opt.has_value() && sunset_opt.has_value()) {
+              ESP_LOGI("light_time", "BOOT: now=%02d:%02d sunrise=%02d:%02d sunset=%02d:%02d",
+                       now.hour, now.minute,
+                       sunrise_opt.value().hour, sunrise_opt.value().minute,
+                       sunset_opt.value().hour, sunset_opt.value().minute);
+            } else {
+              ESP_LOGW("light_time", "BOOT: sun times unavailable (location/time?)");
+            }
+          } else {
+            ESP_LOGW("light_time", "BOOT: time invalid (waiting for sync)");
+          }
       - delay: 5s
       - lambda: |-
           id(lvgl_comp).show_page(0, LV_SCR_LOAD_ANIM_FADE_ON, 400);
@@ -6351,7 +6367,9 @@ script:
                          id(automation_mode), (long long)id(sw1_off_time),
                          id(sw1_manual_override_time) > 0 ? 1 : 0, id(sw1_before_sunrise));
               
-              if (abs(sunset.timestamp - now.timestamp) < 60 && 
+                // Allow a wider window around sunset to be robust to timing jitter
+                int sunset_window = 300; // seconds = 5 minutes
+                if (abs(sunset.timestamp - now.timestamp) <= sunset_window && 
                   !id(sw1).state && id(sw1_off_time) == 0) {
                 id(sw1).turn_on();
                 
@@ -6379,6 +6397,12 @@ script:
                 }
                 
                 ESP_LOGI("automation", "SW1 turned ON - sunset (mode: %d)", id(automation_mode));
+              }
+              else {
+                ESP_LOGD("light_time", "Sunset not triggering: now=%lld sunset=%lld diff=%lld state=%d off_time=%lld",
+                         (long long)now.timestamp, (long long)sunset.timestamp,
+                         (long long)(sunset.timestamp - now.timestamp), id(sw1).state ? 1 : 0,
+                         (long long)id(sw1_off_time));
               }
             }
             
