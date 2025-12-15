@@ -6468,7 +6468,7 @@ script:
               id(sw1_off_time) = 0;
               ESP_LOGI("automation", "SW1 turned OFF - timer expired");
             }
-          }
+          // Keep lambda open for subsequent SW2/SW3 logic
 
           // ---- SWITCH 2: SEASONAL POOL PUMP CONTROL ----
           // Debug: Check conditions every 60 seconds
