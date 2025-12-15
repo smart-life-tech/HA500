@@ -6341,12 +6341,20 @@ script:
           // Log sun times every 10s for debugging
           auto sunrise_opt = id(sun_comp).sunrise(0.0);
           auto sunset_opt = id(sun_comp).sunset(0.0);
-          ESP_LOGI("light_time", "SW1: now=%02d:%02d sunrise=%s sunset=%s mode=%d state=%d off_time=%lld override=%d",
-                   now.hour, now.minute,
-                   sunrise_opt.has_value() ? (std::string(sunrise_opt.value().strftime("%H:%M").c_str())).c_str() : "N/A",
-                   sunset_opt.has_value() ? (std::string(sunset_opt.value().strftime("%H:%M").c_str())).c_str() : "N/A",
-                   id(automation_mode), id(sw1).state ? 1 : 0,
-                   (long long)id(sw1_off_time), id(sw1_manual_override_time) > 0 ? 1 : 0);
+          if (sunrise_opt.has_value() && sunset_opt.has_value()) {
+            auto sunrise = sunrise_opt.value();
+            auto sunset = sunset_opt.value();
+            ESP_LOGI("light_time", "SW1: now=%02d:%02d sunrise=%02d:%02d sunset=%02d:%02d mode=%d state=%d off_time=%lld override=%d",
+                     now.hour, now.minute,
+                     sunrise.hour, sunrise.minute,
+                     sunset.hour, sunset.minute,
+                     id(automation_mode), id(sw1).state ? 1 : 0,
+                     (long long)id(sw1_off_time), id(sw1_manual_override_time) > 0 ? 1 : 0);
+          } else {
+            ESP_LOGW("light_time", "SW1: sun times unavailable (sunrise=%d sunset=%d)",
+                     sunrise_opt.has_value() ? 1 : 0, sunset_opt.has_value() ? 1 : 0);
+          }
+
           
           if (id(sw1_manual_override_time) == 0) {
             // Clear stale off timer if light is OFF and timer already passed
