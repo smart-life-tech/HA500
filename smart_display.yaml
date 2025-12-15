@@ -6547,6 +6547,8 @@ script:
               int block_duration = daily_runtime / blocks; // minutes per block
               int center_hour = id(center_pump_time_hour);
               int half_block = block_duration / 2;
+              ESP_LOGI("pump_time", "now=%02d:%02d:%02d ts=%u", now.hour, now.minute, now.second, now.timestamp);
+              ESP_LOGI("pump_time", "state=%s center=%02d:00", id(sw2).state ? "ON" : "OFF", center_hour);
               
               // Check center block
               int center_start_min = (center_hour * 60) - half_block;
