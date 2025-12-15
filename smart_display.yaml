@@ -557,8 +557,8 @@ time:
 
 # For the sun component, we need to use fixed values initially
 sun:
-  latitude: 37.1 # Default value matching the initial_value in location_latitude
-  longitude: -8.0 # Default value matching the initial_value in location_longitude
+  latitude: 37.2637  # Pico Alto, Portugal (from geocoding)
+  longitude: -8.2292 # Pico Alto, Portugal (from geocoding)
   id: sun_comp
 
 # Add this to update the sun component when location changes
@@ -6337,18 +6337,25 @@ script:
 
           // Only run automations if not in manual override mode
           // ---- SWITCH 1: SUNRISE/SUNSET CONTROL WITH USER SETTINGS ----
+          
+          // Log sun times every 10s for debugging
+          auto sunrise_opt = id(sun_comp).sunrise(0.0);
+          auto sunset_opt = id(sun_comp).sunset(0.0);
+          ESP_LOGI("light_time", "SW1: now=%02d:%02d sunrise=%s sunset=%s mode=%d state=%d off_time=%lld override=%d",
+                   now.hour, now.minute,
+                   sunrise_opt.has_value() ? (std::string(sunrise_opt.value().strftime("%H:%M").c_str())).c_str() : "N/A",
+                   sunset_opt.has_value() ? (std::string(sunset_opt.value().strftime("%H:%M").c_str())).c_str() : "N/A",
+                   id(automation_mode), id(sw1).state ? 1 : 0,
+                   (long long)id(sw1_off_time), id(sw1_manual_override_time) > 0 ? 1 : 0);
+          
           if (id(sw1_manual_override_time) == 0) {
             // Clear stale off timer if light is OFF and timer already passed
             if (!id(sw1).state && id(sw1_off_time) > 0 && now.timestamp >= id(sw1_off_time)) {
               id(sw1_off_time) = 0;
               ESP_LOGD("automation", "SW1 off_time cleared (stale timer)");
             }
-            auto sunrise_opt = id(sun_comp).sunrise(0.0);
             if (sunrise_opt.has_value()) {
               auto sunrise = sunrise_opt.value();
-              ESP_LOGD("light_time", "now=%02d:%02d sunrise=%02d:%02d sunset=? mode=%d off_time=%lld override=%d before=%d",
-                       now.hour, now.minute, sunrise.hour, sunrise.minute, id(automation_mode),
-                       (long long)id(sw1_off_time), id(sw1_manual_override_time) > 0 ? 1 : 0, id(sw1_before_sunrise));
               
               // Use user-defined sunrise duration
               int sunrise_seconds = id(sunrise_duration_hours) * 3600;
@@ -6372,16 +6379,8 @@ script:
             }
             
             // Sunset logic with user settings
-            auto sunset_opt = id(sun_comp).sunset(0.0);
             if (sunset_opt.has_value()) {
               auto sunset = sunset_opt.value();
-                ESP_LOGD("light_time", "now=%02d:%02d sunrise=%02d:%02d sunset=%02d:%02d mode=%d off_time=%lld override=%d before=%d",
-                         now.hour, now.minute,
-                         sunrise_opt.has_value() ? sunrise_opt.value().hour : -1,
-                         sunrise_opt.has_value() ? sunrise_opt.value().minute : -1,
-                         sunset.hour, sunset.minute,
-                         id(automation_mode), (long long)id(sw1_off_time),
-                         id(sw1_manual_override_time) > 0 ? 1 : 0, id(sw1_before_sunrise));
               
                 // Allow a wider window around sunset to be robust to timing jitter
                 int sunset_window = 300; // seconds = 5 minutes
