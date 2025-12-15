@@ -197,11 +197,26 @@ esphome:
           id(sw1_manual_override_time) = 0;
           id(sw2_manual_override_time) = 0;
           id(sw3_manual_override_time) = 0;
+          
+          // Force correct runtime defaults if they got corrupted
+          if (id(winter_min_runtime) < 0.5f || id(winter_min_runtime) > 8.0f) {
+            id(winter_min_runtime) = 2.0f;
+            ESP_LOGI("BOOT", "Reset winter_min_runtime to 2.0h");
+          }
+          if (id(summer_max_runtime) < 1.0f || id(summer_max_runtime) > 12.0f) {
+            id(summer_max_runtime) = 5.0f;
+            ESP_LOGI("BOOT", "Reset summer_max_runtime to 5.0h");
+          }
+          if (id(center_pump_time_hour) < 0 || id(center_pump_time_hour) > 23) {
+            id(center_pump_time_hour) = 14;
+            ESP_LOGI("BOOT", "Reset center_pump_time_hour to 14");
+          }
+          
           ESP_LOGI("BOOT", "Manual override timers reset - automation enabled");
       # Calculate irrigation needs to set up pump runtime
       - delay: 100ms
       - script.execute: calculate_irrigation_needs
-      - lambda: |-
+      - lambda: :-
           ESP_LOGI("BOOT", "Irrigation calculation executed - daily_runtime=%d minutes", id(calculated_daily_runtime));
 esp32:
   board: esp32-s3-devkitc-1
@@ -6542,9 +6557,15 @@ script:
 
           if (id(sw2_manual_override_time) == 0 && id(seasonal_pump_enabled)) {
             // Calculate if pump should be running based on runtime blocks
+            // PRIMARY SOURCE: total_runtime_multiple from pool pump settings (in hours)
             bool in_runtime_window = false;
             int blocks = id(pump_runtime_blocks);
-            int daily_runtime = id(calculated_daily_runtime);
+            
+            // Convert total_runtime_multiple (hours) to minutes and use as primary runtime
+            int daily_runtime = (int) roundf(id(total_runtime_multiple) * 60.0f);
+            
+            // Sync back to calculated_daily_runtime for consistency
+            id(calculated_daily_runtime) = daily_runtime;
             
             if (daily_runtime > 0) {
               int block_duration = daily_runtime / blocks; // minutes per block
@@ -6558,9 +6579,8 @@ script:
               int center_end_min = (center_hour * 60) + half_block;
               int current_min = (now.hour * 60) + now.minute;
               
-                    ESP_LOGI("pump_time", "runtime=%d min blocks=%d block_dur=%d half=%d | CONFIG: season_enabled=%d winter=%.2fh summer=%.2fh",
-                             daily_runtime, blocks, block_duration, half_block,
-                             id(seasonal_pump_enabled), id(winter_min_runtime), id(summer_max_runtime));
+                    ESP_LOGI("pump_time", "runtime=%d min blocks=%d block_dur=%d half=%d | SOURCE: total_runtime_multiple=%.2fh = %d min",
+                             daily_runtime, blocks, block_duration, half_block, id(total_runtime_multiple), daily_runtime);
               ESP_LOGD("pump_time", "Center block: start=%02d:%02d, end=%02d:%02d, now=%02d:%02d",
                       center_start_min/60, center_start_min%60, center_end_min/60, center_end_min%60,
                       now.hour, now.minute);
