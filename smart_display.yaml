@@ -216,7 +216,7 @@ esphome:
       # Calculate irrigation needs to set up pump runtime
       - delay: 100ms
       - script.execute: calculate_irrigation_needs
-      - lambda: :-
+      - lambda: |-
           ESP_LOGI("BOOT", "Irrigation calculation executed - daily_runtime=%d minutes", id(calculated_daily_runtime));
 esp32:
   board: esp32-s3-devkitc-1
