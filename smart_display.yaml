@@ -6499,10 +6499,14 @@ script:
             }
             
             // Sunset logic with user settings - now using real or computed times
-                // Allow a wider window around sunset to be robust to timing jitter
-                int sunset_window = 300; // seconds = 5 minutes
-                if (abs((int32_t)(sunset_ts - now.timestamp)) <= sunset_window && 
-                  !id(sw1).state && id(sw1_off_time) == 0) {
+            // Trigger if we're within window OR if it's after sunset and light should be on
+            int sunset_window = 900; // seconds = 15 minutes (to catch late checks)
+            int32_t time_since_sunset = (int32_t)(now.timestamp - sunset_ts);
+            bool in_sunset_window = (time_since_sunset >= -sunset_window && time_since_sunset <= sunset_window);
+            bool past_sunset_today = (time_since_sunset > 0 && time_since_sunset < 3600); // Within 1 hour after sunset
+            
+            if ((in_sunset_window || past_sunset_today) && 
+                !id(sw1).state && id(sw1_off_time) == 0) {
                 id(sw1).turn_on();
                 
                 // Use automation mode to determine off time
@@ -6526,13 +6530,12 @@ script:
                   id(sw1_off_time) = now.timestamp + (id(manual_duration_hours) * 3600);
                 }
                 
-                ESP_LOGI("automation", "SW1 turned ON - sunset (mode: %d)", id(automation_mode));
+                ESP_LOGI("automation", "SW1 turned ON - sunset (mode: %d, time_since_sunset=%ds)", id(automation_mode), time_since_sunset);
               }
               else {
-                ESP_LOGD("light_time", "Sunset not triggering: now=%lld sunset=%lld diff=%lld state=%d off_time=%lld",
-                         (long long)now.timestamp, (long long)sunset_ts,
-                         (long long)((int32_t)sunset_ts - (int32_t)now.timestamp), id(sw1).state ? 1 : 0,
-                         (long long)id(sw1_off_time));
+                ESP_LOGD("light_time", "Sunset not triggering: now=%u sunset=%u diff=%d in_window=%d past_sunset=%d state=%d off_time=%u",
+                         now.timestamp, sunset_ts, time_since_sunset, in_sunset_window, past_sunset_today,
+                         id(sw1).state ? 1 : 0, id(sw1_off_time));
               }
             }
             
@@ -6554,6 +6557,10 @@ script:
                     id(sw2_manual_override_time), id(seasonal_pump_enabled), 
                     id(calculated_daily_runtime), id(pump_runtime_blocks), id(center_pump_time_hour));
           }
+          
+          // Log why pump automation might be disabled
+          ESP_LOGI("pump_debug", "SW2 automation check: manual_override=%d seasonal_enabled=%d (both must be 0 and 1 to run)",
+                   id(sw2_manual_override_time), id(seasonal_pump_enabled));
 
           if (id(sw2_manual_override_time) == 0 && id(seasonal_pump_enabled)) {
             // Calculate if pump should be running based on runtime blocks
