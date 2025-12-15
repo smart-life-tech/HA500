@@ -43,9 +43,8 @@ esphome:
           auto now = id(time_comp).now();
           auto sunrise_opt = id(sun_comp).sunrise(0.0);
           auto sunset_opt = id(sun_comp).sunset(0.0);
-          ESP_LOGI("light_time", "BOOT: time_valid=%d ha_connected=%d sunrise_available=%d sunset_available=%d",
+          ESP_LOGI("light_time", "BOOT: time_valid=%d sunrise_available=%d sunset_available=%d",
                    now.is_valid() ? 1 : 0,
-                   id(ha_api_client).is_connected() ? 1 : 0,
                    sunrise_opt.has_value() ? 1 : 0,
                    sunset_opt.has_value() ? 1 : 0);
           if (now.is_valid()) {
@@ -6298,8 +6297,7 @@ script:
             static int invalid_time_count = 0;
             if (++invalid_time_count >= 1) { // Log every 5 minutes if stuck
               invalid_time_count = 0;
-              ESP_LOGW("automation", "Time invalid - skipping automation. HA connected: %s",
-                       id(ha_api_client).is_connected() ? "YES" : "NO");
+              ESP_LOGW("automation", "Time invalid - skipping automation check");
             }
             return;
           }
