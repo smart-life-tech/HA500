@@ -6339,56 +6339,49 @@ script:
           // Only run automations if not in manual override mode
           // ---- SWITCH 1: SUNRISE/SUNSET CONTROL WITH USER SETTINGS ----
           
-          // Log sun times every 10s for debugging
+          // Log sun times every 10s for debugging and derive epoch timestamps
           auto sunrise_opt = id(sun_comp).sunrise(0.0);
           auto sunset_opt = id(sun_comp).sunset(0.0);
           
-          // Create time structs for sunrise/sunset (either real or computed)
-          ESPTime sunrise_time, sunset_time;
+          // Seconds since start of today (local time)
+          uint32_t seconds_since_midnight = (now.hour * 3600u) + (now.minute * 60u) + now.second;
+          uint32_t day_start_ts = now.timestamp - seconds_since_midnight;
+
+          // Hold hour/minute for logs and epoch timestamps for comparisons
+          int sunrise_h = 0, sunrise_m = 0, sunset_h = 0, sunset_m = 0;
+          uint32_t sunrise_ts = 0, sunset_ts = 0;
           bool using_computed = false;
-          
+
           if (!sunrise_opt.has_value() || !sunset_opt.has_value()) {
-            // Sun component not ready - compute approximate times for Portugal
+            // Sun component not ready - compute approximate times for Portugal (Algarve)
             int day_of_year = now.day_of_year;
             float season_factor = sin((day_of_year - 80) * M_PI / 182.5f);
-            int sunrise_hour = 6 + (int)(season_factor * 1.5f);
-            int sunrise_min = 30 + (int)(season_factor * 15.0f);
-            int sunset_hour = 18 + (int)(season_factor * 2.5f);
-            int sunset_min = 30 + (int)(season_factor * 15.0f);
-            
-            // Create ESPTime structs from computed values
-            sunrise_time.year = now.year;
-            sunrise_time.month = now.month;
-            sunrise_time.day_of_month = now.day_of_month;
-            sunrise_time.hour = sunrise_hour;
-            sunrise_time.minute = sunrise_min;
-            sunrise_time.second = 0;
-            
-            sunset_time.year = now.year;
-            sunset_time.month = now.month;
-            sunset_time.day_of_month = now.day_of_month;
-            sunset_time.hour = sunset_hour;
-            sunset_time.minute = sunset_min;
-            sunset_time.second = 0;
-            
+            sunrise_h = 6 + (int)(season_factor * 1.5f);
+            sunrise_m = 30 + (int)(season_factor * 15.0f);
+            sunset_h = 18 + (int)(season_factor * 2.5f);
+            sunset_m = 30 + (int)(season_factor * 15.0f);
+
+            sunrise_ts = day_start_ts + (uint32_t)(sunrise_h * 3600 + sunrise_m * 60);
+            sunset_ts = day_start_ts + (uint32_t)(sunset_h * 3600 + sunset_m * 60);
+
             using_computed = true;
             ESP_LOGW("light_time", "SW1: COMPUTED (sun component failed) now=%02d:%02d sunrise=%02d:%02d sunset=%02d:%02d mode=%d state=%d",
-                     now.hour, now.minute,
-                     sunrise_hour, sunrise_min,
-                     sunset_hour, sunset_min,
+                     now.hour, now.minute, sunrise_h, sunrise_m, sunset_h, sunset_m,
                      id(automation_mode), id(sw1).state ? 1 : 0);
           } else {
-            sunrise_time = sunrise_opt.value();
-            sunset_time = sunset_opt.value();
+            auto sunrise_time = sunrise_opt.value();
+            auto sunset_time = sunset_opt.value();
+            sunrise_h = sunrise_time.hour; sunrise_m = sunrise_time.minute;
+            sunset_h = sunset_time.hour; sunset_m = sunset_time.minute;
+            sunrise_ts = sunrise_time.timestamp; sunset_ts = sunset_time.timestamp;
+
             ESP_LOGI("light_time", "SW1: now=%02d:%02d sunrise=%02d:%02d sunset=%02d:%02d mode=%d state=%d off_time=%lld override=%d",
-                     now.hour, now.minute,
-                     sunrise_time.hour, sunrise_time.minute,
-                     sunset_time.hour, sunset_time.minute,
+                     now.hour, now.minute, sunrise_h, sunrise_m, sunset_h, sunset_m,
                      id(automation_mode), id(sw1).state ? 1 : 0,
                      (long long)id(sw1_off_time), id(sw1_manual_override_time) > 0 ? 1 : 0);
           }
 
-          // Use the sunrise/sunset times (real or computed) in automation below
+          // Use unified epoch timestamps for automation below
           
           if (id(sw1_manual_override_time) == 0) {
             // Clear stale off timer if light is OFF and timer already passed
@@ -6397,34 +6390,30 @@ script:
               ESP_LOGD("automation", "SW1 off_time cleared (stale timer)");
             }
             
-            // Use computed or real sunrise/sunset times
-            auto sunrise = sunrise_time;
-            auto sunset = sunset_time;
-              
-              // Use user-defined sunrise duration
-              int sunrise_seconds = id(sunrise_duration_hours) * 3600;
-              
-              // Check if it's time to turn on before sunrise
-              if (sunrise.timestamp - now.timestamp <= sunrise_seconds && 
-                  sunrise.timestamp - now.timestamp > (sunrise_seconds - 60) && 
-                  !id(sw1_before_sunrise) && !id(sw1).state) {
+            // Use user-defined sunrise duration
+            int sunrise_seconds = id(sunrise_duration_hours) * 3600;
+            
+            // Check if it's time to turn on before sunrise
+            if ((int32_t)(sunrise_ts - now.timestamp) <= sunrise_seconds && 
+                (int32_t)(sunrise_ts - now.timestamp) > (sunrise_seconds - 60) && 
+                !id(sw1_before_sunrise) && !id(sw1).state) {
                 id(sw1).turn_on();
                 id(sw1_before_sunrise) = true;
                 ESP_LOGI("automation", "SW1 turned ON - %d hours before sunrise", id(sunrise_duration_hours));
-              }
-              
-              // Check if it's sunrise time
-              if (abs(sunrise.timestamp - now.timestamp) < 60 && 
-                  id(sw1_before_sunrise) && id(sw1).state) {
+            }
+            
+            // Check if it's sunrise time
+            if (abs((int32_t)(sunrise_ts - now.timestamp)) < 60 && 
+                id(sw1_before_sunrise) && id(sw1).state) {
                 id(sw1).turn_off();
                 id(sw1_before_sunrise) = false;
                 ESP_LOGI("automation", "SW1 turned OFF - sunrise");
-              }
+            }
             
             // Sunset logic with user settings - now using real or computed times
                 // Allow a wider window around sunset to be robust to timing jitter
                 int sunset_window = 300; // seconds = 5 minutes
-                if (abs(sunset.timestamp - now.timestamp) <= sunset_window && 
+                if (abs((int32_t)(sunset_ts - now.timestamp)) <= sunset_window && 
                   !id(sw1).state && id(sw1_off_time) == 0) {
                 id(sw1).turn_on();
                 
@@ -6434,17 +6423,15 @@ script:
                   id(sw1_off_time) = now.timestamp + (id(sunset_duration_hours) * 3600);
                 } else if (id(automation_mode) == 1) {
                   // Until time mode
-                  auto tomorrow = now;
-                  tomorrow.day_of_month += 1;
-                  tomorrow.hour = id(sunset_until_time_hour);
-                  tomorrow.minute = id(sunset_until_time_minute);
-                  tomorrow.second = 0;
-                  id(sw1_off_time) = tomorrow.timestamp;
+                  uint32_t base = day_start_ts + 86400u; // start of tomorrow
+                  id(sw1_off_time) = base + (uint32_t)id(sunset_until_time_hour) * 3600u + (uint32_t)id(sunset_until_time_minute) * 60u;
                 } else if (id(automation_mode) == 2) {
                   // Between times mode - turn off at sunrise
                   auto next_sunrise = id(sun_comp).sunrise(1.0); // Next day
                   if (next_sunrise.has_value()) {
                     id(sw1_off_time) = next_sunrise.value().timestamp;
+                  } else {
+                    id(sw1_off_time) = (uint32_t)(sunrise_ts + 86400u);
                   }
                 } else {
                   // Manual mode - use manual duration
@@ -6455,8 +6442,8 @@ script:
               }
               else {
                 ESP_LOGD("light_time", "Sunset not triggering: now=%lld sunset=%lld diff=%lld state=%d off_time=%lld",
-                         (long long)now.timestamp, (long long)sunset.timestamp,
-                         (long long)(sunset.timestamp - now.timestamp), id(sw1).state ? 1 : 0,
+                         (long long)now.timestamp, (long long)sunset_ts,
+                         (long long)((int32_t)sunset_ts - (int32_t)now.timestamp), id(sw1).state ? 1 : 0,
                          (long long)id(sw1_off_time));
               }
             }
