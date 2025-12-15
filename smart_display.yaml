@@ -1374,8 +1374,8 @@ globals:
     initial_value: "2.00"
     restore_value: true
   - id: summer_max_runtime
-    type: int
-    initial_value: "300"
+    type: float
+    initial_value: "5.0"
     restore_value: true
   - id: center_pump_time_hour
     type: int
@@ -1476,6 +1476,11 @@ globals:
     restore_value: no
     initial_value: "0"
 
+  - id: bucket_volume_liters
+    type: float
+    #restore_value: yes
+    initial_value: "10.0" # Default 10L calibration bucket
+
   - id: valve_liters_per_minute
     type: float
     #restore_value: yes
@@ -1495,6 +1500,11 @@ globals:
     type: float
     restore_value: no
     initial_value: "0.0"
+
+  - id: sw3_on_time
+    type: int
+    restore_value: no
+    initial_value: "0"
 
   - id: qr_text_value
     type: std::string
@@ -3592,7 +3602,7 @@ lvgl:
             id: valve_training_btn
             x: 295
             y: 420
-            hidden: true
+            hidden: false
             width: 120
             height: 45
             styles: nav_button_style
@@ -3613,6 +3623,54 @@ lvgl:
                   on_click:
                     then:
                       - script.execute: start_valve_training
+
+        # Bucket volume controls for valve calibration
+        - obj:
+            x: 150
+            y: 420
+            width: 130
+            height: 45
+            bg_opa: 0%
+            border_width: 0
+            widgets:
+              - label:
+                  id: bucket_volume_label
+                  text: !lambda |-
+                    static char t[24];
+                    snprintf(t, sizeof(t), "Bucket: %.1fL", id(bucket_volume_liters));
+                    return t;
+                  text_font: roboto
+                  align: LEFT_MID
+              - button:
+                  x: 0
+                  y: 0
+                  width: 25
+                  height: 25
+                  widgets:
+                    - label:
+                        text: "-"
+                        align: center
+                  on_click:
+                    then:
+                      - lambda: |-
+                          id(bucket_volume_liters) = std::max(1.0f, id(bucket_volume_liters) - 1.0f);
+                      - lvgl.label.update:
+                          id: bucket_volume_label
+              - button:
+                  x: 30
+                  y: 0
+                  width: 25
+                  height: 25
+                  widgets:
+                    - label:
+                        text: "+"
+                        align: center
+                  on_click:
+                    then:
+                      - lambda: |-
+                          id(bucket_volume_liters) = std::min(100.0f, id(bucket_volume_liters) + 1.0f);
+                      - lvgl.label.update:
+                          id: bucket_volume_label
 
         # Navigation buttons
         - button:
@@ -5632,6 +5690,9 @@ switch:
                   text_color: orange_color
             else:
               - lambda: |-
+                  id(sw3_on_time) = id(time_comp).now().timestamp;
+                  ESP_LOGI("irrigation", "SW3 started at %u", id(sw3_on_time));
+              - lambda: |-
                   float estimated_minutes = 0;
                   if (id(irrigation_needed_liters) > 0 && id(valve_liters_per_minute) > 0) {
                     estimated_minutes = id(irrigation_needed_liters) / id(valve_liters_per_minute);
@@ -5655,7 +5716,6 @@ switch:
             id: current_status_display
             text: "Pump OFF - Watering stopped"
         - logger.log: "Watering pump turned OFF"
-
         - if:
             condition:
               lambda: "return id(valve_training_mode) && id(valve_training_start_time) > 0;"
@@ -5663,25 +5723,25 @@ switch:
               - lambda: |-
                   int training_duration = id(time_comp).now().timestamp - id(valve_training_start_time);
                   float training_minutes = training_duration / 60.0f;
-
-                  // Calculate flow rate based on estimated water delivered
-                  // This is a simplified calculation - in reality you'd measure actual water
-                  if (training_minutes > 0.5f) {  // Minimum 30 seconds for valid training
-                    // Assume we delivered the amount of water equivalent to today's evaporation needs
-                    float estimated_liters = std::max(10.0f, id(calculated_evaporation_liters));
-                    id(valve_liters_per_minute) = estimated_liters / training_minutes;
-                    
-                    ESP_LOGI("irrigation", "Training complete: %.1f minutes = %.1f L/min flow rate", 
-                            training_minutes, id(valve_liters_per_minute));
+                  
+                  // Calculate flow rate based on known bucket volume
+                  if (training_minutes > 0.25f) {  // Minimum 15 seconds for valid training
+                    float vol = id(bucket_volume_liters);
+                    if (vol <= 0.0f) vol = 10.0f;
+                    id(valve_liters_per_minute) = vol / training_minutes;
+                    ESP_LOGI("irrigation", "Training complete: %.1f min for %.1f L → %.2f L/min",
+                             training_minutes, vol, id(valve_liters_per_minute));
+                  } else {
+                    ESP_LOGW("irrigation", "Training too short (%.2fs). Keep previous calibration.", training_minutes * 60.0f);
                   }
-
+                  
                   id(valve_training_start_time) = 0;
                   id(valve_training_mode) = false;
               - lvgl.label.update:
                   id: status_label
                   text: !lambda |-
                     static char msg[100];
-                    snprintf(msg, sizeof(msg), "Training complete: %.1f L/min calibrated", id(valve_liters_per_minute));
+                    snprintf(msg, sizeof(msg), "Calibration: %.2f L/min (bucket %.1fL)", id(valve_liters_per_minute), id(bucket_volume_liters));
                     return msg;
                   text_color: green_color
               - delay: 3s
@@ -5690,11 +5750,21 @@ switch:
                   text: "Valve calibration saved"
                   text_color: blue_color
             else:
-              - lambda: |-
-                  ESP_LOGI("irrigation", "Watering  stopped");
+              - if:
+                  condition:
+                    lambda: "return !id(valve_training_mode) && id(sw3_on_time) > 0;"
+                  then:
+                    - lambda: |-
+                        int run_secs = id(time_comp).now().timestamp - id(sw3_on_time);
+                        id(sw3_on_time) = 0;
+                        float minutes = run_secs / 60.0f;
+                        float water_delivered = id(valve_liters_per_minute) * minutes;
+                        id(irrigation_needed_liters) = std::max(0.0f, id(irrigation_needed_liters) - water_delivered);
+                        ESP_LOGI("irrigation", "SW3 stopped: ran %.1f min, delivered %.1fL, remaining: %.1fL",
+                                 minutes, water_delivered, id(irrigation_needed_liters));
               - lvgl.label.update:
                   id: status_label
-                  text: "Watering  Valve OFF"
+                  text: "Watering stopped"
                   text_color: red_color
         - lvgl.widget.update:
             id: sw3_button
@@ -6546,6 +6616,21 @@ script:
           if (id(sw3_manual_override_time) == 0) {
             // Check if irrigation is needed and it's appropriate time
             bool should_irrigate = false;
+            // Recompute today's net water need based on mode
+            float evap_liters = id(calculated_evaporation_liters);
+            float rainfall_liters = id(daily_rainfall_mm) * id(field_area_m2) / 1000.0f; // consistent with UI
+            float need_liters = 0.0f;
+            if (id(sw3_winter_mode)) {
+              // WINTER: drain excess (rain - evaporation)
+              need_liters = std::max(0.0f, rainfall_liters - evap_liters);
+            } else {
+              // SUMMER: fill deficit (evaporation - rain)
+              need_liters = std::max(0.0f, evap_liters - rainfall_liters);
+            }
+            id(irrigation_needed_liters) = need_liters;
+            ESP_LOGI("automation", "SW3 need: mode=%s evap=%.1fL rain=%.1fL need=%.1fL",
+                     id(sw3_winter_mode) ? "WINTER(DRAIN)" : "SUMMER(FILL)",
+                     evap_liters, rainfall_liters, need_liters);
             
             // Only irrigate during appropriate hours (early morning or evening)
             int hour = now.hour;
@@ -6571,10 +6656,12 @@ script:
               id(sw3).turn_on();
               delay(2000); // Wait 2 seconds
               
-              // Then turn on pump if not already on
-              if (!id(sw2).state) {
-                id(sw2).turn_on();
-                ESP_LOGI("automation", "SW2 PUMP turned ON - for irrigation");
+              // SUMMER(fill): optionally assist with pump; WINTER(drain): do not turn pump on
+              if (!id(sw3_winter_mode)) {
+                if (!id(sw2).state) {
+                  id(sw2).turn_on();
+                  ESP_LOGI("automation", "SW2 PUMP turned ON - for filling");
+                }
               }
               
               id(sw3_off_time) = now.timestamp + (int)(irrigation_minutes * 60);
@@ -6593,16 +6680,7 @@ script:
               
               id(sw3).turn_off();
               id(sw3_off_time) = 0;
-              
-              // Calculate actual water delivered
-              float actual_minutes = (now.timestamp - (id(sw3_off_time) - 1800)) / 60.0f;
-              float water_delivered = id(valve_liters_per_minute) * actual_minutes;
-              
-              // Reset irrigation needs after watering
-              id(irrigation_needed_liters) = std::max(0.0f, id(irrigation_needed_liters) - water_delivered);
-              
-              ESP_LOGI("automation", "SW3 VALVE OFF - Delivered %.1fL, Remaining need: %.1fL", 
-                      water_delivered, id(irrigation_needed_liters));
+                    ESP_LOGI("automation", "SW3 VALVE OFF - Remaining need: %.1fL", id(irrigation_needed_liters));
             }
           }
 
