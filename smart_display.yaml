@@ -6064,6 +6064,9 @@ script:
 
           id(calculated_daily_runtime) = daily_runtime;
 
+          ESP_LOGI("irrigation_calc", "DETAILED: seasonal_enabled=%d day_of_year=%d seasonal_factor=%.3f temp_now=%.1fC temp_mult=%.3f winter=%d summer=%d calculated=%d",
+                   id(seasonal_pump_enabled), (id(time_comp).now().day_of_year), seasonal_factor,
+                   isnan(temp_now) ? -999.0f : temp_now, temp_multiplier, winter_minutes, summer_minutes, daily_runtime);
           ESP_LOGI("irrigation_calc", "seasonal=%d winter=%.2f h(%d m) summer=%.2f h(%d m) factor=%.2f temp=%.2fC mult=%.3f runtime=%d m",
                    id(seasonal_pump_enabled), winter_hours, winter_minutes, summer_hours, summer_minutes,
                    seasonal_factor, isnan(temp_now) ? -999.0f : temp_now, temp_multiplier, daily_runtime);
@@ -6555,7 +6558,9 @@ script:
               int center_end_min = (center_hour * 60) + half_block;
               int current_min = (now.hour * 60) + now.minute;
               
-                    ESP_LOGI("pump_time", "runtime=%d min blocks=%d block_dur=%d half=%d", daily_runtime, blocks, block_duration, half_block);
+                    ESP_LOGI("pump_time", "runtime=%d min blocks=%d block_dur=%d half=%d | CONFIG: season_enabled=%d winter=%.2fh summer=%.2fh",
+                             daily_runtime, blocks, block_duration, half_block,
+                             id(seasonal_pump_enabled), id(winter_min_runtime), id(summer_max_runtime));
               ESP_LOGD("pump_time", "Center block: start=%02d:%02d, end=%02d:%02d, now=%02d:%02d",
                       center_start_min/60, center_start_min%60, center_end_min/60, center_end_min%60,
                       now.hour, now.minute);
