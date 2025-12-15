@@ -1347,7 +1347,7 @@ globals:
 
   - id: pump_flow_rate
     type: float
-    initial_value: "500.0"
+    initial_value: "20000.0"
     restore_value: true
 
   - id: pool_temperature
@@ -6565,14 +6565,22 @@ script:
           if (id(sw2_manual_override_time) == 0 && id(seasonal_pump_enabled)) {
             // Calculate if pump should be running based on runtime blocks
             // PRIMARY SOURCE: total_runtime_multiple from pool pump settings (in hours)
+            // FALLBACK: calculated_daily_runtime (in minutes) from seasonal calculation
             bool in_runtime_window = false;
             int blocks = id(pump_runtime_blocks);
             
             // Convert total_runtime_multiple (hours) to minutes and use as primary runtime
             int daily_runtime = (int) roundf(id(total_runtime_multiple) * 60.0f);
             
-            // Sync back to calculated_daily_runtime for consistency
-            id(calculated_daily_runtime) = daily_runtime;
+            // Fallback to calculated_daily_runtime if total_runtime_multiple is not set yet
+            if (daily_runtime <= 0) {
+              daily_runtime = id(calculated_daily_runtime);
+              ESP_LOGI("pump_time", "Using fallback calculated_daily_runtime=%d min (total_runtime_multiple=%.2fh is zero)",
+                       daily_runtime, id(total_runtime_multiple));
+            } else {
+              // Sync back to calculated_daily_runtime for consistency
+              id(calculated_daily_runtime) = daily_runtime;
+            }
             
             if (daily_runtime > 0) {
               int block_duration = daily_runtime / blocks; // minutes per block
