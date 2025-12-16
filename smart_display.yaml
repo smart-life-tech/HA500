@@ -4795,6 +4795,7 @@ lvgl:
                         ESP_LOGI("pool_pump", "Calculated runtime: %.2f hours", runtime);
                         id(total_runtime).publish_state(runtime);
                         id(total_runtime_multiple) = runtime;
+                    - script.execute: save_and_refresh_runtime
                     - globals.set:
                         id: global_pool_length
                         value: !lambda "return id(global_pool_length);"
@@ -4890,6 +4891,7 @@ lvgl:
                           id(total_runtime).publish_state(runtime);
                           id(total_runtime_multiple) = runtime;
                           return buf;
+                    - script.execute: save_and_refresh_runtime
                   widgets:
                     - label: { text: "+", text_font: roboto, align: CENTER }
               - button:
@@ -4941,6 +4943,7 @@ lvgl:
                           id(total_runtime).publish_state(runtime);
                           id(total_runtime_multiple) = runtime;
                           return buf;
+                    - script.execute: save_and_refresh_runtime
                   widgets:
                     - label: { text: "-", text_font: roboto, align: CENTER }
 
@@ -5012,6 +5015,7 @@ lvgl:
                           id(total_runtime).publish_state(runtime);
                           id(total_runtime_multiple) = runtime;
                           return buf;
+                    - script.execute: save_and_refresh_runtime
                   widgets:
                     - label: { text: "+", text_font: roboto, align: CENTER }
               - button:
@@ -5063,6 +5067,7 @@ lvgl:
                           id(total_runtime).publish_state(runtime);
                           id(total_runtime_multiple) = runtime;
                           return buf;
+                    - script.execute: save_and_refresh_runtime
                   widgets:
                     - label: { text: "-", text_font: roboto, align: CENTER }
 
@@ -5126,6 +5131,7 @@ lvgl:
                           id(total_runtime).publish_state(runtime);
                           id(total_runtime_multiple) = runtime;
                           return buf;
+                    - script.execute: save_and_refresh_runtime
                   widgets:
                     - label: { text: "+", text_font: roboto, align: CENTER }
               - button:
@@ -5170,6 +5176,7 @@ lvgl:
                           id(total_runtime).publish_state(runtime);
                           id(total_runtime_multiple) = runtime;
                           return buf;
+                    - script.execute: save_and_refresh_runtime
                   widgets:
                     - label: { text: "-", text_font: roboto, align: CENTER }
 
@@ -5405,6 +5412,7 @@ lvgl:
                           id(total_runtime).publish_state(runtime);
                           id(total_runtime_multiple) = runtime;
                           return buf;
+                    - script.execute: save_and_refresh_runtime
                   widgets:
                     - label: { text: "+", text_font: roboto, align: CENTER }
               - button:
@@ -5452,6 +5460,7 @@ lvgl:
                           id(total_runtime).publish_state(runtime);
                           id(total_runtime_multiple) = runtime;
                           return buf;
+                    - script.execute: save_and_refresh_runtime
                   widgets:
                     - label: { text: "-", text_font: roboto, align: CENTER }
 
