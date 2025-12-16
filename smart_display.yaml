@@ -212,6 +212,30 @@ esphome:
             ESP_LOGI("BOOT", "Reset center_pump_time_hour to 14");
           }
           
+          // Log ALL critical persisted values loaded from NVS
+          ESP_LOGI("BOOT", "=== POOL DIMENSIONS LOADED ===");
+          ESP_LOGI("BOOT", "Pool length=%.2f m width=%.2f m depth=%.2f m", 
+                   id(global_pool_length), id(global_pool_width), id(global_pool_depth));
+          ESP_LOGI("BOOT", "Pool volume=%.2f m³ cycles=%.2f pump_flow=%f L/h",
+                   id(global_pool_length) * id(global_pool_width) * id(global_pool_depth),
+                   id(global_cycles_count), id(pump_flow_rate));
+          
+          ESP_LOGI("BOOT", "=== PUMP SETTINGS LOADED ===");
+          ESP_LOGI("BOOT", "winter_min=%.2fh summer_max=%.2fh center_hour=%d blocks=%d",
+                   id(winter_min_runtime), id(summer_max_runtime), 
+                   id(center_pump_time_hour), id(pump_runtime_blocks));
+          ESP_LOGI("BOOT", "total_runtime_multiple=%.2fh calculated_daily_runtime=%d min",
+                   id(total_runtime_multiple), id(calculated_daily_runtime));
+          
+          ESP_LOGI("BOOT", "=== LIGHT SETTINGS LOADED ===");
+          ESP_LOGI("BOOT", "automation_mode=%d sunset_duration=%.1fh sunrise_duration=%.1fh manual_duration=%.1fh",
+                   id(automation_mode), id(sunset_duration_hours), id(sunrise_duration_hours), id(manual_duration_hours));
+          
+          ESP_LOGI("BOOT", "=== IRRIGATION SETTINGS LOADED ===");
+          ESP_LOGI("BOOT", "seasonal_enabled=%d winter_mode=%d bucket_volume=%.1fL valve_lpm=%.2f",
+                   id(seasonal_pump_enabled), id(sw3_winter_mode), 
+                   id(bucket_volume_liters), id(valve_liters_per_minute));
+          
           ESP_LOGI("BOOT", "Manual override timers reset - automation enabled");
       # Calculate irrigation needs to set up pump runtime
       - delay: 100ms
@@ -1458,17 +1482,17 @@ globals:
 
   - id: irrigation_schedule_hour
     type: int
-    #restore_value: yes
+    restore_value: true
     initial_value: "6" # Default 6 AM
 
   - id: irrigation_schedule_minute
     type: int
-    #restore_value: yes
+    restore_value: true
     initial_value: "0" # Default 6:00 AM
 
   - id: auto_irrigation_enabled
     type: bool
-    #restore_value: yes
+    restore_value: true
     initial_value: "true"
   # Watering system globals
   - id: field_area_m2
@@ -1493,12 +1517,12 @@ globals:
 
   - id: bucket_volume_liters
     type: float
-    #restore_value: yes
+    restore_value: true
     initial_value: "10.0" # Default 10L calibration bucket
 
   - id: valve_liters_per_minute
     type: float
-    #restore_value: yes
+    restore_value: true
     initial_value: "20.0" # Default 20 L/min flow rate
 
   - id: daily_rainfall_mm
@@ -1590,42 +1614,42 @@ globals:
   # NEW: Light automation settings
   - id: sunset_duration_hours
     type: int
-    #restore_value: yes
+    restore_value: true
     initial_value: "2" # Default 2 hours after sunset
 
   - id: sunrise_duration_hours
     type: int
-    #restore_value: yes
+    restore_value: true
     initial_value: "1" # Default 1 hour before sunrise
 
   - id: manual_duration_hours
     type: int
-    #restore_value: yes
+    restore_value: true
     initial_value: "4" # Default 4 hours for manual on
 
   - id: sunset_until_time_hour
     type: int
-    #restore_value: yes
+    restore_value: true
     initial_value: "23" # Default until 23:00
 
   - id: sunset_until_time_minute
     type: int
-    #restore_value: yes
+    restore_value: true
     initial_value: "0" # Default until 23:00
 
   - id: sunrise_from_time_hour
     type: int
-    #restore_value: yes
+    restore_value: true
     initial_value: "6" # Default from 06:00
 
   - id: sunrise_from_time_minute
     type: int
-    #restore_value: yes
+    restore_value: true
     initial_value: "0" # Default from 06:00
 
   - id: automation_mode
     type: int
-    #restore_value: yes
+    restore_value: true
     initial_value: "0" # 0=duration, 1=until_time, 2=between_times, 3=manual
 
 button:
