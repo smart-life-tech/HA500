@@ -240,9 +240,23 @@ esphome:
       # Calculate irrigation needs to set up pump runtime
       - delay: 100ms
       - script.execute: calculate_irrigation_needs
-      - script.execute: save_and_refresh_runtime
+      - delay: 50ms
+      # Explicitly refresh UI labels with restored total_runtime_multiple value
+      - lvgl.label.update:
+          id: summer_max_display
+          text: !lambda |-
+            static char text[15];
+            snprintf(text, sizeof(text), "%.2f hrs", id(total_runtime_multiple));
+            return text;
+      - lvgl.label.update:
+          id: pump_runtime_label
+          text: !lambda |-
+            static char buf[16];
+            snprintf(buf, sizeof(buf), "%.2f", id(total_runtime_multiple));
+            return buf;
       - lambda: |-
           ESP_LOGI("BOOT", "Irrigation calculation executed - daily_runtime=%d minutes", id(calculated_daily_runtime));
+          ESP_LOGI("BOOT", "UI labels refreshed with total_runtime_multiple=%.2f hours", id(total_runtime_multiple));
 esp32:
   board: esp32-s3-devkitc-1
   variant: esp32s3
