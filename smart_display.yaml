@@ -240,6 +240,7 @@ esphome:
       # Calculate irrigation needs to set up pump runtime
       - delay: 100ms
       - script.execute: calculate_irrigation_needs
+      - script.execute: save_and_refresh_runtime
       - lambda: |-
           ESP_LOGI("BOOT", "Irrigation calculation executed - daily_runtime=%d minutes", id(calculated_daily_runtime));
 esp32:
@@ -4696,6 +4697,10 @@ lvgl:
                         ESP_LOGI("pool_pump", "Calculated runtime: %.2f hours", runtime);
                         id(total_runtime).publish_state(runtime);
                         id(total_runtime_multiple) = runtime;
+                    - script.execute: save_and_refresh_runtime
+                    - globals.set:
+                        id: total_runtime_multiple
+                        value: !lambda "return id(total_runtime_multiple);"
                     - globals.set:
                         id: global_pool_length
                         value: !lambda "return id(global_pool_length);"
@@ -4717,9 +4722,12 @@ lvgl:
                           static char buf[16];
                           sprintf(buf, "%.1f", id(total_runtime).state);
                           return buf;
-                    - globals.set:
-                        id: total_runtime_multiple
-                        value: !lambda "return id(total_runtime_multiple);"
+                    - lvgl.label.update:
+                        id: summer_max_display
+                        text: !lambda |-
+                          static char text[15];
+                          snprintf(text, sizeof(text), "%.2f hrs", id(total_runtime_multiple));
+                          return text;
 
                   widgets:
                     - label: { text: "+", text_font: roboto, align: CENTER }
@@ -5814,6 +5822,27 @@ switch:
 # Scripts for automation logic
 #-------------------------------------------
 script:
+  - id: save_and_refresh_runtime
+    then:
+      - globals.set:
+          id: total_runtime_multiple
+          value: !lambda "return id(total_runtime_multiple);"
+      - lvgl.label.update:
+          id: summer_max_display
+          text: !lambda |-
+            static char text[15];
+            snprintf(text, sizeof(text), "%.2f hrs", id(total_runtime_multiple));
+            return text;
+      - lvgl.label.update:
+          id: pump_runtime_label
+          text: !lambda |-
+            static char buf[16];
+            sprintf(buf, "%.2f", id(total_runtime_multiple));
+            return buf;
+      - logger.log:
+          format: "Runtime saved: %.2f hours"
+          args: ['id(total_runtime_multiple)']
+          
   - id: manual_irrigation_test
     then:
       - logger.log: "Manual irrigation test started"
