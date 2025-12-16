@@ -257,6 +257,28 @@ esphome:
       - lambda: |-
           ESP_LOGI("BOOT", "Irrigation calculation executed - daily_runtime=%d minutes", id(calculated_daily_runtime));
           ESP_LOGI("BOOT", "UI labels refreshed with total_runtime_multiple=%.2f hours", id(total_runtime_multiple));
+      # Wait for Home Assistant to finish syncing pool dimensions, then recalculate runtime
+      - delay: 1500ms
+      - lambda: |-
+          // After HA syncs, recalculate runtime from pool dimensions
+          float volume = id(global_pool_length) * id(global_pool_width) * id(global_pool_depth);
+          float flow = id(pump_flow_rate);
+          float cycles = id(global_cycles_count);
+          float temp = id(owm_temperature).has_state() ? id(owm_temperature).state : 25.0f;
+          
+          if (flow <= 0.1f) flow = 1.0f;
+          float temp_factor = 1.0f;
+          if (temp > 40.0f) temp_factor = 1.3f;
+          else if (temp < 20.0f) temp_factor = 0.8f;
+          
+          float runtime = (volume / (flow*0.001)) * cycles * temp_factor;
+          if (runtime > 24.0f) runtime = 24.0f;
+          
+          id(total_runtime_multiple) = runtime;
+          id(total_runtime).publish_state(runtime);
+          ESP_LOGI("BOOT", "Post-HA recalculation: volume=%.2fm³ flow=%.0fL/h cycles=%.1f → runtime=%.2f hours",
+                   volume, flow, cycles, runtime);
+      - script.execute: save_and_refresh_runtime
 esp32:
   board: esp32-s3-devkitc-1
   variant: esp32s3
