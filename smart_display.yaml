@@ -2339,6 +2339,16 @@ lvgl:
                 - switch.toggle: sw1
                 - lambda: |-
                     id(sw1_manual_override_time) = id(time_comp).now().timestamp;
+                    // If turning ON manually, set off time based on manual duration
+                    if (id(sw1).state) {
+                      auto now = id(time_comp).now();
+                      id(sw1_off_time) = now.timestamp + (id(manual_duration_hours) * 3600);
+                      ESP_LOGI("automation", "SW1 manual ON - will turn off in %d hours (at %u)", 
+                               id(manual_duration_hours), id(sw1_off_time));
+                    } else {
+                      id(sw1_off_time) = 0;
+                      ESP_LOGI("automation", "SW1 manual OFF - timer cleared");
+                    }
 
         - image:
             src: settings_icon
@@ -6576,74 +6586,100 @@ script:
               ESP_LOGD("automation", "SW1 off_time cleared (stale timer)");
             }
             
-            // Use user-defined sunrise duration
-            int sunrise_seconds = id(sunrise_duration_hours) * 3600;
+            // ===== AUTOMATION MODE LOGIC =====
+            // Mode 0: Duration - Light on after sunset for X hours
+            // Mode 1: Until Time - Light on from sunset until specific time
+            // Mode 2: Between - Light on from sunset to sunrise
+            // Mode 3: Manual - Manual button press with duration
             
-            // Check if it's time to turn on before sunrise
-            if ((int32_t)(sunrise_ts - now.timestamp) <= sunrise_seconds && 
-                (int32_t)(sunrise_ts - now.timestamp) > (sunrise_seconds - 60) && 
-                !id(sw1_before_sunrise) && !id(sw1).state) {
-                id(sw1).turn_on();
-                id(sw1_before_sunrise) = true;
-                ESP_LOGI("automation", "SW1 turned ON - %d hours before sunrise", id(sunrise_duration_hours));
+            int mode = id(automation_mode);
+            
+            // Sunrise automation - turn on before sunrise if configured
+            if (mode != 3 && id(sunrise_duration_hours) > 0) {
+              int sunrise_seconds = id(sunrise_duration_hours) * 3600;
+              
+              // Check if it's time to turn on before sunrise
+              if ((int32_t)(sunrise_ts - now.timestamp) <= sunrise_seconds && 
+                  (int32_t)(sunrise_ts - now.timestamp) > (sunrise_seconds - 60) && 
+                  !id(sw1_before_sunrise) && !id(sw1).state) {
+                  id(sw1).turn_on();
+                  id(sw1_before_sunrise) = true;
+                  ESP_LOGI("automation", "SW1 turned ON - %d hours before sunrise (mode=%d)", id(sunrise_duration_hours), mode);
+              }
+              
+              // Check if it's sunrise time - turn off
+              if (abs((int32_t)(sunrise_ts - now.timestamp)) < 60 && 
+                  id(sw1_before_sunrise) && id(sw1).state) {
+                  id(sw1).turn_off();
+                  id(sw1_before_sunrise) = false;
+                  id(sw1_off_time) = 0;
+                  ESP_LOGI("automation", "SW1 turned OFF - sunrise reached");
+              }
             }
             
-            // Check if it's sunrise time
-            if (abs((int32_t)(sunrise_ts - now.timestamp)) < 60 && 
-                id(sw1_before_sunrise) && id(sw1).state) {
-                id(sw1).turn_off();
-                id(sw1_before_sunrise) = false;
-                ESP_LOGI("automation", "SW1 turned OFF - sunrise");
-            }
-            
-            // Sunset logic with user settings - now using real or computed times
-            // Trigger if we're within window OR if it's after sunset and light should be on
-            int sunset_window = 900; // seconds = 15 minutes (to catch late checks)
+            // Sunset automation logic
+            int sunset_window = 900; // 15 minutes to catch late checks
             int32_t time_since_sunset = (int32_t)(now.timestamp - sunset_ts);
             bool in_sunset_window = (time_since_sunset >= -sunset_window && time_since_sunset <= sunset_window);
-            bool past_sunset_today = (time_since_sunset > 0 && time_since_sunset < 3600); // Within 1 hour after sunset
+            bool past_sunset_today = (time_since_sunset > 0 && time_since_sunset < 3600); // Within 1 hour after
             
-            if ((in_sunset_window || past_sunset_today) && 
+            // Turn on at sunset (except in manual mode 3)
+            if (mode != 3 && (in_sunset_window || past_sunset_today) && 
                 !id(sw1).state && id(sw1_off_time) == 0) {
                 id(sw1).turn_on();
                 
-                // Use automation mode to determine off time
-                if (id(automation_mode) == 0) {
-                  // Duration mode
-                  id(sw1_off_time) = now.timestamp + (id(sunset_duration_hours) * 3600);
-                } else if (id(automation_mode) == 1) {
-                  // Until time mode
-                  uint32_t base = day_start_ts + 86400u; // start of tomorrow
-                  id(sw1_off_time) = base + (uint32_t)id(sunset_until_time_hour) * 3600u + (uint32_t)id(sunset_until_time_minute) * 60u;
-                } else if (id(automation_mode) == 2) {
-                  // Between times mode - turn off at sunrise
-                  auto next_sunrise = id(sun_comp).sunrise(1.0); // Next day
+                // Calculate off time based on automation mode
+                if (mode == 0) {
+                  // Duration mode: sunset + X hours
+                  id(sw1_off_time) = sunset_ts + (id(sunset_duration_hours) * 3600);
+                  ESP_LOGI("automation", "SW1 ON - Duration mode: %d hrs from sunset (off at %u)", 
+                           id(sunset_duration_hours), id(sw1_off_time));
+                  
+                } else if (mode == 1) {
+                  // Until Time mode: specific time (could be today or tomorrow)
+                  uint32_t until_ts = day_start_ts + 
+                                      (uint32_t)id(sunset_until_time_hour) * 3600u + 
+                                      (uint32_t)id(sunset_until_time_minute) * 60u;
+                  
+                  // If until_time is before sunset (e.g., 02:00), it's tomorrow
+                  if (until_ts < sunset_ts) {
+                    until_ts += 86400u;
+                  }
+                  id(sw1_off_time) = until_ts;
+                  ESP_LOGI("automation", "SW1 ON - Until Time mode: off at %02d:%02d (ts=%u)", 
+                           id(sunset_until_time_hour), id(sunset_until_time_minute), id(sw1_off_time));
+                  
+                } else if (mode == 2) {
+                  // Between Times mode: sunset to next sunrise
+                  auto next_sunrise = id(sun_comp).sunrise(1.0);
                   if (next_sunrise.has_value()) {
                     id(sw1_off_time) = next_sunrise.value().timestamp;
                   } else {
-                    id(sw1_off_time) = (uint32_t)(sunrise_ts + 86400u);
+                    id(sw1_off_time) = sunrise_ts + 86400u; // Approximate next sunrise
                   }
-                } else {
-                  // Manual mode - use manual duration
-                  id(sw1_off_time) = now.timestamp + (id(manual_duration_hours) * 3600);
+                  ESP_LOGI("automation", "SW1 ON - Between mode: sunset to sunrise (off at %u)", id(sw1_off_time));
                 }
                 
-                ESP_LOGI("automation", "SW1 turned ON - sunset (mode: %d, time_since_sunset=%ds)", id(automation_mode), time_since_sunset);
-              }
-              else {
-                ESP_LOGD("light_time", "Sunset not triggering: now=%u sunset=%u diff=%d in_window=%d past_sunset=%d state=%d off_time=%u",
-                         now.timestamp, sunset_ts, time_since_sunset, in_sunset_window, past_sunset_today,
-                         id(sw1).state ? 1 : 0, id(sw1_off_time));
-              }
+                ESP_LOGI("automation", "SW1 turned ON at sunset (mode=%d, time_since_sunset=%ds)", mode, time_since_sunset);
             }
             
-            // Check timer for turn off
+            // Check timer to turn off (except in Between mode - that uses sunrise)
             if (id(sw1).state && !id(sw1_before_sunrise) && 
-                now.timestamp >= id(sw1_off_time) && id(sw1_off_time) > 0) {
+                id(sw1_off_time) > 0 && now.timestamp >= id(sw1_off_time)) {
               id(sw1).turn_off();
               id(sw1_off_time) = 0;
-              ESP_LOGI("automation", "SW1 turned OFF - timer expired");
+              ESP_LOGI("automation", "SW1 turned OFF - timer expired (mode=%d)", mode);
             }
+          }
+          
+          // Check manual mode timer even when in override (manual button press)
+          if (id(sw1_manual_override_time) > 0 && id(sw1).state && 
+              id(sw1_off_time) > 0 && now.timestamp >= id(sw1_off_time)) {
+            id(sw1).turn_off();
+            id(sw1_off_time) = 0;
+            ESP_LOGI("automation", "SW1 manual OFF - timer expired after %d hours", id(manual_duration_hours));
+          }
+          
           // Keep lambda open for subsequent SW2/SW3 logic
 
           // ---- SWITCH 2: SEASONAL POOL PUMP CONTROL ----
