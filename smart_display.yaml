@@ -6707,6 +6707,25 @@ script:
             bool in_sunset_window = (time_since_sunset >= -sunset_window && time_since_sunset <= sunset_window);
             bool past_sunset_today = (time_since_sunset > 0 && time_since_sunset < 3600); // Within 1 hour after
             
+            // Special handling for Between Times mode (mode 2): Check if we're currently in the sunset-to-sunrise period
+            if (mode == 2 && !id(sw1).state && id(sw1_off_time) == 0) {
+              // Calculate next sunrise timestamp
+              uint32_t next_sunrise_ts;
+              auto next_sunrise = id(sun_comp).sunrise(1.0);
+              if (next_sunrise.has_value()) {
+                next_sunrise_ts = next_sunrise.value().timestamp;
+              } else {
+                next_sunrise_ts = sunrise_ts + 86400u; // Tomorrow's sunrise
+              }
+              
+              // Check if we're between today's sunset and tomorrow's sunrise
+              if (now.timestamp > sunset_ts && now.timestamp < next_sunrise_ts) {
+                id(sw1).turn_on();
+                id(sw1_off_time) = next_sunrise_ts;
+                ESP_LOGI("automation", "SW1 ON - Between mode catchup: already past sunset, on until sunrise (off at %u)", id(sw1_off_time));
+              }
+            }
+            
             // Turn on at sunset (except in manual mode 3)
             if (mode != 3 && (in_sunset_window || past_sunset_today) && 
                 !id(sw1).state && id(sw1_off_time) == 0) {
