@@ -1182,6 +1182,34 @@ number:
       then:
         - lambda: |-
             id(sunset_duration_hours) = (int)x;
+            
+            // If light is currently ON in Duration mode, recalculate off_time with new duration
+            if (id(sw1).state && id(automation_mode) == 0 && id(sw1_manual_override_time) == 0) {
+              auto now = id(time_comp).now();
+              auto sunset_opt = id(sun_comp).sunset(0.0);
+              
+              uint32_t seconds_since_midnight = (now.hour * 3600u) + (now.minute * 60u) + now.second;
+              uint32_t day_start_ts = now.timestamp - seconds_since_midnight;
+              uint32_t sunset_ts;
+              
+              if (sunset_opt.has_value()) {
+                sunset_ts = sunset_opt.value().timestamp;
+              } else {
+                // Compute approximate sunset for Portugal
+                int day_of_year = now.day_of_year;
+                float season_factor = sin((day_of_year - 80) * M_PI / 182.5f);
+                int sunset_h = 18 + (int)(season_factor * 2.5f);
+                int sunset_m = 30 + (int)(season_factor * 15.0f);
+                sunset_ts = day_start_ts + (uint32_t)(sunset_h * 3600 + sunset_m * 60);
+              }
+              
+              // Recalculate off_time with new duration
+              uint32_t new_off_time = sunset_ts + (id(sunset_duration_hours) * 3600);
+              id(sw1_off_time) = new_off_time;
+              
+              int mins_left = (new_off_time - now.timestamp) / 60;
+              ESP_LOGI("automation", "Duration changed: Light off_time updated to %d mins from now", mins_left);
+            }
         - lvgl.label.update:
             id: sunset_hours_display
             text: !lambda |-
@@ -1222,6 +1250,19 @@ number:
       then:
         - lambda: |-
             id(manual_duration_hours) = (int)x;
+            
+            // If light ON in Manual mode, recalculate off_time with new manual duration
+            if (id(sw1).state && id(automation_mode) == 3 && id(sw1_manual_override_time) == 0) {
+              auto now = id(sntp_time).now();
+              if (!now.is_valid()) return;
+              
+              // Recalculate off_time from now
+              uint32_t new_off_time = now.timestamp + (id(manual_duration_hours) * 3600);
+              id(sw1_off_time) = new_off_time;
+              
+              int mins_left = (new_off_time - now.timestamp) / 60;
+              ESP_LOGI("automation", "Manual Duration changed: Light off_time updated to %d mins from now", mins_left);
+            }
         - lvgl.label.update:
             id: manual_hours_display
             text: !lambda |-
@@ -1242,6 +1283,27 @@ number:
       then:
         - lambda: |-
             id(sunset_until_time_hour) = (int)x;
+            
+            // If light ON in Until Time mode, recalculate off_time with new until_time
+            if (id(sw1).state && id(automation_mode) == 1 && id(sw1_manual_override_time) == 0) {
+              auto now = id(sntp_time).now();
+              if (!now.is_valid()) return;
+              
+              // Calculate target off time (sunset until specified HH:MM)
+              uint32_t day_start_ts = now.timestamp - (now.hour * 3600) - (now.minute * 60) - now.second;
+              uint32_t until_ts = day_start_ts + (id(sunset_until_time_hour) * 3600) + (id(sunset_until_time_minute) * 60);
+              
+              // If until_time is earlier than now, it means next day
+              if (until_ts < now.timestamp) {
+                until_ts += 86400; // Add 24 hours
+              }
+              
+              // Update off_time
+              id(sw1_off_time) = until_ts;
+              
+              int mins_left = (until_ts - now.timestamp) / 60;
+              ESP_LOGI("automation", "Until Time changed: Light off_time updated to %d mins from now", mins_left);
+            }
         - lvgl.label.update:
             id: until_time_display
             text: !lambda |-
@@ -1262,6 +1324,27 @@ number:
       then:
         - lambda: |-
             id(sunset_until_time_minute) = (int)x;
+            
+            // If light ON in Until Time mode, recalculate off_time with new until_time
+            if (id(sw1).state && id(automation_mode) == 1 && id(sw1_manual_override_time) == 0) {
+              auto now = id(sntp_time).now();
+              if (!now.is_valid()) return;
+              
+              // Calculate target off time (sunset until specified HH:MM)
+              uint32_t day_start_ts = now.timestamp - (now.hour * 3600) - (now.minute * 60) - now.second;
+              uint32_t until_ts = day_start_ts + (id(sunset_until_time_hour) * 3600) + (id(sunset_until_time_minute) * 60);
+              
+              // If until_time is earlier than now, it means next day
+              if (until_ts < now.timestamp) {
+                until_ts += 86400; // Add 24 hours
+              }
+              
+              // Update off_time
+              id(sw1_off_time) = until_ts;
+              
+              int mins_left = (until_ts - now.timestamp) / 60;
+              ESP_LOGI("automation", "Until Time changed: Light off_time updated to %d mins from now", mins_left);
+            }
         - lvgl.label.update:
             id: until_time_display
             text: !lambda |-
