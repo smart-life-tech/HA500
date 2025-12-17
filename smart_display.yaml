@@ -6659,6 +6659,13 @@ script:
                      now.hour, now.minute, sunrise_h, sunrise_m, sunset_h, sunset_m,
                      id(automation_mode), id(sw1).state ? 1 : 0,
                      (long long)id(sw1_off_time), id(sw1_manual_override_time) > 0 ? 1 : 0);
+            
+            // Log timer details for debugging
+            if (id(sw1).state && id(sw1_off_time) > 0) {
+              int32_t time_until_off = (int32_t)(id(sw1_off_time) - now.timestamp);
+              ESP_LOGI("light_time", "SW1 timer: now_ts=%u off_ts=%u time_until_off=%ds (%d min)",
+                       now.timestamp, id(sw1_off_time), time_until_off, time_until_off / 60);
+            }
           }
 
           // Use unified epoch timestamps for automation below
@@ -6723,6 +6730,38 @@ script:
                 id(sw1).turn_on();
                 id(sw1_off_time) = next_sunrise_ts;
                 ESP_LOGI("automation", "SW1 ON - Between mode catchup: already past sunset, on until sunrise (off at %u)", id(sw1_off_time));
+              }
+            }
+            
+            // Special handling for Duration mode (mode 0): Check if we're still within the duration period
+            if (mode == 0 && !id(sw1).state && id(sw1_off_time) == 0) {
+              uint32_t expected_off_time = sunset_ts + (id(sunset_duration_hours) * 3600);
+              // If we're past sunset but before expected off time, turn on
+              if (now.timestamp > sunset_ts && now.timestamp < expected_off_time) {
+                id(sw1).turn_on();
+                id(sw1_off_time) = expected_off_time;
+                int mins_left = (expected_off_time - now.timestamp) / 60;
+                ESP_LOGI("automation", "SW1 ON - Duration mode catchup: %d mins left of %d hr duration", 
+                         mins_left, id(sunset_duration_hours));
+              }
+            }
+            
+            // Special handling for Until Time mode (mode 1): Check if we're before the until time
+            if (mode == 1 && !id(sw1).state && id(sw1_off_time) == 0) {
+              uint32_t until_ts = day_start_ts + 
+                                  (uint32_t)id(sunset_until_time_hour) * 3600u + 
+                                  (uint32_t)id(sunset_until_time_minute) * 60u;
+              // If until_time is before sunset, it's tomorrow
+              if (until_ts < sunset_ts) {
+                until_ts += 86400u;
+              }
+              // If we're past sunset but before until time, turn on
+              if (now.timestamp > sunset_ts && now.timestamp < until_ts) {
+                id(sw1).turn_on();
+                id(sw1_off_time) = until_ts;
+                int mins_left = (until_ts - now.timestamp) / 60;
+                ESP_LOGI("automation", "SW1 ON - Until Time mode catchup: %d mins until %02d:%02d", 
+                         mins_left, id(sunset_until_time_hour), id(sunset_until_time_minute));
               }
             }
             
