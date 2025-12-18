@@ -6870,8 +6870,19 @@ script:
             // Mode 1: Until Time - Light on from sunset until specific time
             // Mode 2: Between - Light on from sunset to sunrise
             // Mode 3: Manual - Manual button press with duration
+            // Mode -1: No mode selected - Light should be OFF
             
             int mode = id(automation_mode);
+            
+            // If no mode selected, ensure light is OFF
+            if (mode == -1) {
+              if (id(sw1).state) {
+                id(sw1).turn_off();
+                id(sw1_off_time) = 0;
+                ESP_LOGI("automation", "No automation mode selected: SW1 turned OFF");
+              }
+              // Skip all other SW1 automation logic
+            } else {
             
             // Sunrise automation - turn on before sunrise if configured
             if (mode != 3 && id(sunrise_duration_hours) > 0) {
@@ -7000,6 +7011,8 @@ script:
               id(sw1_off_time) = 0;
               ESP_LOGI("automation", "SW1 turned OFF - timer expired (mode=%d)", mode);
             }
+            
+            } // End of else block for mode != -1
           }
           
           // Check manual mode timer even when in override (manual button press)
