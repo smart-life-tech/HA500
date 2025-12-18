@@ -4359,6 +4359,11 @@ lvgl:
                   on_click:
                     then:
                       - lambda: |-
+                          // If leaving Manual mode, turn light off
+                          if (id(automation_mode) == 3) {
+                            id(sw1).turn_off();
+                            ESP_LOGI("automation", "Left Manual mode: Light turned OFF");
+                          }
                           id(automation_mode) = 0;
                       - lvgl.widget.update:
                           id: mode_duration_btn
@@ -4392,6 +4397,11 @@ lvgl:
                   on_click:
                     then:
                       - lambda: |-
+                          // If leaving Manual mode, turn light off
+                          if (id(automation_mode) == 3) {
+                            id(sw1).turn_off();
+                            ESP_LOGI("automation", "Left Manual mode: Light turned OFF");
+                          }
                           id(automation_mode) = 1;
                       - lvgl.widget.update:
                           id: mode_duration_btn
@@ -4425,6 +4435,11 @@ lvgl:
                   on_click:
                     then:
                       - lambda: |-
+                          // If leaving Manual mode, turn light off
+                          if (id(automation_mode) == 3) {
+                            id(sw1).turn_off();
+                            ESP_LOGI("automation", "Left Manual mode: Light turned OFF");
+                          }
                           id(automation_mode) = 2;
                       - lvgl.widget.update:
                           id: mode_duration_btn
