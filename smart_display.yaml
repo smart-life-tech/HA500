@@ -7178,8 +7178,8 @@ touchscreen:
     - lambda: |-
         ESP_LOGD("touch", "Touch at (%d, %d)", touch.x, touch.y);
         id(last_touch_time) = millis();
-        // Check if touch is in top-left WiFi area (x: 0-60, y: 50-100)
-        if (touch.x <= 100 && touch.y >= 5 && touch.y <= 100 && (id(lvgl_comp).get_current_page()) == 0) {
+        // Check if touch is in top-left WiFi area (reduced to actual icon size: 50x50 at position 10,10)
+        if (touch.x >= 5 && touch.x <= 65 && touch.y >= 5 && touch.y <= 65 && (id(lvgl_comp).get_current_page()) == 0) {
           ESP_LOGD("touch", "WiFi area touched at (%d, %d)", touch.x, touch.y);
           // execute the page toggle script 
           id(toggle_wifi_popup).execute();
