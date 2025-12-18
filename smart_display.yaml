@@ -4458,6 +4458,15 @@ lvgl:
                     then:
                       - lambda: |-
                           id(automation_mode) = 3;
+                          
+                          // Turn light ON immediately in Manual mode and set timer
+                          auto now = id(sntp_time).now();
+                          if (now.is_valid()) {
+                            id(sw1).turn_on();
+                            id(sw1_off_time) = now.timestamp + (id(manual_duration_hours) * 3600);
+                            id(sw1_manual_override_time) = 0; // Clear override so timer works
+                            ESP_LOGI("automation", "Manual mode selected: Light ON, auto-off in %d hours", id(manual_duration_hours));
+                          }
                       - lvgl.widget.update:
                           id: mode_duration_btn
                           state:
