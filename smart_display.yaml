@@ -4359,6 +4359,14 @@ lvgl:
                   on_click:
                     then:
                       - lambda: |-
+                          // If already in Duration mode, deselect and turn off light
+                          if (id(automation_mode) == 0) {
+                            id(automation_mode) = -1; // No mode selected
+                            id(sw1).turn_off();
+                            id(sw1_off_time) = 0;
+                            ESP_LOGI("automation", "No automation mode selected: Light turned OFF");
+                            return;
+                          }
                           // If leaving Manual mode, turn light off
                           if (id(automation_mode) == 3) {
                             id(sw1).turn_off();
@@ -4368,7 +4376,7 @@ lvgl:
                       - lvgl.widget.update:
                           id: mode_duration_btn
                           state:
-                            checked: true
+                            checked: !lambda "return id(automation_mode) == 0;"
                       - lvgl.widget.update:
                           id: mode_until_btn
                           state:
@@ -4397,6 +4405,14 @@ lvgl:
                   on_click:
                     then:
                       - lambda: |-
+                          // If already in Until Time mode, deselect and turn off light
+                          if (id(automation_mode) == 1) {
+                            id(automation_mode) = -1; // No mode selected
+                            id(sw1).turn_off();
+                            id(sw1_off_time) = 0;
+                            ESP_LOGI("automation", "No automation mode selected: Light turned OFF");
+                            return;
+                          }
                           // If leaving Manual mode, turn light off
                           if (id(automation_mode) == 3) {
                             id(sw1).turn_off();
@@ -4410,7 +4426,7 @@ lvgl:
                       - lvgl.widget.update:
                           id: mode_until_btn
                           state:
-                            checked: true
+                            checked: !lambda "return id(automation_mode) == 1;"
                       - lvgl.widget.update:
                           id: mode_between_btn
                           state:
@@ -4435,6 +4451,14 @@ lvgl:
                   on_click:
                     then:
                       - lambda: |-
+                          // If already in Between Times mode, deselect and turn off light
+                          if (id(automation_mode) == 2) {
+                            id(automation_mode) = -1; // No mode selected
+                            id(sw1).turn_off();
+                            id(sw1_off_time) = 0;
+                            ESP_LOGI("automation", "No automation mode selected: Light turned OFF");
+                            return;
+                          }
                           // If leaving Manual mode, turn light off
                           if (id(automation_mode) == 3) {
                             id(sw1).turn_off();
@@ -4452,7 +4476,7 @@ lvgl:
                       - lvgl.widget.update:
                           id: mode_between_btn
                           state:
-                            checked: true
+                            checked: !lambda "return id(automation_mode) == 2;"
                       - lvgl.widget.update:
                           id: mode_manual_btn
                           state:
@@ -4472,6 +4496,15 @@ lvgl:
                   on_click:
                     then:
                       - lambda: |-
+                          // If already in Manual mode, deselect and turn off light
+                          if (id(automation_mode) == 3) {
+                            id(automation_mode) = -1; // No mode selected
+                            id(sw1).turn_off();
+                            id(sw1_off_time) = 0;
+                            ESP_LOGI("automation", "No automation mode selected: Light turned OFF");
+                            return;
+                          }
+                          
                           id(automation_mode) = 3;
                           
                           // Turn light ON immediately in Manual mode and set timer
@@ -4490,6 +4523,15 @@ lvgl:
                           id: mode_until_btn
                           state:
                             checked: false
+                      - lvgl.widget.update:
+                          id: mode_between_btn
+                          state:
+                            checked: false
+                      - lvgl.widget.update:
+                          id: mode_manual_btn
+                          state:
+                            checked: !lambda "return id(automation_mode) == 3;"
+                           
                       - lvgl.widget.update:
                           id: mode_between_btn
                           state:
@@ -4675,6 +4717,7 @@ lvgl:
               then:
                 - lambda: |-
                     id(sw3_winter_mode) = !id(sw3_winter_mode);
+                - script.execute: calculate_irrigation_needs
                 - if:
                     condition:
                       lambda: "return id(sw3_winter_mode);"
@@ -4685,6 +4728,13 @@ lvgl:
                       - lvgl.label.update:
                           id: sw3_button_label
                           text: "Valve (Winter)"
+                      - lvgl.label.update:
+                          id: season_mode_label
+                          text: "Winter Mode"
+                      - lvgl.widget.update:
+                          id: winter_summer_toggle
+                          state:
+                            checked: true
                     else:
                       - lvgl.label.update:
                           id: sw3_mode_label
@@ -4692,6 +4742,13 @@ lvgl:
                       - lvgl.label.update:
                           id: sw3_button_label
                           text: "Valve (Summer)"
+                      - lvgl.label.update:
+                          id: season_mode_label
+                          text: "Summer Mode"
+                      - lvgl.widget.update:
+                          id: winter_summer_toggle
+                          state:
+                            checked: false
         # Weather Impact Section
         - obj:
             width: 460
@@ -4772,10 +4829,30 @@ lvgl:
                             - lvgl.label.update:
                                 id: season_mode_label
                                 text: "Winter Mode"
+                            - lvgl.label.update:
+                                id: sw3_mode_label
+                                text: "Valve: Winter (Rain-based)"
+                            - lvgl.label.update:
+                                id: sw3_button_label
+                                text: "Valve (Winter)"
+                            - lvgl.widget.update:
+                                id: sw3_mode_toggle
+                                state:
+                                  checked: true
                           else:
                             - lvgl.label.update:
                                 id: season_mode_label
                                 text: "Summer Mode"
+                            - lvgl.label.update:
+                                id: sw3_mode_label
+                                text: "Summer (Temperature-based)"
+                            - lvgl.label.update:
+                                id: sw3_button_label
+                                text: "Valve (Summer)"
+                            - lvgl.widget.update:
+                                id: sw3_mode_toggle
+                                state:
+                                  checked: false
 
               - button:
                   id: manual_irrigation_btn
@@ -4794,7 +4871,11 @@ lvgl:
                     then:
                       - switch.toggle: sw3
                       - lambda: |-
-                          id(sw3_manual_override_time) = id(time_comp).now().timestamp;
+                          auto now = id(sntp_time).now();
+                          if (now.is_valid()) {
+                            id(sw3_manual_override_time) = now.timestamp;
+                            ESP_LOGI("automation", "SW3 manual override activated for 24 hours");
+                          }
 
               - button:
                   id: back_to_controls_btn
