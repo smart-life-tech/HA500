@@ -2043,7 +2043,7 @@ lvgl:
                   border_width: 0
         - obj:
             width: 460
-            height: 160
+            height: 170
             bg_color: 0x1E3A8A
             bg_opa: 0%
             radius: 10
@@ -2091,28 +2091,28 @@ lvgl:
                   text_font: roboto24
                   text_color: orange_color
                   x: 0
-                  y: 120
+                  y: 140
               - label:
                   id: sunrise_time_label
                   text: "--:--"
                   text_font: roboto24
                   text_color: yellow_color
                   x: 140
-                  y: 120
+                  y: 140
 
               - label:
                   text: " Sunset:"
                   text_font: roboto24
                   text_color: orange_color
                   x: 230
-                  y: 120
+                  y: 140
               - label:
                   id: sunset_time_label
                   text: "--:--"
                   text_font: roboto24
                   text_color: yellow_color
                   x: 360
-                  y: 120
+                  y: 140
 
 
         # Weather section - semi-transparent overlay
