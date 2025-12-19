@@ -2083,7 +2083,37 @@ lvgl:
                   y: 45
                   border_width: 0
                   width: 480
-                  scrollable: false # Add this
+                  scrollable: false 
+
+              # Row 5: Sunrise and Sunset times
+              - label:
+                  text: "☀️ Sunrise:"
+                  text_font: roboto24
+                  text_color: orange_color
+                  x: 0
+                  y: 60
+              - label:
+                  id: sunrise_time_label
+                  text: "--:--"
+                  text_font: roboto24
+                  text_color: yellow_color
+                  x: 140
+                  y: 60
+
+              - label:
+                  text: "🌅 Sunset:"
+                  text_font: roboto24
+                  text_color: orange_color
+                  x: 230
+                  y: 60
+              - label:
+                  id: sunset_time_label
+                  text: "--:--"
+                  text_font: roboto24
+                  text_color: yellow_color
+                  x: 360
+                  y: 60
+
 
         # Weather section - semi-transparent overlay
         - obj:
@@ -2227,35 +2257,7 @@ lvgl:
                   x: 230
                   y: 165
 
-              # Row 5: Sunrise and Sunset times
-              - label:
-                  text: "☀️ Sunrise:"
-                  text_font: roboto24
-                  text_color: orange_color
-                  x: 0
-                  y: 210
-              - label:
-                  id: sunrise_time_label
-                  text: "--:--"
-                  text_font: roboto24
-                  text_color: yellow_color
-                  x: 140
-                  y: 210
-
-              - label:
-                  text: "🌅 Sunset:"
-                  text_font: roboto24
-                  text_color: orange_color
-                  x: 230
-                  y: 210
-              - label:
-                  id: sunset_time_label
-                  text: "--:--"
-                  text_font: roboto24
-                  text_color: yellow_color
-                  x: 360
-                  y: 210
-
+              
               # Location name
               - label:
                   id: location_display_label
