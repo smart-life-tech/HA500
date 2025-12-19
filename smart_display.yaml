@@ -2227,6 +2227,35 @@ lvgl:
                   x: 230
                   y: 165
 
+              # Row 5: Sunrise and Sunset times
+              - label:
+                  text: "☀️ Sunrise:"
+                  text_font: roboto24
+                  text_color: orange_color
+                  x: 0
+                  y: 210
+              - label:
+                  id: sunrise_time_label
+                  text: "--:--"
+                  text_font: roboto24
+                  text_color: yellow_color
+                  x: 140
+                  y: 210
+
+              - label:
+                  text: "🌅 Sunset:"
+                  text_font: roboto24
+                  text_color: orange_color
+                  x: 230
+                  y: 210
+              - label:
+                  id: sunset_time_label
+                  text: "--:--"
+                  text_font: roboto24
+                  text_color: yellow_color
+                  x: 360
+                  y: 210
+
               # Location name
               - label:
                   id: location_display_label
@@ -6720,6 +6749,43 @@ script:
             static char date_buf[32];
             sprintf(date_buf, "%s, %s %d, %d", day_names[now.day_of_week - 1], mon_names[now.month-1], now.day_of_month, now.year);
             return date_buf;
+      # Update sunrise/sunset times
+      - lvgl.label.update:
+          id: sunrise_time_label
+          text: !lambda |-
+            auto sunrise_opt = id(sun_comp).sunrise(0.0);
+            if (sunrise_opt.has_value()) {
+              auto sunrise = sunrise_opt.value();
+              static char buf[6];
+              sprintf(buf, "%02d:%02d", sunrise.hour, sunrise.minute);
+              return buf;
+            }
+            auto now = id(time_comp).now();
+            int day_of_year = now.day_of_year;
+            float season_factor = sin((day_of_year - 80) * M_PI / 182.5f);
+            int sunrise_h = 6 + (int)(season_factor * 1.5f);
+            int sunrise_m = 30 + (int)(season_factor * 15.0f);
+            static char buf[6];
+            sprintf(buf, "%02d:%02d", sunrise_h, sunrise_m);
+            return buf;
+      - lvgl.label.update:
+          id: sunset_time_label
+          text: !lambda |-
+            auto sunset_opt = id(sun_comp).sunset(0.0);
+            if (sunset_opt.has_value()) {
+              auto sunset = sunset_opt.value();
+              static char buf[6];
+              sprintf(buf, "%02d:%02d", sunset.hour, sunset.minute);
+              return buf;
+            }
+            auto now = id(time_comp).now();
+            int day_of_year = now.day_of_year;
+            float season_factor = sin((day_of_year - 80) * M_PI / 182.5f);
+            int sunset_h = 18 + (int)(season_factor * 2.5f);
+            int sunset_m = 30 + (int)(season_factor * 15.0f);
+            static char buf[6];
+            sprintf(buf, "%02d:%02d", sunset_h, sunset_m);
+            return buf;
       # Weather display updates (no automation logic)
       - lvgl.label.update:
           id: weather_label
@@ -6921,14 +6987,24 @@ script:
               if (next_sunrise.has_value()) {
                 next_sunrise_ts = next_sunrise.value().timestamp;
               } else {
-                next_sunrise_ts = sunrise_ts + 86400u; // Tomorrow's sunrise
+                // Fallback: compute tomorrow's sunrise
+                int day_of_year = now.day_of_year + 1;
+                if (day_of_year > 365) day_of_year = 1;
+                float season_factor = sin((day_of_year - 80) * M_PI / 182.5f);
+                int next_sunrise_h = 6 + (int)(season_factor * 1.5f);
+                int next_sunrise_m = 30 + (int)(season_factor * 15.0f);
+                uint32_t next_day_start = day_start_ts + 86400u;
+                next_sunrise_ts = next_day_start + (uint32_t)(next_sunrise_h * 3600 + next_sunrise_m * 60);
               }
               
               // Check if we're between today's sunset and tomorrow's sunrise
               if (now.timestamp > sunset_ts && now.timestamp < next_sunrise_ts) {
                 id(sw1).turn_on();
                 id(sw1_off_time) = next_sunrise_ts;
-                ESP_LOGI("automation", "SW1 ON - Between mode catchup: already past sunset, on until sunrise (off at %u)", id(sw1_off_time));
+                int hrs_until = (next_sunrise_ts - now.timestamp) / 3600;
+                int mins_until = ((next_sunrise_ts - now.timestamp) % 3600) / 60;
+                ESP_LOGI("automation", "SW1 ON - Between mode catchup: already past sunset, on until sunrise in %dh%dm (off_ts=%u)", 
+                         hrs_until, mins_until, id(sw1_off_time));
               }
             }
             
@@ -6996,9 +7072,19 @@ script:
                   if (next_sunrise.has_value()) {
                     id(sw1_off_time) = next_sunrise.value().timestamp;
                   } else {
-                    id(sw1_off_time) = sunrise_ts + 86400u; // Approximate next sunrise
+                    // Fallback: compute tomorrow's sunrise
+                    int day_of_year = now.day_of_year + 1;
+                    if (day_of_year > 365) day_of_year = 1;
+                    float season_factor = sin((day_of_year - 80) * M_PI / 182.5f);
+                    int next_sunrise_h = 6 + (int)(season_factor * 1.5f);
+                    int next_sunrise_m = 30 + (int)(season_factor * 15.0f);
+                    uint32_t next_day_start = day_start_ts + 86400u;
+                    id(sw1_off_time) = next_day_start + (uint32_t)(next_sunrise_h * 3600 + next_sunrise_m * 60);
                   }
-                  ESP_LOGI("automation", "SW1 ON - Between mode: sunset to sunrise (off at %u)", id(sw1_off_time));
+                  int hrs_until = (id(sw1_off_time) - now.timestamp) / 3600;
+                  int mins_until = ((id(sw1_off_time) - now.timestamp) % 3600) / 60;
+                  ESP_LOGI("automation", "SW1 ON - Between mode: sunset to sunrise in %dh%dm (off_ts=%u)", 
+                           hrs_until, mins_until, id(sw1_off_time));
                 }
                 
                 ESP_LOGI("automation", "SW1 turned ON at sunset (mode=%d, time_since_sunset=%ds)", mode, time_since_sunset);
