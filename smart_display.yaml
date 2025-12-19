@@ -6762,13 +6762,23 @@ script:
               sprintf(buf, "%02d:%02d", sunrise.hour, sunrise.minute);
               return buf;
             }
+            // Fallback: use improved Portugal calculation
             auto now = id(time_comp).now();
             int day_of_year = now.day_of_year;
-            float season_factor = sin((day_of_year - 80) * M_PI / 182.5f);
-            int sunrise_h = 6 + (int)(season_factor * 1.5f);
-            int sunrise_m = 30 + (int)(season_factor * 15.0f);
+            float days_from_winter;
+            if (day_of_year >= 172) {
+              days_from_winter = (day_of_year <= 355) ? (355 - day_of_year) : (365 - day_of_year + 355);
+            } else {
+              days_from_winter = (172 - day_of_year);
+            }
+            float season_factor = 1.0f - (days_from_winter / 183.0f);
+            if (season_factor < 0.0f) season_factor = 0.0f;
+            if (season_factor > 1.0f) season_factor = 1.0f;
+            int winter_sunrise_min = 7 * 60 + 40;
+            int summer_sunrise_min = 6 * 60 + 10;
+            int sunrise_total_min = winter_sunrise_min + (int)((summer_sunrise_min - winter_sunrise_min) * season_factor);
             static char buf[6];
-            sprintf(buf, "%02d:%02d", sunrise_h, sunrise_m);
+            sprintf(buf, "%02d:%02d", sunrise_total_min / 60, sunrise_total_min % 60);
             return buf;
       - lvgl.label.update:
           id: sunset_time_label
@@ -6780,13 +6790,23 @@ script:
               sprintf(buf, "%02d:%02d", sunset.hour, sunset.minute);
               return buf;
             }
+            // Fallback: use improved Portugal calculation
             auto now = id(time_comp).now();
             int day_of_year = now.day_of_year;
-            float season_factor = sin((day_of_year - 80) * M_PI / 182.5f);
-            int sunset_h = 18 + (int)(season_factor * 2.5f);
-            int sunset_m = 30 + (int)(season_factor * 15.0f);
+            float days_from_winter;
+            if (day_of_year >= 172) {
+              days_from_winter = (day_of_year <= 355) ? (355 - day_of_year) : (365 - day_of_year + 355);
+            } else {
+              days_from_winter = (172 - day_of_year);
+            }
+            float season_factor = 1.0f - (days_from_winter / 183.0f);
+            if (season_factor < 0.0f) season_factor = 0.0f;
+            if (season_factor > 1.0f) season_factor = 1.0f;
+            int winter_sunset_min = 17 * 60 + 15;
+            int summer_sunset_min = 20 * 60 + 50;
+            int sunset_total_min = winter_sunset_min + (int)((summer_sunset_min - winter_sunset_min) * season_factor);
             static char buf[6];
-            sprintf(buf, "%02d:%02d", sunset_h, sunset_m);
+            sprintf(buf, "%02d:%02d", sunset_total_min / 60, sunset_total_min % 60);
             return buf;
       # Weather display updates (no automation logic)
       - lvgl.label.update:
@@ -6889,21 +6909,47 @@ script:
           bool using_computed = false;
 
           if (!sunrise_opt.has_value() || !sunset_opt.has_value()) {
-            // Sun component not ready - compute approximate times for Portugal (Algarve)
+            // Sun component not ready - compute approximate times for Portugal (Algarve, 37.26°N)
+            // Using actual observed values: Dec ~07:40/17:15, Jun ~06:10/20:50
             int day_of_year = now.day_of_year;
-            float season_factor = sin((day_of_year - 80) * M_PI / 182.5f);
-            sunrise_h = 6 + (int)(season_factor * 1.5f);
-            sunrise_m = 30 + (int)(season_factor * 15.0f);
-            sunset_h = 18 + (int)(season_factor * 2.5f);
-            sunset_m = 30 + (int)(season_factor * 15.0f);
+            
+            // Winter solstice ~Dec 21 (day 355), Summer solstice ~Jun 21 (day 172)
+            // Calculate how far we are from winter solstice
+            float days_from_winter;
+            if (day_of_year >= 172) {
+              // After summer solstice, heading toward winter
+              days_from_winter = (day_of_year <= 355) ? (355 - day_of_year) : (365 - day_of_year + 355);
+            } else {
+              // Before summer solstice, heading away from winter
+              days_from_winter = (172 - day_of_year);
+            }
+            
+            // Normalize to 0.0 (winter) to 1.0 (summer)
+            float season_factor = 1.0f - (days_from_winter / 183.0f);
+            if (season_factor < 0.0f) season_factor = 0.0f;
+            if (season_factor > 1.0f) season_factor = 1.0f;
+            
+            // Sunrise: 07:40 in winter, 06:10 in summer (90 minute variation)
+            int winter_sunrise_min = 7 * 60 + 40;  // 07:40
+            int summer_sunrise_min = 6 * 60 + 10;  // 06:10
+            int sunrise_total_min = winter_sunrise_min + (int)((summer_sunrise_min - winter_sunrise_min) * season_factor);
+            sunrise_h = sunrise_total_min / 60;
+            sunrise_m = sunrise_total_min % 60;
+            
+            // Sunset: 17:15 in winter, 20:50 in summer (215 minute variation)
+            int winter_sunset_min = 17 * 60 + 15;  // 17:15
+            int summer_sunset_min = 20 * 60 + 50;  // 20:50
+            int sunset_total_min = winter_sunset_min + (int)((summer_sunset_min - winter_sunset_min) * season_factor);
+            sunset_h = sunset_total_min / 60;
+            sunset_m = sunset_total_min % 60;
 
             sunrise_ts = day_start_ts + (uint32_t)(sunrise_h * 3600 + sunrise_m * 60);
             sunset_ts = day_start_ts + (uint32_t)(sunset_h * 3600 + sunset_m * 60);
 
             using_computed = true;
-            ESP_LOGW("light_time", "SW1: COMPUTED (sun component failed) now=%02d:%02d sunrise=%02d:%02d sunset=%02d:%02d mode=%d state=%d",
+            ESP_LOGW("light_time", "SW1: COMPUTED (sun component failed) now=%02d:%02d sunrise=%02d:%02d sunset=%02d:%02d mode=%d state=%d day=%d season=%.2f",
                      now.hour, now.minute, sunrise_h, sunrise_m, sunset_h, sunset_m,
-                     id(automation_mode), id(sw1).state ? 1 : 0);
+                     id(automation_mode), id(sw1).state ? 1 : 0, day_of_year, season_factor);
           } else {
             auto sunrise_time = sunrise_opt.value();
             auto sunset_time = sunset_opt.value();
@@ -6992,9 +7038,20 @@ script:
                 // Fallback: compute tomorrow's sunrise
                 int day_of_year = now.day_of_year + 1;
                 if (day_of_year > 365) day_of_year = 1;
-                float season_factor = sin((day_of_year - 80) * M_PI / 182.5f);
-                int next_sunrise_h = 6 + (int)(season_factor * 1.5f);
-                int next_sunrise_m = 30 + (int)(season_factor * 15.0f);
+                float days_from_winter;
+                if (day_of_year >= 172) {
+                  days_from_winter = (day_of_year <= 355) ? (355 - day_of_year) : (365 - day_of_year + 355);
+                } else {
+                  days_from_winter = (172 - day_of_year);
+                }
+                float season_factor = 1.0f - (days_from_winter / 183.0f);
+                if (season_factor < 0.0f) season_factor = 0.0f;
+                if (season_factor > 1.0f) season_factor = 1.0f;
+                int winter_sunrise_min = 7 * 60 + 40;
+                int summer_sunrise_min = 6 * 60 + 10;
+                int sunrise_total_min = winter_sunrise_min + (int)((summer_sunrise_min - winter_sunrise_min) * season_factor);
+                int next_sunrise_h = sunrise_total_min / 60;
+                int next_sunrise_m = sunrise_total_min % 60;
                 uint32_t next_day_start = day_start_ts + 86400u;
                 next_sunrise_ts = next_day_start + (uint32_t)(next_sunrise_h * 3600 + next_sunrise_m * 60);
               }
@@ -7077,9 +7134,20 @@ script:
                     // Fallback: compute tomorrow's sunrise
                     int day_of_year = now.day_of_year + 1;
                     if (day_of_year > 365) day_of_year = 1;
-                    float season_factor = sin((day_of_year - 80) * M_PI / 182.5f);
-                    int next_sunrise_h = 6 + (int)(season_factor * 1.5f);
-                    int next_sunrise_m = 30 + (int)(season_factor * 15.0f);
+                    float days_from_winter;
+                    if (day_of_year >= 172) {
+                      days_from_winter = (day_of_year <= 355) ? (355 - day_of_year) : (365 - day_of_year + 355);
+                    } else {
+                      days_from_winter = (172 - day_of_year);
+                    }
+                    float season_factor = 1.0f - (days_from_winter / 183.0f);
+                    if (season_factor < 0.0f) season_factor = 0.0f;
+                    if (season_factor > 1.0f) season_factor = 1.0f;
+                    int winter_sunrise_min = 7 * 60 + 40;
+                    int summer_sunrise_min = 6 * 60 + 10;
+                    int sunrise_total_min = winter_sunrise_min + (int)((summer_sunrise_min - winter_sunrise_min) * season_factor);
+                    int next_sunrise_h = sunrise_total_min / 60;
+                    int next_sunrise_m = sunrise_total_min % 60;
                     uint32_t next_day_start = day_start_ts + 86400u;
                     id(sw1_off_time) = next_day_start + (uint32_t)(next_sunrise_h * 3600 + next_sunrise_m * 60);
                   }
@@ -7980,7 +8048,7 @@ interval:
                             size_t end = body.find("\"", start);
                             if (end != std::string::npos) {
                               std::string city_name = body.substr(start, end - start);
-                              id(location_name_str) = city_name;
+                              //id(location_name_str) = city_name;
                               ESP_LOGD("weather", "City name: %s", city_name.c_str());
                               //id(weather_city).publish_state(city_name);
                             }
