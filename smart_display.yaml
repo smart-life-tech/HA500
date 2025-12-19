@@ -2087,32 +2087,32 @@ lvgl:
 
               # Row 5: Sunrise and Sunset times
               - label:
-                  text: "☀️ Sunrise:"
+                  text: " Sunrise:"
                   text_font: roboto24
                   text_color: orange_color
                   x: 0
-                  y: 60
+                  y: 80
               - label:
                   id: sunrise_time_label
                   text: "--:--"
                   text_font: roboto24
                   text_color: yellow_color
                   x: 140
-                  y: 60
+                  y: 80
 
               - label:
-                  text: "🌅 Sunset:"
+                  text: " Sunset:"
                   text_font: roboto24
                   text_color: orange_color
                   x: 230
-                  y: 60
+                  y: 80
               - label:
                   id: sunset_time_label
                   text: "--:--"
                   text_font: roboto24
                   text_color: yellow_color
                   x: 360
-                  y: 60
+                  y: 80
 
 
         # Weather section - semi-transparent overlay
