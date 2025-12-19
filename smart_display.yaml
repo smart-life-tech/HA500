@@ -2089,7 +2089,7 @@ lvgl:
               - label:
                   text: " Sunrise:"
                   text_font: roboto24
-                  text_color: orange_color
+                  text_color: yellow_color
                   x: 0
                   y: 140
               - label:
@@ -2103,7 +2103,7 @@ lvgl:
               - label:
                   text: " Sunset:"
                   text_font: roboto24
-                  text_color: orange_color
+                  text_color: yellow_color
                   x: 230
                   y: 140
               - label:
