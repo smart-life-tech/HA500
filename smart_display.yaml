@@ -2043,7 +2043,7 @@ lvgl:
                   border_width: 0
         - obj:
             width: 460
-            height: 140
+            height: 160
             bg_color: 0x1E3A8A
             bg_opa: 0%
             radius: 10
@@ -6765,13 +6765,19 @@ script:
             // Fallback: use improved Portugal calculation
             auto now = id(time_comp).now();
             int day_of_year = now.day_of_year;
-            float days_from_winter;
-            if (day_of_year >= 172) {
-              days_from_winter = (day_of_year <= 355) ? (355 - day_of_year) : (365 - day_of_year + 355);
+            float season_factor;
+            if (day_of_year >= 172 && day_of_year <= 355) {
+              float days_since_summer = day_of_year - 172;
+              season_factor = 1.0f - (days_since_summer / 183.0f);
             } else {
-              days_from_winter = (172 - day_of_year);
+              float days_since_winter;
+              if (day_of_year > 355) {
+                days_since_winter = day_of_year - 355;
+              } else {
+                days_since_winter = (365 - 355) + day_of_year;
+              }
+              season_factor = days_since_winter / 182.5f;
             }
-            float season_factor = 1.0f - (days_from_winter / 183.0f);
             if (season_factor < 0.0f) season_factor = 0.0f;
             if (season_factor > 1.0f) season_factor = 1.0f;
             int winter_sunrise_min = 7 * 60 + 40;
@@ -6793,13 +6799,19 @@ script:
             // Fallback: use improved Portugal calculation
             auto now = id(time_comp).now();
             int day_of_year = now.day_of_year;
-            float days_from_winter;
-            if (day_of_year >= 172) {
-              days_from_winter = (day_of_year <= 355) ? (355 - day_of_year) : (365 - day_of_year + 355);
+            float season_factor;
+            if (day_of_year >= 172 && day_of_year <= 355) {
+              float days_since_summer = day_of_year - 172;
+              season_factor = 1.0f - (days_since_summer / 183.0f);
             } else {
-              days_from_winter = (172 - day_of_year);
+              float days_since_winter;
+              if (day_of_year > 355) {
+                days_since_winter = day_of_year - 355;
+              } else {
+                days_since_winter = (365 - 355) + day_of_year;
+              }
+              season_factor = days_since_winter / 182.5f;
             }
-            float season_factor = 1.0f - (days_from_winter / 183.0f);
             if (season_factor < 0.0f) season_factor = 0.0f;
             if (season_factor > 1.0f) season_factor = 1.0f;
             int winter_sunset_min = 17 * 60 + 15;
@@ -6914,18 +6926,26 @@ script:
             int day_of_year = now.day_of_year;
             
             // Winter solstice ~Dec 21 (day 355), Summer solstice ~Jun 21 (day 172)
-            // Calculate how far we are from winter solstice
-            float days_from_winter;
-            if (day_of_year >= 172) {
-              // After summer solstice, heading toward winter
-              days_from_winter = (day_of_year <= 355) ? (355 - day_of_year) : (365 - day_of_year + 355);
+            // Calculate season factor: 0.0 = winter, 1.0 = summer
+            float season_factor;
+            
+            if (day_of_year >= 172 && day_of_year <= 355) {
+              // From summer toward winter (Jun 21 to Dec 21)
+              float days_since_summer = day_of_year - 172;
+              season_factor = 1.0f - (days_since_summer / 183.0f);
             } else {
-              // Before summer solstice, heading away from winter
-              days_from_winter = (172 - day_of_year);
+              // From winter toward summer (Dec 21 to Jun 21)
+              // Handle year wrap: day 356-365 or day 1-171
+              float days_since_winter;
+              if (day_of_year > 355) {
+                days_since_winter = day_of_year - 355;  // Days 356-365
+              } else {
+                days_since_winter = (365 - 355) + day_of_year;  // Days 1-171
+              }
+              season_factor = days_since_winter / 182.5f;
             }
             
-            // Normalize to 0.0 (winter) to 1.0 (summer)
-            float season_factor = 1.0f - (days_from_winter / 183.0f);
+            // Clamp to valid range
             if (season_factor < 0.0f) season_factor = 0.0f;
             if (season_factor > 1.0f) season_factor = 1.0f;
             
@@ -7038,13 +7058,19 @@ script:
                 // Fallback: compute tomorrow's sunrise
                 int day_of_year = now.day_of_year + 1;
                 if (day_of_year > 365) day_of_year = 1;
-                float days_from_winter;
-                if (day_of_year >= 172) {
-                  days_from_winter = (day_of_year <= 355) ? (355 - day_of_year) : (365 - day_of_year + 355);
+                float season_factor;
+                if (day_of_year >= 172 && day_of_year <= 355) {
+                  float days_since_summer = day_of_year - 172;
+                  season_factor = 1.0f - (days_since_summer / 183.0f);
                 } else {
-                  days_from_winter = (172 - day_of_year);
+                  float days_since_winter;
+                  if (day_of_year > 355) {
+                    days_since_winter = day_of_year - 355;
+                  } else {
+                    days_since_winter = (365 - 355) + day_of_year;
+                  }
+                  season_factor = days_since_winter / 182.5f;
                 }
-                float season_factor = 1.0f - (days_from_winter / 183.0f);
                 if (season_factor < 0.0f) season_factor = 0.0f;
                 if (season_factor > 1.0f) season_factor = 1.0f;
                 int winter_sunrise_min = 7 * 60 + 40;
@@ -7134,13 +7160,19 @@ script:
                     // Fallback: compute tomorrow's sunrise
                     int day_of_year = now.day_of_year + 1;
                     if (day_of_year > 365) day_of_year = 1;
-                    float days_from_winter;
-                    if (day_of_year >= 172) {
-                      days_from_winter = (day_of_year <= 355) ? (355 - day_of_year) : (365 - day_of_year + 355);
+                    float season_factor;
+                    if (day_of_year >= 172 && day_of_year <= 355) {
+                      float days_since_summer = day_of_year - 172;
+                      season_factor = 1.0f - (days_since_summer / 183.0f);
                     } else {
-                      days_from_winter = (172 - day_of_year);
+                      float days_since_winter;
+                      if (day_of_year > 355) {
+                        days_since_winter = day_of_year - 355;
+                      } else {
+                        days_since_winter = (365 - 355) + day_of_year;
+                      }
+                      season_factor = days_since_winter / 182.5f;
                     }
-                    float season_factor = 1.0f - (days_from_winter / 183.0f);
                     if (season_factor < 0.0f) season_factor = 0.0f;
                     if (season_factor > 1.0f) season_factor = 1.0f;
                     int winter_sunrise_min = 7 * 60 + 40;
