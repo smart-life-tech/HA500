@@ -2091,28 +2091,28 @@ lvgl:
                   text_font: roboto24
                   text_color: orange_color
                   x: 0
-                  y: 80
+                  y: 120
               - label:
                   id: sunrise_time_label
                   text: "--:--"
                   text_font: roboto24
                   text_color: yellow_color
                   x: 140
-                  y: 80
+                  y: 120
 
               - label:
                   text: " Sunset:"
                   text_font: roboto24
                   text_color: orange_color
                   x: 230
-                  y: 80
+                  y: 120
               - label:
                   id: sunset_time_label
                   text: "--:--"
                   text_font: roboto24
                   text_color: yellow_color
                   x: 360
-                  y: 80
+                  y: 120
 
 
         # Weather section - semi-transparent overlay
@@ -6758,9 +6758,9 @@ script:
             auto sunrise_opt = id(sun_comp).sunrise(0.0);
             if (sunrise_opt.has_value()) {
               auto sunrise = sunrise_opt.value();
-              static char buf[6];
-              sprintf(buf, "%02d:%02d", sunrise.hour, sunrise.minute);
-              return buf;
+              static char buf1[6];
+              sprintf(buf1, "%02d:%02d", sunrise.hour, sunrise.minute);
+              return buf1;
             }
             // Fallback: use improved Portugal calculation
             auto now = id(time_comp).now();
@@ -6777,18 +6777,18 @@ script:
             int winter_sunrise_min = 7 * 60 + 40;
             int summer_sunrise_min = 6 * 60 + 10;
             int sunrise_total_min = winter_sunrise_min + (int)((summer_sunrise_min - winter_sunrise_min) * season_factor);
-            static char buf[6];
-            sprintf(buf, "%02d:%02d", sunrise_total_min / 60, sunrise_total_min % 60);
-            return buf;
+            static char buf2[6];
+            sprintf(buf2, "%02d:%02d", sunrise_total_min / 60, sunrise_total_min % 60);
+            return buf2;
       - lvgl.label.update:
           id: sunset_time_label
           text: !lambda |-
             auto sunset_opt = id(sun_comp).sunset(0.0);
             if (sunset_opt.has_value()) {
               auto sunset = sunset_opt.value();
-              static char buf[6];
-              sprintf(buf, "%02d:%02d", sunset.hour, sunset.minute);
-              return buf;
+              static char buf3[6];
+              sprintf(buf3, "%02d:%02d", sunset.hour, sunset.minute);
+              return buf3;
             }
             // Fallback: use improved Portugal calculation
             auto now = id(time_comp).now();
@@ -6805,9 +6805,9 @@ script:
             int winter_sunset_min = 17 * 60 + 15;
             int summer_sunset_min = 20 * 60 + 50;
             int sunset_total_min = winter_sunset_min + (int)((summer_sunset_min - winter_sunset_min) * season_factor);
-            static char buf[6];
-            sprintf(buf, "%02d:%02d", sunset_total_min / 60, sunset_total_min % 60);
-            return buf;
+            static char buf4[6];
+            sprintf(buf4, "%02d:%02d", sunset_total_min / 60, sunset_total_min % 60);
+            return buf4;
       # Weather display updates (no automation logic)
       - lvgl.label.update:
           id: weather_label
