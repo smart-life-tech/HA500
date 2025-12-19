@@ -2043,7 +2043,7 @@ lvgl:
                   border_width: 0
         - obj:
             width: 460
-            height: 170
+            height: 190
             bg_color: 0x1E3A8A
             bg_opa: 0%
             radius: 10
