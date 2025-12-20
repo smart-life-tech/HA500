@@ -8257,6 +8257,22 @@ interval:
                           }
                           return vis_text;
 
+                    - lvgl.label.update:
+                        id: sunrise_time_label
+                        text: !lambda |-
+                          if (id(owm_sunrise_time).has_state()) {
+                            return id(owm_sunrise_time).state.c_str();
+                          }
+                          return "--:--";
+
+                    - lvgl.label.update:
+                        id: sunset_time_label
+                        text: !lambda |-
+                          if (id(owm_sunset_time).has_state()) {
+                            return id(owm_sunset_time).state.c_str();
+                          }
+                          return "--:--";
+
                     - logger.log: "All weather display labels updated"
 
                 on_error:
