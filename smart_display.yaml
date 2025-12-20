@@ -6915,10 +6915,6 @@ script:
           // Only run automations if not in manual override mode
           // ---- SWITCH 1: SUNRISE/SUNSET CONTROL WITH USER SETTINGS ----
           
-          // Log sun times every 10s for debugging and derive epoch timestamps
-          auto sunrise_opt = id(sun_comp).sunrise(0.0);
-          auto sunset_opt = id(sun_comp).sunset(0.0);
-          
           // Seconds since start of today (local time)
           uint32_t seconds_since_midnight = (now.hour * 3600u) + (now.minute * 60u) + now.second;
           uint32_t day_start_ts = now.timestamp - seconds_since_midnight;
@@ -6927,8 +6923,36 @@ script:
           int sunrise_h = 0, sunrise_m = 0, sunset_h = 0, sunset_m = 0;
           uint32_t sunrise_ts = 0, sunset_ts = 0;
           bool using_computed = false;
+          bool using_owm = false;
 
-          if (!sunrise_opt.has_value() || !sunset_opt.has_value()) {
+          // Try OWM API times first (most accurate)
+          if (id(owm_sunrise_time).has_state() && id(owm_sunset_time).has_state()) {
+            std::string sunrise_str = id(owm_sunrise_time).state;
+            std::string sunset_str = id(owm_sunset_time).state;
+            
+            // Parse "HH:MM" format
+            if (sunrise_str.length() >= 5 && sunset_str.length() >= 5) {
+              sunrise_h = std::stoi(sunrise_str.substr(0, 2));
+              sunrise_m = std::stoi(sunrise_str.substr(3, 2));
+              sunset_h = std::stoi(sunset_str.substr(0, 2));
+              sunset_m = std::stoi(sunset_str.substr(3, 2));
+              
+              sunrise_ts = day_start_ts + (uint32_t)(sunrise_h * 3600 + sunrise_m * 60);
+              sunset_ts = day_start_ts + (uint32_t)(sunset_h * 3600 + sunset_m * 60);
+              
+              using_owm = true;
+              ESP_LOGI("light_time", "SW1: OWM API now=%02d:%02d sunrise=%02d:%02d sunset=%02d:%02d mode=%d state=%d",
+                       now.hour, now.minute, sunrise_h, sunrise_m, sunset_h, sunset_m,
+                       id(automation_mode), id(sw1).state ? 1 : 0);
+            }
+          }
+          
+          // Fallback to sun component if OWM not available
+          if (!using_owm) {
+            auto sunrise_opt = id(sun_comp).sunrise(0.0);
+            auto sunset_opt = id(sun_comp).sunset(0.0);
+            
+            if (!sunrise_opt.has_value() || !sunset_opt.has_value()) {
             // Sun component not ready - compute approximate times for Portugal (Algarve, 37.26°N)
             // Using actual observed values: Dec ~07:40/17:15, Jun ~06:10/20:50
             int day_of_year = now.day_of_year;
@@ -6978,24 +7002,25 @@ script:
             ESP_LOGW("light_time", "SW1: COMPUTED (sun component failed) now=%02d:%02d sunrise=%02d:%02d sunset=%02d:%02d mode=%d state=%d day=%d season=%.2f",
                      now.hour, now.minute, sunrise_h, sunrise_m, sunset_h, sunset_m,
                      id(automation_mode), id(sw1).state ? 1 : 0, day_of_year, season_factor);
-          } else {
-            auto sunrise_time = sunrise_opt.value();
-            auto sunset_time = sunset_opt.value();
-            sunrise_h = sunrise_time.hour; sunrise_m = sunrise_time.minute;
-            sunset_h = sunset_time.hour; sunset_m = sunset_time.minute;
-            sunrise_ts = sunrise_time.timestamp; sunset_ts = sunset_time.timestamp;
+            } else {
+              auto sunrise_time = sunrise_opt.value();
+              auto sunset_time = sunset_opt.value();
+              sunrise_h = sunrise_time.hour; sunrise_m = sunrise_time.minute;
+              sunset_h = sunset_time.hour; sunset_m = sunset_time.minute;
+              sunrise_ts = sunrise_time.timestamp; sunset_ts = sunset_time.timestamp;
 
-            ESP_LOGI("light_time", "SW1: now=%02d:%02d sunrise=%02d:%02d sunset=%02d:%02d mode=%d state=%d off_time=%lld override=%d",
-                     now.hour, now.minute, sunrise_h, sunrise_m, sunset_h, sunset_m,
-                     id(automation_mode), id(sw1).state ? 1 : 0,
-                     (long long)id(sw1_off_time), id(sw1_manual_override_time) > 0 ? 1 : 0);
-            
-            // Log timer details for debugging
-            if (id(sw1).state && id(sw1_off_time) > 0) {
-              int32_t time_until_off = (int32_t)(id(sw1_off_time) - now.timestamp);
-              ESP_LOGI("light_time", "SW1 timer: now_ts=%u off_ts=%u time_until_off=%ds (%d min)",
-                       now.timestamp, id(sw1_off_time), time_until_off, time_until_off / 60);
+              ESP_LOGI("light_time", "SW1: SUN COMPONENT now=%02d:%02d sunrise=%02d:%02d sunset=%02d:%02d mode=%d state=%d off_time=%lld override=%d",
+                       now.hour, now.minute, sunrise_h, sunrise_m, sunset_h, sunset_m,
+                       id(automation_mode), id(sw1).state ? 1 : 0,
+                       (long long)id(sw1_off_time), id(sw1_manual_override_time) > 0 ? 1 : 0);
             }
+          }
+
+          // Log timer details for debugging (regardless of source)
+          if (id(sw1).state && id(sw1_off_time) > 0) {
+            int32_t time_until_off = (int32_t)(id(sw1_off_time) - now.timestamp);
+            ESP_LOGI("light_time", "SW1 timer: now_ts=%u off_ts=%u time_until_off=%ds (%d min)",
+                     now.timestamp, id(sw1_off_time), time_until_off, time_until_off / 60);
           }
 
           // Use unified epoch timestamps for automation below
