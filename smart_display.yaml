@@ -7084,35 +7084,41 @@ script:
             if (mode == 2 && !id(sw1).state && id(sw1_off_time) == 0) {
               // Calculate next sunrise timestamp
               uint32_t next_sunrise_ts;
-              auto next_sunrise = id(sun_comp).sunrise(1.0);
-              if (next_sunrise.has_value()) {
-                next_sunrise_ts = next_sunrise.value().timestamp;
+              
+              // If using OWM API, calculate tomorrow's sunrise (add 24 hours to today's sunrise)
+              if (using_owm) {
+                next_sunrise_ts = sunrise_ts + 86400u; // Tomorrow's sunrise (approx same time)
               } else {
-                // Fallback: compute tomorrow's sunrise
-                int day_of_year = now.day_of_year + 1;
-                if (day_of_year > 365) day_of_year = 1;
-                float season_factor;
-                if (day_of_year >= 172 && day_of_year <= 355) {
-                  float days_since_summer = day_of_year - 172;
-                  season_factor = 1.0f - (days_since_summer / 183.0f);
+                auto next_sunrise = id(sun_comp).sunrise(1.0);
+                if (next_sunrise.has_value()) {
+                  next_sunrise_ts = next_sunrise.value().timestamp;
                 } else {
-                  float days_since_winter;
-                  if (day_of_year > 355) {
-                    days_since_winter = day_of_year - 355;
+                  // Fallback: compute tomorrow's sunrise
+                  int day_of_year = now.day_of_year + 1;
+                  if (day_of_year > 365) day_of_year = 1;
+                  float season_factor;
+                  if (day_of_year >= 172 && day_of_year <= 355) {
+                    float days_since_summer = day_of_year - 172;
+                    season_factor = 1.0f - (days_since_summer / 183.0f);
                   } else {
-                    days_since_winter = (365 - 355) + day_of_year;
+                    float days_since_winter;
+                    if (day_of_year > 355) {
+                      days_since_winter = day_of_year - 355;
+                    } else {
+                      days_since_winter = (365 - 355) + day_of_year;
+                    }
+                    season_factor = days_since_winter / 182.5f;
                   }
-                  season_factor = days_since_winter / 182.5f;
+                  if (season_factor < 0.0f) season_factor = 0.0f;
+                  if (season_factor > 1.0f) season_factor = 1.0f;
+                  int winter_sunrise_min = 7 * 60 + 40;
+                  int summer_sunrise_min = 6 * 60 + 10;
+                  int sunrise_total_min = winter_sunrise_min + (int)((summer_sunrise_min - winter_sunrise_min) * season_factor);
+                  int next_sunrise_h = sunrise_total_min / 60;
+                  int next_sunrise_m = sunrise_total_min % 60;
+                  uint32_t next_day_start = day_start_ts + 86400u;
+                  next_sunrise_ts = next_day_start + (uint32_t)(next_sunrise_h * 3600 + next_sunrise_m * 60);
                 }
-                if (season_factor < 0.0f) season_factor = 0.0f;
-                if (season_factor > 1.0f) season_factor = 1.0f;
-                int winter_sunrise_min = 7 * 60 + 40;
-                int summer_sunrise_min = 6 * 60 + 10;
-                int sunrise_total_min = winter_sunrise_min + (int)((summer_sunrise_min - winter_sunrise_min) * season_factor);
-                int next_sunrise_h = sunrise_total_min / 60;
-                int next_sunrise_m = sunrise_total_min % 60;
-                uint32_t next_day_start = day_start_ts + 86400u;
-                next_sunrise_ts = next_day_start + (uint32_t)(next_sunrise_h * 3600 + next_sunrise_m * 60);
               }
               
               // Check if we're between today's sunset and tomorrow's sunrise
@@ -7186,35 +7192,40 @@ script:
                   
                 } else if (mode == 2) {
                   // Between Times mode: sunset to next sunrise
-                  auto next_sunrise = id(sun_comp).sunrise(1.0);
-                  if (next_sunrise.has_value()) {
-                    id(sw1_off_time) = next_sunrise.value().timestamp;
+                  if (using_owm) {
+                    // Use OWM sunrise time + 24 hours for tomorrow
+                    id(sw1_off_time) = sunrise_ts + 86400u;
                   } else {
-                    // Fallback: compute tomorrow's sunrise
-                    int day_of_year = now.day_of_year + 1;
-                    if (day_of_year > 365) day_of_year = 1;
-                    float season_factor;
-                    if (day_of_year >= 172 && day_of_year <= 355) {
-                      float days_since_summer = day_of_year - 172;
-                      season_factor = 1.0f - (days_since_summer / 183.0f);
+                    auto next_sunrise = id(sun_comp).sunrise(1.0);
+                    if (next_sunrise.has_value()) {
+                      id(sw1_off_time) = next_sunrise.value().timestamp;
                     } else {
-                      float days_since_winter;
-                      if (day_of_year > 355) {
-                        days_since_winter = day_of_year - 355;
+                      // Fallback: compute tomorrow's sunrise
+                      int day_of_year = now.day_of_year + 1;
+                      if (day_of_year > 365) day_of_year = 1;
+                      float season_factor;
+                      if (day_of_year >= 172 && day_of_year <= 355) {
+                        float days_since_summer = day_of_year - 172;
+                        season_factor = 1.0f - (days_since_summer / 183.0f);
                       } else {
-                        days_since_winter = (365 - 355) + day_of_year;
+                        float days_since_winter;
+                        if (day_of_year > 355) {
+                          days_since_winter = day_of_year - 355;
+                        } else {
+                          days_since_winter = (365 - 355) + day_of_year;
+                        }
+                        season_factor = days_since_winter / 182.5f;
                       }
-                      season_factor = days_since_winter / 182.5f;
+                      if (season_factor < 0.0f) season_factor = 0.0f;
+                      if (season_factor > 1.0f) season_factor = 1.0f;
+                      int winter_sunrise_min = 7 * 60 + 40;
+                      int summer_sunrise_min = 6 * 60 + 10;
+                      int sunrise_total_min = winter_sunrise_min + (int)((summer_sunrise_min - winter_sunrise_min) * season_factor);
+                      int next_sunrise_h = sunrise_total_min / 60;
+                      int next_sunrise_m = sunrise_total_min % 60;
+                      uint32_t next_day_start = day_start_ts + 86400u;
+                      id(sw1_off_time) = next_day_start + (uint32_t)(next_sunrise_h * 3600 + next_sunrise_m * 60);
                     }
-                    if (season_factor < 0.0f) season_factor = 0.0f;
-                    if (season_factor > 1.0f) season_factor = 1.0f;
-                    int winter_sunrise_min = 7 * 60 + 40;
-                    int summer_sunrise_min = 6 * 60 + 10;
-                    int sunrise_total_min = winter_sunrise_min + (int)((summer_sunrise_min - winter_sunrise_min) * season_factor);
-                    int next_sunrise_h = sunrise_total_min / 60;
-                    int next_sunrise_m = sunrise_total_min % 60;
-                    uint32_t next_day_start = day_start_ts + 86400u;
-                    id(sw1_off_time) = next_day_start + (uint32_t)(next_sunrise_h * 3600 + next_sunrise_m * 60);
                   }
                   int hrs_until = (id(sw1_off_time) - now.timestamp) / 3600;
                   int mins_until = ((id(sw1_off_time) - now.timestamp) % 3600) / 60;
