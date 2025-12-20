@@ -1424,6 +1424,14 @@ text_sensor:
     id: weather_description
     name: "Weather Description"
 
+  - platform: template
+    id: owm_sunrise_time
+    name: "OWM Sunrise Time"
+
+  - platform: template
+    id: owm_sunset_time
+    name: "OWM Sunset Time"
+
   - platform: wifi_info
     ip_address:
       name: "IP Address"
@@ -7908,7 +7916,7 @@ interval:
                 on_response:
                   then:
                     - lambda: |-
-                        ESP_LOGD("weather", "HTTP Status: %d", response);
+                        ESP_LOGD("weather", "HTTP Status: %d", response->status_code);
                         ESP_LOGD("weather", "Response body: %s", body.c_str());
 
                         if (body.length() > 0) {
@@ -8085,6 +8093,52 @@ interval:
                               //id(location_name_str) = city_name;
                               ESP_LOGD("weather", "City name: %s", city_name.c_str());
                               //id(weather_city).publish_state(city_name);
+                            }
+                          }
+                          
+                          // Parse sunrise time (Unix timestamp)
+                          size_t sunrise_pos = body.find("\"sunrise\":");
+                          if (sunrise_pos != std::string::npos) {
+                            size_t start = sunrise_pos + 10;
+                            size_t end = body.find(",", start);
+                            if (end == std::string::npos) end = body.find("}", start);
+                            
+                            if (end != std::string::npos) {
+                              std::string sunrise_str = body.substr(start, end - start);
+                              long sunrise_unix = std::stol(sunrise_str);
+                              
+                              // Convert Unix timestamp to local time
+                              auto sunrise_time = id(time_comp).timestamp_to_local(sunrise_unix);
+                              if (sunrise_time.is_valid()) {
+                                char time_str[20];
+                                snprintf(time_str, sizeof(time_str), "%02d:%02d", 
+                                        sunrise_time.hour, sunrise_time.minute);
+                                id(owm_sunrise_time).publish_state(time_str);
+                                ESP_LOGD("weather", "Sunrise: %s", time_str);
+                              }
+                            }
+                          }
+                          
+                          // Parse sunset time (Unix timestamp)
+                          size_t sunset_pos = body.find("\"sunset\":");
+                          if (sunset_pos != std::string::npos) {
+                            size_t start = sunset_pos + 9;
+                            size_t end = body.find(",", start);
+                            if (end == std::string::npos) end = body.find("}", start);
+                            
+                            if (end != std::string::npos) {
+                              std::string sunset_str = body.substr(start, end - start);
+                              long sunset_unix = std::stol(sunset_str);
+                              
+                              // Convert Unix timestamp to local time
+                              auto sunset_time = id(time_comp).timestamp_to_local(sunset_unix);
+                              if (sunset_time.is_valid()) {
+                                char time_str[20];
+                                snprintf(time_str, sizeof(time_str), "%02d:%02d", 
+                                        sunset_time.hour, sunset_time.minute);
+                                id(owm_sunset_time).publish_state(time_str);
+                                ESP_LOGD("weather", "Sunset: %s", time_str);
+                              }
                             }
                           }
 
