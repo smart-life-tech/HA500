@@ -8105,16 +8105,16 @@ interval:
                             
                             if (end != std::string::npos) {
                               std::string sunrise_str = body.substr(start, end - start);
-                              long sunrise_unix = std::stol(sunrise_str);
+                              time_t sunrise_unix = std::stol(sunrise_str);
                               
                               // Convert Unix timestamp to local time
-                              auto sunrise_time = id(time_comp).timestamp_to_local(sunrise_unix);
-                              if (sunrise_time.is_valid()) {
+                              struct tm * timeinfo = localtime(&sunrise_unix);
+                              if (timeinfo != nullptr) {
                                 char time_str[20];
                                 snprintf(time_str, sizeof(time_str), "%02d:%02d", 
-                                        sunrise_time.hour, sunrise_time.minute);
+                                        timeinfo->tm_hour, timeinfo->tm_min);
                                 id(owm_sunrise_time).publish_state(time_str);
-                                ESP_LOGD("weather", "Sunrise: %s", time_str);
+                                ESP_LOGD("weather", "Sunrise: %s (Unix: %ld)", time_str, sunrise_unix);
                               }
                             }
                           }
@@ -8128,16 +8128,16 @@ interval:
                             
                             if (end != std::string::npos) {
                               std::string sunset_str = body.substr(start, end - start);
-                              long sunset_unix = std::stol(sunset_str);
+                              time_t sunset_unix = std::stol(sunset_str);
                               
                               // Convert Unix timestamp to local time
-                              auto sunset_time = id(time_comp).timestamp_to_local(sunset_unix);
-                              if (sunset_time.is_valid()) {
+                              struct tm * timeinfo = localtime(&sunset_unix);
+                              if (timeinfo != nullptr) {
                                 char time_str[20];
                                 snprintf(time_str, sizeof(time_str), "%02d:%02d", 
-                                        sunset_time.hour, sunset_time.minute);
+                                        timeinfo->tm_hour, timeinfo->tm_min);
                                 id(owm_sunset_time).publish_state(time_str);
-                                ESP_LOGD("weather", "Sunset: %s", time_str);
+                                ESP_LOGD("weather", "Sunset: %s (Unix: %ld)", time_str, sunset_unix);
                               }
                             }
                           }
