@@ -7075,9 +7075,9 @@ script:
             }
             
             // Sunset automation logic
-            int sunset_window = 900; // 15 minutes to catch late checks
+            int sunset_window = 60; // 1 minute window for timing precision
             int32_t time_since_sunset = (int32_t)(now.timestamp - sunset_ts);
-            bool in_sunset_window = (time_since_sunset >= -sunset_window && time_since_sunset <= sunset_window);
+            bool in_sunset_window = (time_since_sunset >= 0 && time_since_sunset <= sunset_window);
             bool past_sunset_today = (time_since_sunset > 0 && time_since_sunset < 3600); // Within 1 hour after
             
             // Special handling for Between Times mode (mode 2): Check if we're currently in the sunset-to-sunrise period
