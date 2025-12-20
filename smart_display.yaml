@@ -7192,11 +7192,13 @@ script:
                 ESP_LOGI("automation", "SW1 turned ON at sunset (mode=%d, time_since_sunset=%ds)", mode, time_since_sunset);
             }
             
-            // Check timer to turn off (except in Between mode - that uses sunrise)
-            if (id(sw1).state && !id(sw1_before_sunrise) && 
-                id(sw1_off_time) > 0 && now.timestamp >= id(sw1_off_time)) {
+            // Check timer to turn off
+            // For Between mode (mode 2), this will trigger at sunrise time
+            // For other modes, this will trigger at the calculated off time
+            if (id(sw1).state && id(sw1_off_time) > 0 && now.timestamp >= id(sw1_off_time)) {
               id(sw1).turn_off();
               id(sw1_off_time) = 0;
+              id(sw1_before_sunrise) = false;  // Clear the before-sunrise flag
               ESP_LOGI("automation", "SW1 turned OFF - timer expired (mode=%d)", mode);
             }
             
