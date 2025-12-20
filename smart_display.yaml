@@ -8107,14 +8107,20 @@ interval:
                               std::string sunrise_str = body.substr(start, end - start);
                               time_t sunrise_unix = std::stol(sunrise_str);
                               
-                              // Convert Unix timestamp to local time
-                              struct tm * timeinfo = localtime(&sunrise_unix);
-                              if (timeinfo != nullptr) {
-                                char time_str[20];
-                                snprintf(time_str, sizeof(time_str), "%02d:%02d", 
-                                        timeinfo->tm_hour, timeinfo->tm_min);
-                                id(owm_sunrise_time).publish_state(time_str);
-                                ESP_LOGD("weather", "Sunrise: %s (Unix: %ld)", time_str, sunrise_unix);
+                              // Get timezone offset from ESPHome time component
+                              auto now = id(time_comp).now();
+                              if (now.is_valid()) {
+                                // Apply timezone offset (OWM returns UTC timestamps)
+                                time_t local_sunrise = sunrise_unix + now.timezone_offset();
+                                struct tm * timeinfo = gmtime(&local_sunrise);
+                                if (timeinfo != nullptr) {
+                                  char time_str[20];
+                                  snprintf(time_str, sizeof(time_str), "%02d:%02d", 
+                                          timeinfo->tm_hour, timeinfo->tm_min);
+                                  id(owm_sunrise_time).publish_state(time_str);
+                                  ESP_LOGD("weather", "Sunrise: %s (Unix: %ld, Offset: %d)", 
+                                          time_str, sunrise_unix, now.timezone_offset());
+                                }
                               }
                             }
                           }
@@ -8130,14 +8136,20 @@ interval:
                               std::string sunset_str = body.substr(start, end - start);
                               time_t sunset_unix = std::stol(sunset_str);
                               
-                              // Convert Unix timestamp to local time
-                              struct tm * timeinfo = localtime(&sunset_unix);
-                              if (timeinfo != nullptr) {
-                                char time_str[20];
-                                snprintf(time_str, sizeof(time_str), "%02d:%02d", 
-                                        timeinfo->tm_hour, timeinfo->tm_min);
-                                id(owm_sunset_time).publish_state(time_str);
-                                ESP_LOGD("weather", "Sunset: %s (Unix: %ld)", time_str, sunset_unix);
+                              // Get timezone offset from ESPHome time component
+                              auto now = id(time_comp).now();
+                              if (now.is_valid()) {
+                                // Apply timezone offset (OWM returns UTC timestamps)
+                                time_t local_sunset = sunset_unix + now.timezone_offset();
+                                struct tm * timeinfo = gmtime(&local_sunset);
+                                if (timeinfo != nullptr) {
+                                  char time_str[20];
+                                  snprintf(time_str, sizeof(time_str), "%02d:%02d", 
+                                          timeinfo->tm_hour, timeinfo->tm_min);
+                                  id(owm_sunset_time).publish_state(time_str);
+                                  ESP_LOGD("weather", "Sunset: %s (Unix: %ld, Offset: %d)", 
+                                          time_str, sunset_unix, now.timezone_offset());
+                                }
                               }
                             }
                           }
