@@ -6997,12 +6997,16 @@ script:
               }
               
               // Check if it's sunrise time - turn off
-              if (abs((int32_t)(sunrise_ts - now.timestamp)) < 60 && 
-                  id(sw1_before_sunrise) && id(sw1).state) {
+              // This should turn off light if either:
+              // 1. sw1_before_sunrise is true (sunrise_duration feature)
+              // 2. In Between mode (mode 2) and light is on with off_time set to sunrise
+              if (abs((int32_t)(sunrise_ts - now.timestamp)) < 60 && id(sw1).state) {
+                if (id(sw1_before_sunrise) || mode == 2) {
                   id(sw1).turn_off();
                   id(sw1_before_sunrise) = false;
                   id(sw1_off_time) = 0;
-                  ESP_LOGI("automation", "SW1 turned OFF - sunrise reached");
+                  ESP_LOGI("automation", "SW1 turned OFF - sunrise reached (mode=%d)", mode);
+                }
               }
             }
             
