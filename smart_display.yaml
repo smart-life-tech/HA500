@@ -2668,15 +2668,23 @@ lvgl:
 
               - label:
                   id: irrigation_summary_line2
-                  hidden: true
                   text: !lambda |-
                     static char line2_text[60];
+                    if (id(sw3_manual_override_time) > 0) {
+                      snprintf(line2_text, sizeof(line2_text), 
+                              "VALVE: MANUAL MODE ACTIVE");
+                      return line2_text;
+                    }
                     snprintf(line2_text, sizeof(line2_text), 
                             "Evap: %.1fL/day | Need: %.1fL", 
                             id(calculated_evaporation_liters), id(irrigation_needed_liters));
                     return line2_text;
                   text_font: roboto
-                  text_color: black_color
+                  text_color: !lambda |-
+                    if (id(sw3_manual_override_time) > 0) {
+                      return lv_color_hex(0xFFA500);  // Orange for manual mode
+                    }
+                    return lv_color_hex(0x000000);  // Black for auto
                   align: center
                   x: 0
                   y: 10
@@ -4920,22 +4928,56 @@ lvgl:
                   y: 10
                   width: 130
                   height: 60
+                  checkable: true
                   state:
-                    checked: true
+                    checked: !lambda "return id(sw3_manual_override_time) > 0;"
+                  bg_color: !lambda |-
+                    if (id(sw3_manual_override_time) > 0) {
+                      return lv_color_hex(0xFFA500);  // Orange for manual mode
+                    }
+                    return lv_color_hex(0x00AA00);  // Green for auto mode
                   widgets:
                     - label:
-                        text: "Manual"
+                        id: manual_mode_label
+                        text: !lambda |-
+                          if (id(sw3_manual_override_time) > 0) {
+                            return "Manual ON";
+                          }
+                          return "Auto Mode";
                         text_font: roboto
                         align: center
                   on_click:
                     then:
-                      - switch.toggle: sw3
                       - lambda: |-
                           auto now = id(sntp_time).now();
-                          if (now.is_valid()) {
+                          if (!now.is_valid()) return;
+                          
+                          // Toggle between manual and auto mode
+                          if (id(sw3_manual_override_time) > 0) {
+                            // Switch to auto mode
+                            id(sw3_manual_override_time) = 0;
+                            ESP_LOGI("automation", "SW3 switched to AUTO mode");
+                          } else {
+                            // Switch to manual mode
                             id(sw3_manual_override_time) = now.timestamp;
-                            ESP_LOGI("automation", "SW3 manual override activated for 24 hours");
+                            ESP_LOGI("automation", "SW3 switched to MANUAL mode for 24 hours");
                           }
+                      - lvgl.widget.update:
+                          id: manual_irrigation_btn
+                          state:
+                            checked: !lambda "return id(sw3_manual_override_time) > 0;"
+                          bg_color: !lambda |-
+                            if (id(sw3_manual_override_time) > 0) {
+                              return lv_color_hex(0xFFA500);  // Orange for manual
+                            }
+                            return lv_color_hex(0x00AA00);  // Green for auto
+                      - lvgl.label.update:
+                          id: manual_mode_label
+                          text: !lambda |-
+                            if (id(sw3_manual_override_time) > 0) {
+                              return "Manual ON";
+                            }
+                            return "Auto Mode";
 
               - button:
                   id: back_to_controls_btn
