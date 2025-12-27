@@ -3919,80 +3919,6 @@ lvgl:
                     }
                     return "http://192.168.4.1/";
 
-        - button:
-            id: valve_training_btn
-            x: 295
-            y: 420
-            hidden: false
-            width: 120
-            height: 45
-            styles: nav_button_style
-            widgets:
-              - label:
-                  text: !lambda |-
-                    if (id(valve_training_mode)) {
-                      return "Training...";
-                    }
-                    return "Train Valve";
-                  text_font: roboto
-                  align: center
-                  text_color: !lambda |-
-                    if (id(valve_training_mode)) {
-                      return lv_color_hex(0xFFA500);  // Orange
-                    }
-                    return lv_color_hex(0xCCCCCC);  // GREY
-                  on_click:
-                    then:
-                      - script.execute: start_valve_training
-
-        # Bucket volume controls for valve calibration
-        - obj:
-            x: 150
-            y: 420
-            width: 130
-            height: 45
-            bg_opa: 0%
-            border_width: 0
-            widgets:
-              - label:
-                  id: bucket_volume_label
-                  text: !lambda |-
-                    static char t[24];
-                    snprintf(t, sizeof(t), "Bucket: %.1fL", id(bucket_volume_liters));
-                    return t;
-                  text_font: roboto
-                  align: LEFT_MID
-              - button:
-                  x: 0
-                  y: 0
-                  width: 25
-                  height: 25
-                  widgets:
-                    - label:
-                        text: "-"
-                        align: center
-                  on_click:
-                    then:
-                      - lambda: |-
-                          id(bucket_volume_liters) = std::max(1.0f, id(bucket_volume_liters) - 1.0f);
-                      - lvgl.label.update:
-                          id: bucket_volume_label
-              - button:
-                  x: 30
-                  y: 0
-                  width: 25
-                  height: 25
-                  widgets:
-                    - label:
-                        text: "+"
-                        align: center
-                  on_click:
-                    then:
-                      - lambda: |-
-                          id(bucket_volume_liters) = std::min(100.0f, id(bucket_volume_liters) + 1.0f);
-                      - lvgl.label.update:
-                          id: bucket_volume_label
-
         # Navigation buttons
         - button:
             id: home_button
@@ -4853,6 +4779,94 @@ lvgl:
                   text_color: 0xFFFFFF
                   width: 440
 
+        # Valve Calibration Section
+        - obj:
+            width: 460
+            height: 80
+            bg_color: 0x000000
+            bg_opa: 50%
+            radius: 10
+            scrollable: false
+            border_width: 0
+            x: 10
+            y: 420
+            widgets:
+              - label:
+                  text: "Valve Calibration"
+                  text_font: roboto24
+                  text_color: 0xFFFFFF
+                  x: 10
+                  y: 5
+              - label:
+                  text: "Bucket Volume:"
+                  text_font: roboto
+                  text_color: 0xCCCCCC
+                  x: 10
+                  y: 40
+              - button:
+                  x: 150
+                  y: 35
+                  width: 30
+                  height: 30
+                  widgets:
+                    - label:
+                        text: "-"
+                        align: center
+                  on_click:
+                    then:
+                      - lambda: |-
+                          id(bucket_volume_liters) = std::max(1.0f, id(bucket_volume_liters) - 1.0f);
+                      - lvgl.label.update:
+                          id: bucket_volume_display
+              - label:
+                  id: bucket_volume_display
+                  text: !lambda |-
+                    static char t[24];
+                    snprintf(t, sizeof(t), "%.1f L", id(bucket_volume_liters));
+                    return t;
+                  text_font: roboto
+                  text_color: 0xFFFFFF
+                  x: 190
+                  y: 40
+              - button:
+                  x: 250
+                  y: 35
+                  width: 30
+                  height: 30
+                  widgets:
+                    - label:
+                        text: "+"
+                        align: center
+                  on_click:
+                    then:
+                      - lambda: |-
+                          id(bucket_volume_liters) = std::min(100.0f, id(bucket_volume_liters) + 1.0f);
+                      - lvgl.label.update:
+                          id: bucket_volume_display
+              - button:
+                  id: valve_train_btn
+                  x: 300
+                  y: 35
+                  width: 150
+                  height: 30
+                  widgets:
+                    - label:
+                        text: !lambda |-
+                          if (id(valve_training_mode)) {
+                            return "Training...";
+                          }
+                          return "Train Valve";
+                        text_font: roboto
+                        align: center
+                        text_color: !lambda |-
+                          if (id(valve_training_mode)) {
+                            return lv_color_hex(0xFFA500);  // Orange
+                          }
+                          return lv_color_hex(0xFFFFFF);  // White
+                  on_click:
+                    then:
+                      - script.execute: start_valve_training
+
         # Control Buttons Section
         - obj:
             width: 460
@@ -4863,7 +4877,7 @@ lvgl:
             scrollable: false
             border_width: 0
             x: 10
-            y: 350
+            y: 510
             widgets:
               - button:
                   id: winter_summer_toggle
