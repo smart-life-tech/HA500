@@ -686,8 +686,7 @@ time:
               int current_minutes = now.hour * 60 + now.minute;
               bool should_start = false;
 
-              // Recalculate daily runtime first
-              id(calculate_irrigation_needs).execute();
+              // Note: calculate_irrigation_needs runs every 60s via interval, no need to duplicate here
 
               // Check center block timing
               int center_half_time = id(center_block_runtime) / 2;
@@ -7816,12 +7815,12 @@ interval:
       #       static char buf[20];
       #       sprintf(buf, "%.2", id(global_cycles_count));
       #       return buf;
-  - interval: 60s # Every 5 minutes
+  - interval: 60s # Every 60 seconds
     then:
       - script.execute: calculate_irrigation_needs
       - lambda: |-
-          // Update all display elements on the water pump settings page
-          if (id(current_page) == 1) {  // If on water pump settings page
+          // Only update display if it's not sleeping (paused)
+          if (!id(lvgl_comp).is_paused() && id(current_page) == 1) {
             id(lvgl_comp).loop();
           }
   - interval: 20s
