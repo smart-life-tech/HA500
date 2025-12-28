@@ -129,90 +129,90 @@ esphome:
             - lvgl.widget.hide: free_block4_settings
         # Update pump settings page labels with restored values
         - lvgl.label.update:
-          id: winter_min_display
-          text: !lambda |-
-            static char text[15];
-            snprintf(text, sizeof(text), "%.2f hrs", id(winter_min_runtime));
-            return text;
+            id: winter_min_display
+            text: !lambda |-
+              static char text[15];
+              snprintf(text, sizeof(text), "%.2f hrs", id(winter_min_runtime));
+              return text;
         - lvgl.label.update:
-          id: ref_temp_display
-          text: !lambda |-
-            static char text[10];
-            snprintf(text, sizeof(text), "%.1f°C", id(reference_temperature));
-            return text;
+            id: ref_temp_display
+            text: !lambda |-
+              static char text[10];
+              snprintf(text, sizeof(text), "%.1f°C", id(reference_temperature));
+              return text;
         - lvgl.label.update:
-          id: temp_rate_display
-          text: !lambda |-
-            static char text[15];
-            snprintf(text, sizeof(text), "%.1f%%/°C", id(temp_rate_percent));
-            return text;
+            id: temp_rate_display
+            text: !lambda |-
+              static char text[15];
+              snprintf(text, sizeof(text), "%.1f%%/°C", id(temp_rate_percent));
+              return text;
         - lvgl.label.update:
-          id: center_time_display
-          text: !lambda |-
-            static char text[10];
-            snprintf(text, sizeof(text), "%02d:00", id(center_pump_time_hour));
-            return text;
+            id: center_time_display
+            text: !lambda |-
+              static char text[10];
+              snprintf(text, sizeof(text), "%02d:00", id(center_pump_time_hour));
+              return text;
         - lvgl.label.update:
-          id: runtime_blocks_display
-          text: !lambda |-
-            static char text[5];
-            snprintf(text, sizeof(text), "%d", id(pump_runtime_blocks));
-            return text;
+            id: runtime_blocks_display
+            text: !lambda |-
+              static char text[5];
+              snprintf(text, sizeof(text), "%d", id(pump_runtime_blocks));
+              return text;
         - lvgl.label.update:
-          id: free_block2_display
-          text: !lambda |-
-            static char text[10];
-            snprintf(text, sizeof(text), "%02d:%02d", id(free_block2_start_hour), id(free_block2_start_minute));
-            return text;
+            id: free_block2_display
+            text: !lambda |-
+              static char text[10];
+              snprintf(text, sizeof(text), "%02d:%02d", id(free_block2_start_hour), id(free_block2_start_minute));
+              return text;
         - lvgl.label.update:
-          id: free_block3_display
-          text: !lambda |-
-            static char text[10];
-            snprintf(text, sizeof(text), "%02d:%02d", id(free_block3_start_hour), id(free_block3_start_minute));
-            return text;
+            id: free_block3_display
+            text: !lambda |-
+              static char text[10];
+              snprintf(text, sizeof(text), "%02d:%02d", id(free_block3_start_hour), id(free_block3_start_minute));
+              return text;
         - lvgl.label.update:
-          id: free_block4_display
-          text: !lambda |-
-            static char text[10];
-            snprintf(text, sizeof(text), "%02d:%02d", id(free_block4_start_hour), id(free_block4_start_minute));
-            return text;
+            id: free_block4_display
+            text: !lambda |-
+              static char text[10];
+              snprintf(text, sizeof(text), "%02d:%02d", id(free_block4_start_hour), id(free_block4_start_minute));
+              return text;
         - lvgl.label.update:
-          id: pool_length_number
-          text: !lambda |-
-            static char buf[20];
-            snprintf(buf, sizeof(buf), "%.2f", id(global_pool_length));
-            return buf;
+            id: pool_length_number
+            text: !lambda |-
+              static char buf[20];
+              snprintf(buf, sizeof(buf), "%.2f", id(global_pool_length));
+              return buf;
         - lvgl.label.update:
-          id: pool_width_number
-          text: !lambda |-
-            static char buf[20];
-            snprintf(buf, sizeof(buf), "%.2f", id(global_pool_width));
-            return buf;
+            id: pool_width_number
+            text: !lambda |-
+              static char buf[20];
+              snprintf(buf, sizeof(buf), "%.2f", id(global_pool_width));
+              return buf;
         - lvgl.label.update:
-          id: pool_depth_number
-          text: !lambda |-
-            static char buf[20];
-            snprintf(buf, sizeof(buf), "%.2f", id(global_pool_depth));
-            return buf;
+            id: pool_depth_number
+            text: !lambda |-
+              static char buf[20];
+              snprintf(buf, sizeof(buf), "%.2f", id(global_pool_depth));
+              return buf;
         - lvgl.label.update:
-          id: pump_flow_number
-          text: !lambda |-
-            static char buf[20];
-            snprintf(buf, sizeof(buf), "%.1f", id(pump_flow_rate));
-            return buf;
+            id: pump_flow_number
+            text: !lambda |-
+              static char buf[20];
+              snprintf(buf, sizeof(buf), "%.1f", id(pump_flow_rate));
+              return buf;
 
         - lvgl.label.update:
-          id: cycles_number
-          text: !lambda |-
-            static char text[20];
-            snprintf(text, sizeof(text), "%.2f", id(global_cycles_count));
-            return text;
+            id: cycles_number
+            text: !lambda |-
+              static char text[20];
+              snprintf(text, sizeof(text), "%.2f", id(global_cycles_count));
+              return text;
         - lvgl.label.update:
-          id: blocks_number
-          text: !lambda |-
-            static char buf[20];
-            sprintf(buf, "%d", id(pump_runtime_blocks));
-            return buf;
+            id: blocks_number
+            text: !lambda |-
+              static char buf[20];
+              sprintf(buf, "%d", id(pump_runtime_blocks));
+              return buf;
         # Reset manual override timers to enable automation
         - lambda: |-
             id(sw1_manual_override_time) = 0;
