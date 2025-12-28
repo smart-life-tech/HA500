@@ -236,21 +236,21 @@ esphome:
             // Log ALL critical persisted values loaded from NVS
             ESP_LOGI("BOOT", "=== POOL DIMENSIONS LOADED ===");
             ESP_LOGI("BOOT", "Pool length=%.2f m width=%.2f m depth=%.2f m", 
-                     id(global_pool_length), id(global_pool_width), id(global_pool_depth));
+                         id(global_pool_length), id(global_pool_width), id(global_pool_depth));
             ESP_LOGI("BOOT", "Pool volume=%.2f m³ cycles=%.2f pump_flow=%f L/h",
-                     id(global_pool_length) * id(global_pool_width) * id(global_pool_depth),
-                     id(global_cycles_count), id(pump_flow_rate));
+                         id(global_pool_length) * id(global_pool_width) * id(global_pool_depth),
+                         id(global_cycles_count), id(pump_flow_rate));
             
             ESP_LOGI("BOOT", "=== PUMP SETTINGS LOADED ===");
             ESP_LOGI("BOOT", "winter_min=%.2fh summer_max=%.2fh center_hour=%d blocks=%d",
-                     id(winter_min_runtime), id(summer_max_runtime), 
-                     id(center_pump_time_hour), id(pump_runtime_blocks));
+                         id(winter_min_runtime), id(summer_max_runtime), 
+                         id(center_pump_time_hour), id(pump_runtime_blocks));
             ESP_LOGI("BOOT", "total_runtime_multiple=%.2fh calculated_daily_runtime=%d min",
-                     id(total_runtime_multiple), id(calculated_daily_runtime));
+                         id(total_runtime_multiple), id(calculated_daily_runtime));
             
             ESP_LOGI("BOOT", "=== LIGHT SETTINGS LOADED ===");
             ESP_LOGI("BOOT", "automation_mode=%d sunset_duration=%.1fh sunrise_duration=%.1fh manual_duration=%.1fh",
-                     id(automation_mode), id(sunset_duration_hours), id(sunrise_duration_hours), id(manual_duration_hours));
+                         id(automation_mode), id(sunset_duration_hours), id(sunrise_duration_hours), id(manual_duration_hours));
       
         # Restore automation mode button states based on loaded automation_mode value
         - if:
