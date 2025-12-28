@@ -254,85 +254,85 @@ esphome:
       
         # Restore automation mode button states based on loaded automation_mode value
         - if:
-          condition:
-            lambda: "return id(automation_mode) == 0;"
-          then:
-            - lvgl.widget.update:
-                id: mode_duration_btn
-                state:
-                  checked: true
-            - lvgl.widget.update:
-                id: mode_until_btn
-                state:
-                  checked: false
-            - lvgl.widget.update:
-                id: mode_between_btn
-                state:
-                  checked: false
-            - lvgl.widget.update:
-                id: mode_manual_btn
-                state:
-                  checked: false
+            condition:
+              lambda: "return id(automation_mode) == 0;"
+            then:
+              - lvgl.widget.update:
+                  id: mode_duration_btn
+                  state:
+                    checked: true
+              - lvgl.widget.update:
+                  id: mode_until_btn
+                  state:
+                    checked: false
+              - lvgl.widget.update:
+                  id: mode_between_btn
+                  state:
+                    checked: false
+              - lvgl.widget.update:
+                  id: mode_manual_btn
+                  state:
+                    checked: false
         - if:
-          condition:
-            lambda: "return id(automation_mode) == 1;"
-          then:
-            - lvgl.widget.update:
-                id: mode_duration_btn
-                state:
-                  checked: false
-            - lvgl.widget.update:
-                id: mode_until_btn
-                state:
-                  checked: true
-            - lvgl.widget.update:
-                id: mode_between_btn
-                state:
-                  checked: false
-            - lvgl.widget.update:
-                id: mode_manual_btn
-                state:
-                  checked: false
+            condition:
+              lambda: "return id(automation_mode) == 1;"
+            then:
+              - lvgl.widget.update:
+                  id: mode_duration_btn
+                  state:
+                    checked: false
+              - lvgl.widget.update:
+                  id: mode_until_btn
+                  state:
+                    checked: true
+              - lvgl.widget.update:
+                  id: mode_between_btn
+                  state:
+                    checked: false
+              - lvgl.widget.update:
+                  id: mode_manual_btn
+                  state:
+                    checked: false
         - if:
-          condition:
-            lambda: "return id(automation_mode) == 2;"
-          then:
-            - lvgl.widget.update:
-                id: mode_duration_btn
-                state:
-                  checked: false
-            - lvgl.widget.update:
-                id: mode_until_btn
-                state:
-                  checked: false
-            - lvgl.widget.update:
-                id: mode_between_btn
-                state:
-                  checked: true
-            - lvgl.widget.update:
-                id: mode_manual_btn
-                state:
-                  checked: false
+            condition:
+              lambda: "return id(automation_mode) == 2;"
+            then:
+              - lvgl.widget.update:
+                  id: mode_duration_btn
+                  state:
+                    checked: false
+              - lvgl.widget.update:
+                  id: mode_until_btn
+                  state:
+                    checked: false
+              - lvgl.widget.update:
+                  id: mode_between_btn
+                  state:
+                    checked: true
+              - lvgl.widget.update:
+                  id: mode_manual_btn
+                  state:
+                    checked: false
         - if:
-          condition:
-            lambda: "return id(automation_mode) == 3;"
-          then:
-            - lvgl.widget.update:
-                id: mode_duration_btn
-                state:
-                  checked: false
-            - lvgl.widget.update:
-                id: mode_until_btn
-                state:
-                  checked: false
-            - lvgl.widget.update:
-                id: mode_between_btn
-                state:
-                  checked: false
-            - lvgl.widget.update:
-                id: mode_manual_btn
-                state:
-                  checked: true
+            condition:
+              lambda: "return id(automation_mode) == 3;"
+            then:
+              - lvgl.widget.update:
+                  id: mode_duration_btn
+                  state:
+                    checked: false
+              - lvgl.widget.update:
+                  id: mode_until_btn
+                  state:
+                    checked: false
+              - lvgl.widget.update:
+                  id: mode_between_btn
+                  state:
+                    checked: false
+              - lvgl.widget.update:
+                  id: mode_manual_btn
+                  state:
+                    checked: true
         - lambda: |-
             ESP_LOGI("BOOT", "Light automation mode buttons restored to mode=%d", id(automation_mode));
             
