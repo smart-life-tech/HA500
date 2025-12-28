@@ -94,39 +94,39 @@ esphome:
             id(lvgl_comp).show_page(0, LV_SCR_LOAD_ANIM_FADE_ON, 400);
             ESP_LOGD("BOOT", "Showing main page");
         - number.set:
-          id: pool_length
-          value: !lambda "return id(global_pool_length);"
+            id: pool_length
+            value: !lambda "return id(global_pool_length);"
         - number.set:
-          id: pool_width
-          value: !lambda "return id(global_pool_width);"
+            id: pool_width
+            value: !lambda "return id(global_pool_width);"
         - number.set:
-          id: pool_depth
-          value: !lambda "return id(global_pool_depth);"
+            id: pool_depth
+            value: !lambda "return id(global_pool_depth);"
         - number.set:
-          id: cycle_number
-          value: !lambda "return id(global_cycles_count);"
+            id: cycle_number
+            value: !lambda "return id(global_cycles_count);"
         # Show/hide free blocks based on restored pump_runtime_blocks value
         - if:
-          condition:
-            lambda: "return id(pump_runtime_blocks) >= 2;"
-          then:
-            - lvgl.widget.show: free_block2_settings
-          else:
-            - lvgl.widget.hide: free_block2_settings
+            condition:
+              lambda: "return id(pump_runtime_blocks) >= 2;"
+            then:
+              - lvgl.widget.show: free_block2_settings
+            else:
+              - lvgl.widget.hide: free_block2_settings
         - if:
-          condition:
-            lambda: "return id(pump_runtime_blocks) >= 3;"
-          then:
-            - lvgl.widget.show: free_block3_settings
-          else:
-            - lvgl.widget.hide: free_block3_settings
+            condition:
+              lambda: "return id(pump_runtime_blocks) >= 3;"
+            then:
+              - lvgl.widget.show: free_block3_settings
+            else:
+              - lvgl.widget.hide: free_block3_settings
         - if:
-          condition:
-            lambda: "return id(pump_runtime_blocks) >= 4;"
-          then:
-            - lvgl.widget.show: free_block4_settings
-          else:
-            - lvgl.widget.hide: free_block4_settings
+            condition:
+              lambda: "return id(pump_runtime_blocks) >= 4;"
+            then:
+              - lvgl.widget.show: free_block4_settings
+            else:
+              - lvgl.widget.hide: free_block4_settings
         # Update pump settings page labels with restored values
         - lvgl.label.update:
             id: winter_min_display
