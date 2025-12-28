@@ -69,191 +69,191 @@ esphome:
                      sunrise_opt.has_value() ? 1 : 0,
                      sunset_opt.has_value() ? 1 : 0,
                      37.2637f, -8.2292f);
-          if (now.is_valid()) {
-            if (sunrise_opt.has_value() && sunset_opt.has_value()) {
-              ESP_LOGI("light_time", "BOOT: now=%02d:%02d sunrise=%02d:%02d sunset=%02d:%02d",
-                       now.hour, now.minute,
-                       sunrise_opt.value().hour, sunrise_opt.value().minute,
-                       sunset_opt.value().hour, sunset_opt.value().minute);
+            if (now.is_valid()) {
+              if (sunrise_opt.has_value() && sunset_opt.has_value()) {
+                ESP_LOGI("light_time", "BOOT: now=%02d:%02d sunrise=%02d:%02d sunset=%02d:%02d",
+                         now.hour, now.minute,
+                         sunrise_opt.value().hour, sunrise_opt.value().minute,
+                         sunset_opt.value().hour, sunset_opt.value().minute);
+              } else {
+                ESP_LOGW("light_time", "BOOT: sun times unavailable - sun component may need restart after time sync");
+              }
             } else {
-              ESP_LOGW("light_time", "BOOT: sun times unavailable - sun component may need restart after time sync");
+              ESP_LOGW("light_time", "BOOT: time invalid - sun component needs valid time to calculate sunrise/sunset");
             }
-          } else {
-            ESP_LOGW("light_time", "BOOT: time invalid - sun component needs valid time to calculate sunrise/sunset");
-          }
-      - delay: 5s
-      - lambda: |-
-          id(lvgl_comp).show_page(0, LV_SCR_LOAD_ANIM_FADE_ON, 400);
-          ESP_LOGD("BOOT", "Hiding splash logo and showing main page");
-      - delay: 2s
-      # Push global into number on startup
-      - lambda: |-
-          //id(total_runtime).publish_state(id(total_runtime_multiple));
-          ESP_LOGD("BOOT RUNTIME", ": %.2f minutes", id(global_cycles_count));
-          // Jump to your first page (id 0 or whatever main is)
-          id(lvgl_comp).show_page(0, LV_SCR_LOAD_ANIM_FADE_ON, 400);
-          ESP_LOGD("BOOT", "Showing main page");
-      - number.set:
+        - delay: 5s
+        - lambda: |-
+            id(lvgl_comp).show_page(0, LV_SCR_LOAD_ANIM_FADE_ON, 400);
+            ESP_LOGD("BOOT", "Hiding splash logo and showing main page");
+        - delay: 2s
+        # Push global into number on startup
+        - lambda: |-
+            //id(total_runtime).publish_state(id(total_runtime_multiple));
+            ESP_LOGD("BOOT RUNTIME", ": %.2f minutes", id(global_cycles_count));
+            // Jump to your first page (id 0 or whatever main is)
+            id(lvgl_comp).show_page(0, LV_SCR_LOAD_ANIM_FADE_ON, 400);
+            ESP_LOGD("BOOT", "Showing main page");
+        - number.set:
           id: pool_length
           value: !lambda "return id(global_pool_length);"
-      - number.set:
+        - number.set:
           id: pool_width
           value: !lambda "return id(global_pool_width);"
-      - number.set:
+        - number.set:
           id: pool_depth
           value: !lambda "return id(global_pool_depth);"
-      - number.set:
+        - number.set:
           id: cycle_number
           value: !lambda "return id(global_cycles_count);"
-      # Show/hide free blocks based on restored pump_runtime_blocks value
-      - if:
+        # Show/hide free blocks based on restored pump_runtime_blocks value
+        - if:
           condition:
             lambda: "return id(pump_runtime_blocks) >= 2;"
           then:
             - lvgl.widget.show: free_block2_settings
           else:
             - lvgl.widget.hide: free_block2_settings
-      - if:
+        - if:
           condition:
             lambda: "return id(pump_runtime_blocks) >= 3;"
           then:
             - lvgl.widget.show: free_block3_settings
           else:
             - lvgl.widget.hide: free_block3_settings
-      - if:
+        - if:
           condition:
             lambda: "return id(pump_runtime_blocks) >= 4;"
           then:
             - lvgl.widget.show: free_block4_settings
           else:
             - lvgl.widget.hide: free_block4_settings
-      # Update pump settings page labels with restored values
-      - lvgl.label.update:
+        # Update pump settings page labels with restored values
+        - lvgl.label.update:
           id: winter_min_display
           text: !lambda |-
             static char text[15];
             snprintf(text, sizeof(text), "%.2f hrs", id(winter_min_runtime));
             return text;
-      - lvgl.label.update:
+        - lvgl.label.update:
           id: ref_temp_display
           text: !lambda |-
             static char text[10];
             snprintf(text, sizeof(text), "%.1f°C", id(reference_temperature));
             return text;
-      - lvgl.label.update:
+        - lvgl.label.update:
           id: temp_rate_display
           text: !lambda |-
             static char text[15];
             snprintf(text, sizeof(text), "%.1f%%/°C", id(temp_rate_percent));
             return text;
-      - lvgl.label.update:
+        - lvgl.label.update:
           id: center_time_display
           text: !lambda |-
             static char text[10];
             snprintf(text, sizeof(text), "%02d:00", id(center_pump_time_hour));
             return text;
-      - lvgl.label.update:
+        - lvgl.label.update:
           id: runtime_blocks_display
           text: !lambda |-
             static char text[5];
             snprintf(text, sizeof(text), "%d", id(pump_runtime_blocks));
             return text;
-      - lvgl.label.update:
+        - lvgl.label.update:
           id: free_block2_display
           text: !lambda |-
             static char text[10];
             snprintf(text, sizeof(text), "%02d:%02d", id(free_block2_start_hour), id(free_block2_start_minute));
             return text;
-      - lvgl.label.update:
+        - lvgl.label.update:
           id: free_block3_display
           text: !lambda |-
             static char text[10];
             snprintf(text, sizeof(text), "%02d:%02d", id(free_block3_start_hour), id(free_block3_start_minute));
             return text;
-      - lvgl.label.update:
+        - lvgl.label.update:
           id: free_block4_display
           text: !lambda |-
             static char text[10];
             snprintf(text, sizeof(text), "%02d:%02d", id(free_block4_start_hour), id(free_block4_start_minute));
             return text;
-      - lvgl.label.update:
+        - lvgl.label.update:
           id: pool_length_number
           text: !lambda |-
             static char buf[20];
             snprintf(buf, sizeof(buf), "%.2f", id(global_pool_length));
             return buf;
-      - lvgl.label.update:
+        - lvgl.label.update:
           id: pool_width_number
           text: !lambda |-
             static char buf[20];
             snprintf(buf, sizeof(buf), "%.2f", id(global_pool_width));
             return buf;
-      - lvgl.label.update:
+        - lvgl.label.update:
           id: pool_depth_number
           text: !lambda |-
             static char buf[20];
             snprintf(buf, sizeof(buf), "%.2f", id(global_pool_depth));
             return buf;
-      - lvgl.label.update:
+        - lvgl.label.update:
           id: pump_flow_number
           text: !lambda |-
             static char buf[20];
             snprintf(buf, sizeof(buf), "%.1f", id(pump_flow_rate));
             return buf;
 
-      - lvgl.label.update:
+        - lvgl.label.update:
           id: cycles_number
           text: !lambda |-
             static char text[20];
             snprintf(text, sizeof(text), "%.2f", id(global_cycles_count));
             return text;
-      - lvgl.label.update:
+        - lvgl.label.update:
           id: blocks_number
           text: !lambda |-
             static char buf[20];
             sprintf(buf, "%d", id(pump_runtime_blocks));
             return buf;
-      # Reset manual override timers to enable automation
-      - lambda: |-
-          id(sw1_manual_override_time) = 0;
-          id(sw2_manual_override_time) = 0;
-          id(sw3_manual_override_time) = 0;
-          
-          // Force correct runtime defaults if they got corrupted
-          if (id(winter_min_runtime) < 0.5f || id(winter_min_runtime) > 8.0f) {
-            id(winter_min_runtime) = 2.0f;
-            ESP_LOGI("BOOT", "Reset winter_min_runtime to 2.0h");
-          }
-          if (id(summer_max_runtime) < 1.0f || id(summer_max_runtime) > 12.0f) {
-            id(summer_max_runtime) = 5.0f;
-            ESP_LOGI("BOOT", "Reset summer_max_runtime to 5.0h");
-          }
-          if (id(center_pump_time_hour) < 0 || id(center_pump_time_hour) > 23) {
-            id(center_pump_time_hour) = 14;
-            ESP_LOGI("BOOT", "Reset center_pump_time_hour to 14");
-          }
-          
-          // Log ALL critical persisted values loaded from NVS
-          ESP_LOGI("BOOT", "=== POOL DIMENSIONS LOADED ===");
-          ESP_LOGI("BOOT", "Pool length=%.2f m width=%.2f m depth=%.2f m", 
-                   id(global_pool_length), id(global_pool_width), id(global_pool_depth));
-          ESP_LOGI("BOOT", "Pool volume=%.2f m³ cycles=%.2f pump_flow=%f L/h",
-                   id(global_pool_length) * id(global_pool_width) * id(global_pool_depth),
-                   id(global_cycles_count), id(pump_flow_rate));
-          
-          ESP_LOGI("BOOT", "=== PUMP SETTINGS LOADED ===");
-          ESP_LOGI("BOOT", "winter_min=%.2fh summer_max=%.2fh center_hour=%d blocks=%d",
-                   id(winter_min_runtime), id(summer_max_runtime), 
-                   id(center_pump_time_hour), id(pump_runtime_blocks));
-          ESP_LOGI("BOOT", "total_runtime_multiple=%.2fh calculated_daily_runtime=%d min",
-                   id(total_runtime_multiple), id(calculated_daily_runtime));
-          
-          ESP_LOGI("BOOT", "=== LIGHT SETTINGS LOADED ===");
-          ESP_LOGI("BOOT", "automation_mode=%d sunset_duration=%.1fh sunrise_duration=%.1fh manual_duration=%.1fh",
-                   id(automation_mode), id(sunset_duration_hours), id(sunrise_duration_hours), id(manual_duration_hours));
+        # Reset manual override timers to enable automation
+        - lambda: |-
+            id(sw1_manual_override_time) = 0;
+            id(sw2_manual_override_time) = 0;
+            id(sw3_manual_override_time) = 0;
+            
+            // Force correct runtime defaults if they got corrupted
+            if (id(winter_min_runtime) < 0.5f || id(winter_min_runtime) > 8.0f) {
+              id(winter_min_runtime) = 2.0f;
+              ESP_LOGI("BOOT", "Reset winter_min_runtime to 2.0h");
+            }
+            if (id(summer_max_runtime) < 1.0f || id(summer_max_runtime) > 12.0f) {
+              id(summer_max_runtime) = 5.0f;
+              ESP_LOGI("BOOT", "Reset summer_max_runtime to 5.0h");
+            }
+            if (id(center_pump_time_hour) < 0 || id(center_pump_time_hour) > 23) {
+              id(center_pump_time_hour) = 14;
+              ESP_LOGI("BOOT", "Reset center_pump_time_hour to 14");
+            }
+            
+            // Log ALL critical persisted values loaded from NVS
+            ESP_LOGI("BOOT", "=== POOL DIMENSIONS LOADED ===");
+            ESP_LOGI("BOOT", "Pool length=%.2f m width=%.2f m depth=%.2f m", 
+                     id(global_pool_length), id(global_pool_width), id(global_pool_depth));
+            ESP_LOGI("BOOT", "Pool volume=%.2f m³ cycles=%.2f pump_flow=%f L/h",
+                     id(global_pool_length) * id(global_pool_width) * id(global_pool_depth),
+                     id(global_cycles_count), id(pump_flow_rate));
+            
+            ESP_LOGI("BOOT", "=== PUMP SETTINGS LOADED ===");
+            ESP_LOGI("BOOT", "winter_min=%.2fh summer_max=%.2fh center_hour=%d blocks=%d",
+                     id(winter_min_runtime), id(summer_max_runtime), 
+                     id(center_pump_time_hour), id(pump_runtime_blocks));
+            ESP_LOGI("BOOT", "total_runtime_multiple=%.2fh calculated_daily_runtime=%d min",
+                     id(total_runtime_multiple), id(calculated_daily_runtime));
+            
+            ESP_LOGI("BOOT", "=== LIGHT SETTINGS LOADED ===");
+            ESP_LOGI("BOOT", "automation_mode=%d sunset_duration=%.1fh sunrise_duration=%.1fh manual_duration=%.1fh",
+                     id(automation_mode), id(sunset_duration_hours), id(sunrise_duration_hours), id(manual_duration_hours));
       
-      # Restore automation mode button states based on loaded automation_mode value
-      - if:
+        # Restore automation mode button states based on loaded automation_mode value
+        - if:
           condition:
             lambda: "return id(automation_mode) == 0;"
           then:
@@ -273,7 +273,7 @@ esphome:
                 id: mode_manual_btn
                 state:
                   checked: false
-      - if:
+        - if:
           condition:
             lambda: "return id(automation_mode) == 1;"
           then:
@@ -293,7 +293,7 @@ esphome:
                 id: mode_manual_btn
                 state:
                   checked: false
-      - if:
+        - if:
           condition:
             lambda: "return id(automation_mode) == 2;"
           then:
@@ -313,7 +313,7 @@ esphome:
                 id: mode_manual_btn
                 state:
                   checked: false
-      - if:
+        - if:
           condition:
             lambda: "return id(automation_mode) == 3;"
           then:
@@ -333,57 +333,57 @@ esphome:
                 id: mode_manual_btn
                 state:
                   checked: true
-      - lambda: |-
-          ESP_LOGI("BOOT", "Light automation mode buttons restored to mode=%d", id(automation_mode));
-          
-          ESP_LOGI("BOOT", "=== IRRIGATION SETTINGS LOADED ===");
-          ESP_LOGI("BOOT", "seasonal_enabled=%d winter_mode=%d bucket_volume=%.1fL valve_lpm=%.2f",
-                   id(seasonal_pump_enabled), id(sw3_winter_mode), 
-                   id(bucket_volume_liters), id(valve_liters_per_minute));
-          
-          ESP_LOGI("BOOT", "Manual override timers reset - automation enabled");
-      # Calculate irrigation needs to set up pump runtime
-      - delay: 100ms
-      - script.execute: calculate_irrigation_needs
-      - delay: 50ms
-      # Explicitly refresh UI labels with restored total_runtime_multiple value
-      - lvgl.label.update:
+        - lambda: |-
+            ESP_LOGI("BOOT", "Light automation mode buttons restored to mode=%d", id(automation_mode));
+            
+            ESP_LOGI("BOOT", "=== IRRIGATION SETTINGS LOADED ===");
+            ESP_LOGI("BOOT", "seasonal_enabled=%d winter_mode=%d bucket_volume=%.1fL valve_lpm=%.2f",
+                     id(seasonal_pump_enabled), id(sw3_winter_mode), 
+                     id(bucket_volume_liters), id(valve_liters_per_minute));
+            
+            ESP_LOGI("BOOT", "Manual override timers reset - automation enabled");
+        # Calculate irrigation needs to set up pump runtime
+        - delay: 100ms
+        - script.execute: calculate_irrigation_needs
+        - delay: 50ms
+        # Explicitly refresh UI labels with restored total_runtime_multiple value
+        - lvgl.label.update:
           id: summer_max_display
           text: !lambda |-
             static char text[15];
             snprintf(text, sizeof(text), "%.2f hrs", id(total_runtime_multiple));
             return text;
-      - lvgl.label.update:
+        - lvgl.label.update:
           id: pump_runtime_label
           text: !lambda |-
             static char buf[16];
             snprintf(buf, sizeof(buf), "%.2f", id(total_runtime_multiple));
             return buf;
-      - lambda: |-
-          ESP_LOGI("BOOT", "Irrigation calculation executed - daily_runtime=%d minutes", id(calculated_daily_runtime));
-          ESP_LOGI("BOOT", "UI labels refreshed with total_runtime_multiple=%.2f hours", id(total_runtime_multiple));
-      # Wait for Home Assistant to finish syncing pool dimensions, then recalculate runtime
-      - delay: 1500ms
-      - lambda: |-
-          // After HA syncs, recalculate runtime from pool dimensions
-          float volume = id(global_pool_length) * id(global_pool_width) * id(global_pool_depth);
-          float flow = id(pump_flow_rate);
-          float cycles = id(global_cycles_count);
-          float temp = id(owm_temperature).has_state() ? id(owm_temperature).state : 25.0f;
-          
-          if (flow <= 0.1f) flow = 1.0f;
-          float temp_factor = 1.0f;
-          if (temp > 40.0f) temp_factor = 1.3f;
-          else if (temp < 20.0f) temp_factor = 0.8f;
-          
-          float runtime = (volume / (flow*0.001)) * cycles * temp_factor;
-          if (runtime > 24.0f) runtime = 24.0f;
-          
-          id(total_runtime_multiple) = runtime;
-          id(total_runtime).publish_state(runtime);
-          ESP_LOGI("BOOT", "Post-HA recalculation: volume=%.2fm³ flow=%.0fL/h cycles=%.1f → runtime=%.2f hours",
-                   volume, flow, cycles, runtime);
-      - script.execute: save_and_refresh_runtime
+        - lambda: |-
+            ESP_LOGI("BOOT", "Irrigation calculation executed - daily_runtime=%d minutes", id(calculated_daily_runtime));
+            ESP_LOGI("BOOT", "UI labels refreshed with total_runtime_multiple=%.2f hours", id(total_runtime_multiple));
+        # Wait for Home Assistant to finish syncing pool dimensions, then recalculate runtime
+        - delay: 1500ms
+        - lambda: |-
+            // After HA syncs, recalculate runtime from pool dimensions
+            float volume = id(global_pool_length) * id(global_pool_width) * id(global_pool_depth);
+            float flow = id(pump_flow_rate);
+            float cycles = id(global_cycles_count);
+            float temp = id(owm_temperature).has_state() ? id(owm_temperature).state : 25.0f;
+            
+            if (flow <= 0.1f) flow = 1.0f;
+            float temp_factor = 1.0f;
+            if (temp > 40.0f) temp_factor = 1.3f;
+            else if (temp < 20.0f) temp_factor = 0.8f;
+            
+            float runtime = (volume / (flow*0.001)) * cycles * temp_factor;
+            if (runtime > 24.0f) runtime = 24.0f;
+            
+            id(total_runtime_multiple) = runtime;
+            id(total_runtime).publish_state(runtime);
+            ESP_LOGI("BOOT", "Post-HA recalculation: volume=%.2fm³ flow=%.0fL/h cycles=%.1f → runtime=%.2f hours",
+                     volume, flow, cycles, runtime);
+        - script.execute: save_and_refresh_runtime
 esp32:
   board: esp32-s3-devkitc-1
   variant: esp32s3
