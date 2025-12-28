@@ -1818,6 +1818,14 @@ globals:
     #restore_value: yes
     initial_value: "0"
 
+  # Debounce tracking for switch state changes
+  - id: sw1_last_switch_time
+    type: unsigned long
+    initial_value: "0"
+  - id: sw2_last_switch_time
+    type: unsigned long
+    initial_value: "0"
+
   # SW3 mode (winter/summer)
   - id: sw3_winter_mode
     type: bool
