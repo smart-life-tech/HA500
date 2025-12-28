@@ -1,4 +1,4 @@
-# known values as variables in code 'MIDDLE_LEFT', valid options are 'TOP_LEFT', 'TOP_MID', 'TOP_RIGHT', 'LEFT_MID', 'CENTER', 'RIGHT_MID', 'BOTTOM_LEFT', 'BOTTOM_MID', 'BOTTOM_RIGHT'.
+# known values 'MIDDLE_LEFT', valid options are 'TOP_LEFT', 'TOP_MID', 'TOP_RIGHT', 'LEFT_MID', 'CENTER', 'RIGHT_MID', 'BOTTOM_LEFT', 'BOTTOM_MID', 'BOTTOM_RIGHT'.
 substitutions:
   name: "phijo-smart-device"
   friendly_name: "Phijo Smart"
@@ -32,22 +32,43 @@ esphome:
       - "-shared"
       #- "-DCONFIG_ESP_MAIN_TASK_STACK_SIZE=8192"
   on_boot:
-    priority: -100.0
-    then:
-      - delay: 6s # Wait for LVGL to be ready
-      - lambda: |-
-          id(lvgl_comp).show_page(8, LV_SCR_LOAD_ANIM_FADE_ON, 400);
-          ESP_LOGD("BOOT", "Displaying splash logo");
-      - delay: 500ms
-      - lambda: |-
-          auto now = id(time_comp).now();
-          auto sunrise_opt = id(sun_comp).sunrise(0.0);
-          auto sunset_opt = id(sun_comp).sunset(0.0);
-          ESP_LOGI("light_time", "BOOT: time_valid=%d sunrise_available=%d sunset_available=%d lat=%.4f lon=%.4f",
-                   now.is_valid() ? 1 : 0,
-                   sunrise_opt.has_value() ? 1 : 0,
-                   sunset_opt.has_value() ? 1 : 0,
-                   37.2637f, -8.2292f);
+    - priority: 600
+      then:
+        - logger.log: "BOOT: ESP32 starting up - detecting reset reason"
+        - lambda: |-
+            esp_reset_reason_t reason = esp_reset_reason();
+            const char* reason_str;
+            switch(reason) {
+              case ESP_RST_POWERON: reason_str = "Power-on reset"; break;
+              case ESP_RST_SW: reason_str = "Software reset via esp_restart"; break;
+              case ESP_RST_PANIC: reason_str = "Software reset due to exception/panic"; break;
+              case ESP_RST_INT_WDT: reason_str = "Interrupt watchdog timer"; break;
+              case ESP_RST_TASK_WDT: reason_str = "Task watchdog timer"; break;
+              case ESP_RST_WDT: reason_str = "Other watchdog timer"; break;
+              case ESP_RST_DEEPSLEEP: reason_str = "Deep sleep wake-up"; break;
+              case ESP_RST_BROWNOUT: reason_str = "Brownout reset (power drop)"; break;
+              case ESP_RST_SDIO: reason_str = "SDIO reset"; break;
+              default: reason_str = "Unknown"; break;
+            }
+            ESP_LOGW("BOOT", "════════════════════════════════════════");
+            ESP_LOGW("BOOT", "RESET REASON: %s (code=%d)", reason_str, reason);
+            ESP_LOGW("BOOT", "════════════════════════════════════════");
+    - priority: -100.0
+      then:
+        - delay: 6s # Wait for LVGL to be ready
+        - lambda: |-
+            id(lvgl_comp).show_page(8, LV_SCR_LOAD_ANIM_FADE_ON, 400);
+            ESP_LOGD("BOOT", "Displaying splash logo");
+        - delay: 500ms
+        - lambda: |-
+            auto now = id(time_comp).now();
+            auto sunrise_opt = id(sun_comp).sunrise(0.0);
+            auto sunset_opt = id(sun_comp).sunset(0.0);
+            ESP_LOGI("light_time", "BOOT: time_valid=%d sunrise_available=%d sunset_available=%d lat=%.4f lon=%.4f",
+                     now.is_valid() ? 1 : 0,
+                     sunrise_opt.has_value() ? 1 : 0,
+                     sunset_opt.has_value() ? 1 : 0,
+                     37.2637f, -8.2292f);
           if (now.is_valid()) {
             if (sunrise_opt.has_value() && sunset_opt.has_value()) {
               ESP_LOGI("light_time", "BOOT: now=%02d:%02d sunrise=%02d:%02d sunset=%02d:%02d",
@@ -4541,18 +4562,17 @@ lvgl:
                             id(sw1).turn_off();
                             id(sw1_off_time) = 0;
                             ESP_LOGI("automation", "No automation mode selected: Light turned OFF");
-                            return;
-                          }
-                          
-                          id(automation_mode) = 3;
-                          
-                          // Turn light ON immediately in Manual mode and set timer
-                          auto now = id(sntp_time).now();
-                          if (now.is_valid()) {
-                            id(sw1).turn_on();
-                            id(sw1_off_time) = now.timestamp + (id(manual_duration_hours) * 3600);
-                            id(sw1_manual_override_time) = 0; // Clear override so timer works
-                            ESP_LOGI("automation", "Manual mode selected: Light ON, auto-off in %d hours", id(manual_duration_hours));
+                          } else {
+                            id(automation_mode) = 3;
+                            
+                            // Turn light ON immediately in Manual mode and set timer
+                            auto now = id(sntp_time).now();
+                            if (now.is_valid()) {
+                              id(sw1).turn_on();
+                              id(sw1_off_time) = now.timestamp + (id(manual_duration_hours) * 3600);
+                              id(sw1_manual_override_time) = 0; // Clear override so timer works
+                              ESP_LOGI("automation", "Manual mode selected: Light ON, auto-off in %d hours", id(manual_duration_hours));
+                            }
                           }
                       - lvgl.widget.update:
                           id: mode_duration_btn
@@ -4570,11 +4590,6 @@ lvgl:
                           id: mode_manual_btn
                           state:
                             checked: !lambda "return id(automation_mode) == 3;"
-                           
-                      - lvgl.widget.update:
-                          id: mode_between_btn
-                          state:
-                            checked: false
 
               - button:
                   id: back_manual_btn
@@ -7103,7 +7118,20 @@ script:
             // Turn on at sunset (except in manual mode 3)
             if (mode != 3 && (in_sunset_window || past_sunset_today) && 
                 !id(sw1).state && id(sw1_off_time) == 0) {
-                id(sw1).turn_on();
+                
+                // Debounce check - prevent switching within 30 seconds
+                if (now.timestamp - id(sw1_last_switch_time) < 30) {
+                  ESP_LOGW("automation", "SW1 ON blocked - debounce active (%d sec since last switch)",
+                           now.timestamp - id(sw1_last_switch_time));
+                } else {
+                  // Enhanced logging for 23:00 issue debugging
+                  if (now.hour == 22 && now.minute >= 55) {
+                    ESP_LOGW("automation", "⚠️ SW1 TURNING ON near 23:00 - time=%02d:%02d mode=%d",
+                             now.hour, now.minute, mode);
+                  }
+                  
+                  id(sw1).turn_on();
+                  id(sw1_last_switch_time) = now.timestamp;
                 
                 // Calculate off time based on automation mode
                 if (mode == 0) {
@@ -7176,10 +7204,23 @@ script:
             // For Between mode (mode 2), this will trigger at sunrise time
             // For other modes, this will trigger at the calculated off time
             if (id(sw1).state && id(sw1_off_time) > 0 && now.timestamp >= id(sw1_off_time)) {
-              id(sw1).turn_off();
-              id(sw1_off_time) = 0;
-              id(sw1_before_sunrise) = false;  // Clear the before-sunrise flag
-              ESP_LOGI("automation", "SW1 turned OFF - timer expired (mode=%d)", mode);
+              // Debounce check
+              if (now.timestamp - id(sw1_last_switch_time) < 30) {
+                ESP_LOGW("automation", "SW1 OFF blocked - debounce active (%d sec since last switch)",
+                         now.timestamp - id(sw1_last_switch_time));
+              } else {
+                // Enhanced logging for 23:00 issue debugging
+                if (now.hour == 22 && now.minute >= 55) {
+                  ESP_LOGW("automation", "⚠️ SW1 TURNING OFF near 23:00 - time=%02d:%02d mode=%d off_time=%u",
+                           now.hour, now.minute, mode, id(sw1_off_time));
+                }
+                
+                id(sw1).turn_off();
+                id(sw1_last_switch_time) = now.timestamp;
+                id(sw1_off_time) = 0;
+                id(sw1_before_sunrise) = false;  // Clear the before-sunrise flag
+                ESP_LOGI("automation", "SW1 turned OFF - timer expired (mode=%d)", mode);
+              }
             }
             
             } // End of else block for mode != -1
@@ -7283,14 +7324,40 @@ script:
             
             // Turn pump ON if in window and not already on
             if (in_runtime_window && !id(sw2).state) {
-              id(sw2).turn_on();
-              ESP_LOGI("automation", "✓✓✓ SW2 PUMP turned ON - runtime block active (daily: %d min)", daily_runtime);
+              // Debounce check
+              if (now.timestamp - id(sw2_last_switch_time) < 30) {
+                ESP_LOGW("automation", "SW2 ON blocked - debounce active (%d sec since last switch)",
+                         now.timestamp - id(sw2_last_switch_time));
+              } else {
+                // Enhanced logging near 23:00
+                if (now.hour == 22 && now.minute >= 55) {
+                  ESP_LOGW("automation", "⚠️ SW2 PUMP TURNING ON near 23:00 - time=%02d:%02d",
+                           now.hour, now.minute);
+                }
+                
+                id(sw2).turn_on();
+                id(sw2_last_switch_time) = now.timestamp;
+                ESP_LOGI("automation", "✓✓✓ SW2 PUMP turned ON - runtime block active (daily: %d min)", daily_runtime);
+              }
             }
             // Turn pump OFF if outside window and currently on
             else if (!in_runtime_window && id(sw2).state) {
-              id(sw2).turn_off();
-              id(sw2_off_time) = 0;  // clear any pending timers when schedule says OFF
-              ESP_LOGI("automation", "SW2 PUMP turned OFF - outside runtime window");
+              // Debounce check
+              if (now.timestamp - id(sw2_last_switch_time) < 30) {
+                ESP_LOGW("automation", "SW2 OFF blocked - debounce active (%d sec since last switch)",
+                         now.timestamp - id(sw2_last_switch_time));
+              } else {
+                // Enhanced logging near 23:00
+                if (now.hour == 22 && now.minute >= 55) {
+                  ESP_LOGW("automation", "⚠️ SW2 PUMP TURNING OFF near 23:00 - time=%02d:%02d",
+                           now.hour, now.minute);
+                }
+                
+                id(sw2).turn_off();
+                id(sw2_last_switch_time) = now.timestamp;
+                id(sw2_off_time) = 0;  // clear any pending timers when schedule says OFF
+                ESP_LOGI("automation", "SW2 PUMP turned OFF - outside runtime window");
+              }
             }
             else if (in_runtime_window && id(sw2).state) {
               // Already on - no action needed
