@@ -2804,8 +2804,6 @@ lvgl:
                             - lvgl.label.update:
                                 id: seasonal_label
                                 text: "ON"
-                            - lambda: |-
-
                           else:
                             - lvgl.label.update:
                                 id: seasonal_label
