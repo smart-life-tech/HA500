@@ -7503,7 +7503,7 @@ script:
               
               id(sw3).turn_off();
               id(sw3_off_time) = 0;
-                    ESP_LOGI("automation", "SW3 VALVE OFF - Remaining need: %.1fL", id(irrigation_needed_liters));
+              ESP_LOGI("automation", "SW3 VALVE OFF - Remaining need: %.1fL", id(irrigation_needed_liters));
             }
           }
 
