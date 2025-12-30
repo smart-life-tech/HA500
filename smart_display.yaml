@@ -4705,63 +4705,36 @@ lvgl:
                   x: 60
                   y: 110
                   text_color: 0xFFFFFF
-        # SW3 Mode Toggle
-        - button:
+        # Current Mode Display (Non-clickable)
+        - obj:
             id: sw3_mode_toggle
             width: 460
             height: 60
             x: 10
             y: 230
-            checkable: true
-            state:
-              checked: !lambda "return id(sw3_winter_mode);"
+            bg_color: 0x1E3A8A
+            bg_opa: 60%
+            radius: 10
             widgets:
               - label:
                   id: sw3_mode_label
                   text: !lambda |-
-                    if (id(sw3_winter_mode)) {
-                      return "Valve: Winter (Rain-based)";
+                    auto now = id(sntp_time).now();
+                    bool manual_active = now.is_valid() && id(sw3_manual_override_time) > 0 && 
+                                         (now.timestamp - id(sw3_manual_override_time)) < 86400;
+                    
+                    if (manual_active) {
+                      return "Current Mode: MANUAL";
+                    } else if (id(sw3_winter_mode)) {
+                      return "Current Mode: RAIN-BASED";
                     } else {
-                      return "Valve: Summer (Temperature-based)";
+                      return "Current Mode: TEMPERATURE-BASED";
                     }
-                  text_font: roboto
+                  text_font: roboto24
+                  text_color: 0xFFFFFF
                   align: center
-            on_click:
-              then:
-                - lambda: |-
-                    id(sw3_winter_mode) = !id(sw3_winter_mode);
-                - script.execute: calculate_irrigation_needs
-                - if:
-                    condition:
-                      lambda: "return id(sw3_winter_mode);"
-                    then:
-                      - lvgl.label.update:
-                          id: sw3_mode_label
-                          text: "Valve: Winter (Rain-based)"
-                      - lvgl.label.update:
-                          id: sw3_button_label
-                          text: "Valve (Winter)"
-                      - lvgl.label.update:
-                          id: season_mode_label
-                          text: "Winter Mode"
-                      - lvgl.widget.update:
-                          id: winter_summer_toggle
-                          state:
-                            checked: true
-                    else:
-                      - lvgl.label.update:
-                          id: sw3_mode_label
-                          text: "Summer (Temperature-based)"
-                      - lvgl.label.update:
-                          id: sw3_button_label
-                          text: "Valve (Summer)"
-                      - lvgl.label.update:
-                          id: season_mode_label
-                          text: "Summer Mode"
-                      - lvgl.widget.update:
-                          id: winter_summer_toggle
-                          state:
-                            checked: false
+                  x: 0
+                  y: 15
         # Weather Impact Section
         - obj:
             width: 460
@@ -4819,14 +4792,15 @@ lvgl:
                   checkable: true
                   state:
                     checked: !lambda "return id(sw3_winter_mode);"
+                  bg_color: !lambda "return id(sw3_winter_mode) ? lv_color_hex(0x0066CC) : lv_color_hex(0xFF8800);"
                   widgets:
                     - label:
                         id: season_mode_label
                         text: !lambda |-
                           if (id(sw3_winter_mode)) {
-                            return "Winter Mode";
+                            return "Rain Mode";
                           } else {
-                            return "Summer Mode";
+                            return "Temp Mode";
                           }
                         text_font: roboto
                         align: center
@@ -4835,37 +4809,27 @@ lvgl:
                       - lambda: |-
                           id(sw3_winter_mode) = !id(sw3_winter_mode);
                       - script.execute: calculate_irrigation_needs
-                      - if:
-                          condition:
-                            lambda: "return id(sw3_winter_mode);"
-                          then:
-                            - lvgl.label.update:
-                                id: season_mode_label
-                                text: "Winter Mode"
-                            - lvgl.label.update:
-                                id: sw3_mode_label
-                                text: "Valve: Winter (Rain-based)"
-                            - lvgl.label.update:
-                                id: sw3_button_label
-                                text: "Valve (Winter)"
-                            - lvgl.widget.update:
-                                id: sw3_mode_toggle
-                                state:
-                                  checked: true
-                          else:
-                            - lvgl.label.update:
-                                id: season_mode_label
-                                text: "Summer Mode"
-                            - lvgl.label.update:
-                                id: sw3_mode_label
-                                text: "Summer (Temperature-based)"
-                            - lvgl.label.update:
-                                id: sw3_button_label
-                                text: "Valve (Summer)"
-                            - lvgl.widget.update:
-                                id: sw3_mode_toggle
-                                state:
-                                  checked: false
+                      - lvgl.label.update:
+                          id: season_mode_label
+                          text: !lambda |-
+                            if (id(sw3_winter_mode)) {
+                              return "Rain Mode";
+                            } else {
+                              return "Temp Mode";
+                            }
+                      - lvgl.label.update:
+                          id: sw3_mode_label
+                      - lvgl.label.update:
+                          id: sw3_button_label
+                          text: !lambda |-
+                            if (id(sw3_winter_mode)) {
+                              return "Valve (Winter)";
+                            } else {
+                              return "Valve (Summer)";
+                            }
+                      - lvgl.widget.update:
+                          id: winter_summer_toggle
+                          bg_color: !lambda "return id(sw3_winter_mode) ? lv_color_hex(0x0066CC) : lv_color_hex(0xFF8800);"
 
               - button:
                   id: manual_irrigation_btn
