@@ -4418,7 +4418,7 @@ lvgl:
                             checked: !lambda "return id(automation_mode) == 0;"
                       - lvgl.widget.update:
                           id: mode_duration_btn
-                          bg_color: !lambda "return id(automation_mode) == 0 ? 0x00AA00 : 0x444444;"
+                          bg_color: !lambda "return id(automation_mode) == 0 ? lv_color_hex(0x00AA00) : lv_color_hex(0x444444);"
                       - lvgl.widget.update:
                           id: mode_until_btn
                           state:
@@ -4483,7 +4483,7 @@ lvgl:
                             checked: !lambda "return id(automation_mode) == 1;"
                       - lvgl.widget.update:
                           id: mode_until_btn
-                          bg_color: !lambda "return id(automation_mode) == 1 ? 0x00AA00 : 0x444444;"
+                          bg_color: !lambda "return id(automation_mode) == 1 ? lv_color_hex(0x00AA00) : lv_color_hex(0x444444);"
                       - lvgl.widget.update:
                           id: mode_between_btn
                           state:
@@ -4548,7 +4548,7 @@ lvgl:
                             checked: !lambda "return id(automation_mode) == 2;"
                       - lvgl.widget.update:
                           id: mode_between_btn
-                          bg_color: !lambda "return id(automation_mode) == 2 ? 0x00AA00 : 0x444444;"
+                          bg_color: !lambda "return id(automation_mode) == 2 ? lv_color_hex(0x00AA00) : lv_color_hex(0x444444);"
                       - lvgl.widget.update:
                           id: mode_manual_btn
                           state:
@@ -4617,7 +4617,7 @@ lvgl:
                             checked: !lambda "return id(automation_mode) == 3;"
                       - lvgl.widget.update:
                           id: mode_manual_btn
-                          bg_color: !lambda "return id(automation_mode) == 3 ? 0x00AA00 : 0x444444;"
+                          bg_color: !lambda "return id(automation_mode) == 3 ? lv_color_hex(0x00AA00) : lv_color_hex(0x444444);"
                            
                       - lvgl.widget.update:
                           id: mode_between_btn
