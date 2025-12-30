@@ -4873,11 +4873,28 @@ lvgl:
                   y: 10
                   width: 130
                   height: 60
+                  checkable: true
                   state:
-                    checked: true
+                    checked: !lambda |-
+                      auto now = id(sntp_time).now();
+                      if (!now.is_valid()) return false;
+                      return id(sw3_manual_override_time) > 0 && 
+                             (now.timestamp - id(sw3_manual_override_time)) < 86400;
+                  bg_color: !lambda |-
+                    auto now = id(sntp_time).now();
+                    if (!now.is_valid()) return lv_color_hex(0x444444);
+                    bool is_active = id(sw3_manual_override_time) > 0 && 
+                                     (now.timestamp - id(sw3_manual_override_time)) < 86400;
+                    return is_active ? lv_color_hex(0xFF6600) : lv_color_hex(0x444444);
                   widgets:
                     - label:
-                        text: "Manual"
+                        id: manual_irrigation_label
+                        text: !lambda |-
+                          auto now = id(sntp_time).now();
+                          if (!now.is_valid()) return "Manual";
+                          bool is_active = id(sw3_manual_override_time) > 0 && 
+                                           (now.timestamp - id(sw3_manual_override_time)) < 86400;
+                          return is_active ? "Manual ON" : "Manual";
                         text_font: roboto
                         align: center
                   on_click:
@@ -4886,9 +4903,43 @@ lvgl:
                       - lambda: |-
                           auto now = id(sntp_time).now();
                           if (now.is_valid()) {
-                            id(sw3_manual_override_time) = now.timestamp;
-                            ESP_LOGI("automation", "SW3 manual override activated for 24 hours");
+                            // Toggle manual override
+                            bool is_active = id(sw3_manual_override_time) > 0 && 
+                                             (now.timestamp - id(sw3_manual_override_time)) < 86400;
+                            if (is_active) {
+                              // Deactivate manual override
+                              id(sw3_manual_override_time) = 0;
+                              ESP_LOGI("automation", "SW3 manual override deactivated");
+                            } else {
+                              // Activate manual override
+                              id(sw3_manual_override_time) = now.timestamp;
+                              ESP_LOGI("automation", "SW3 manual override activated for 24 hours");
+                            }
                           }
+                      - lvgl.widget.update:
+                          id: manual_irrigation_btn
+                          state:
+                            checked: !lambda |-
+                              auto now = id(sntp_time).now();
+                              if (!now.is_valid()) return false;
+                              return id(sw3_manual_override_time) > 0 && 
+                                     (now.timestamp - id(sw3_manual_override_time)) < 86400;
+                      - lvgl.widget.update:
+                          id: manual_irrigation_btn
+                          bg_color: !lambda |-
+                            auto now = id(sntp_time).now();
+                            if (!now.is_valid()) return lv_color_hex(0x444444);
+                            bool is_active = id(sw3_manual_override_time) > 0 && 
+                                             (now.timestamp - id(sw3_manual_override_time)) < 86400;
+                            return is_active ? lv_color_hex(0xFF6600) : lv_color_hex(0x444444);
+                      - lvgl.label.update:
+                          id: manual_irrigation_label
+                          text: !lambda |-
+                            auto now = id(sntp_time).now();
+                            if (!now.is_valid()) return "Manual";
+                            bool is_active = id(sw3_manual_override_time) > 0 && 
+                                             (now.timestamp - id(sw3_manual_override_time)) < 86400;
+                            return is_active ? "Manual ON" : "Manual";
 
               - button:
                   id: back_to_controls_btn
