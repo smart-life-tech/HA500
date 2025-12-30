@@ -3890,80 +3890,6 @@ lvgl:
                     }
                     return "http://192.168.4.1/";
 
-        - button:
-            id: valve_training_btn
-            x: 295
-            y: 420
-            hidden: false
-            width: 120
-            height: 45
-            styles: nav_button_style
-            widgets:
-              - label:
-                  text: !lambda |-
-                    if (id(valve_training_mode)) {
-                      return "Training...";
-                    }
-                    return "Train Valve";
-                  text_font: roboto
-                  align: center
-                  text_color: !lambda |-
-                    if (id(valve_training_mode)) {
-                      return lv_color_hex(0xFFA500);  // Orange
-                    }
-                    return lv_color_hex(0xCCCCCC);  // GREY
-                  on_click:
-                    then:
-                      - script.execute: start_valve_training
-
-        # Bucket volume controls for valve calibration
-        - obj:
-            x: 150
-            y: 420
-            width: 130
-            height: 45
-            bg_opa: 0%
-            border_width: 0
-            widgets:
-              - label:
-                  id: bucket_volume_label
-                  text: !lambda |-
-                    static char t[24];
-                    snprintf(t, sizeof(t), "Bucket: %.1fL", id(bucket_volume_liters));
-                    return t;
-                  text_font: roboto
-                  align: LEFT_MID
-              - button:
-                  x: 0
-                  y: 0
-                  width: 25
-                  height: 25
-                  widgets:
-                    - label:
-                        text: "-"
-                        align: center
-                  on_click:
-                    then:
-                      - lambda: |-
-                          id(bucket_volume_liters) = std::max(1.0f, id(bucket_volume_liters) - 1.0f);
-                      - lvgl.label.update:
-                          id: bucket_volume_label
-              - button:
-                  x: 30
-                  y: 0
-                  width: 25
-                  height: 25
-                  widgets:
-                    - label:
-                        text: "+"
-                        align: center
-                  on_click:
-                    then:
-                      - lambda: |-
-                          id(bucket_volume_liters) = std::min(100.0f, id(bucket_volume_liters) + 1.0f);
-                      - lvgl.label.update:
-                          id: bucket_volume_label
-
         # Navigation buttons
         - button:
             id: home_button
@@ -4981,6 +4907,81 @@ lvgl:
                       - lambda: |-
                           // go to sttong page from control page
                           id(lvgl_comp).show_page(1, LV_SCR_LOAD_ANIM_OVER_RIGHT, 300);
+
+        # Valve training and calibration
+        - button:
+            id: valve_training_btn
+            x: 295
+            y: 460
+            hidden: false
+            width: 120
+            height: 45
+            styles: nav_button_style
+            widgets:
+              - label:
+                  text: !lambda |-
+                    if (id(valve_training_mode)) {
+                      return "Training...";
+                    }
+                    return "Train Valve";
+                  text_font: roboto
+                  align: center
+                  text_color: !lambda |-
+                    if (id(valve_training_mode)) {
+                      return lv_color_hex(0xFFA500);  // Orange
+                    }
+                    return lv_color_hex(0xCCCCCC);  // GREY
+                  on_click:
+                    then:
+                      - script.execute: start_valve_training
+
+        # Bucket volume controls for valve calibration
+        - obj:
+            x: 150
+            y: 460
+            width: 130
+            height: 45
+            bg_opa: 0%
+            border_width: 0
+            widgets:
+              - label:
+                  id: bucket_volume_label
+                  text: !lambda |-
+                    static char t[24];
+                    snprintf(t, sizeof(t), "Bucket: %.1fL", id(bucket_volume_liters));
+                    return t;
+                  text_font: roboto
+                  align: LEFT_MID
+              - button:
+                  x: 0
+                  y: 0
+                  width: 25
+                  height: 25
+                  widgets:
+                    - label:
+                        text: "-"
+                        align: center
+                  on_click:
+                    then:
+                      - lambda: |-
+                          id(bucket_volume_liters) = std::max(1.0f, id(bucket_volume_liters) - 1.0f);
+                      - lvgl.label.update:
+                          id: bucket_volume_label
+              - button:
+                  x: 30
+                  y: 0
+                  width: 25
+                  height: 25
+                  widgets:
+                    - label:
+                        text: "+"
+                        align: center
+                  on_click:
+                    then:
+                      - lambda: |-
+                          id(bucket_volume_liters) = std::min(100.0f, id(bucket_volume_liters) + 1.0f);
+                      - lvgl.label.update:
+                          id: bucket_volume_label
 
     - id: pool_pump_settings_page
       bg_color: 0x0F172A
