@@ -4574,7 +4574,7 @@ lvgl:
       #bg_opa: cover
       pad_all: 0
       border_width: 0
-      scrollable: true
+      scrollable: false
       widgets:
         # Background image
         - image:
@@ -4928,7 +4928,7 @@ lvgl:
             id: valve_training_btn
             x: 295
             y: 460
-            hidden: false
+            hidden: true
             width: 120
             height: 45
             styles: nav_button_style
@@ -4957,6 +4957,7 @@ lvgl:
             width: 130
             height: 45
             bg_opa: 0%
+            hidden: true
             border_width: 0
             widgets:
               - label:
@@ -4970,6 +4971,7 @@ lvgl:
               - button:
                   x: 0
                   y: 0
+                  hidden: true
                   width: 25
                   height: 25
                   widgets:
@@ -4987,6 +4989,7 @@ lvgl:
                   y: 0
                   width: 25
                   height: 25
+                  hidden: true
                   widgets:
                     - label:
                         text: "+"
