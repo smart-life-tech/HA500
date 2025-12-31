@@ -4784,52 +4784,64 @@ lvgl:
             y: 350
             widgets:
               - button:
-                  id: winter_summer_toggle
+                  id: auto_mode_toggle
                   x: 2
                   y: 10
                   width: 150
                   height: 60
                   checkable: true
                   state:
-                    checked: !lambda "return id(sw3_winter_mode);"
-                  bg_color: !lambda "return id(sw3_winter_mode) ? lv_color_hex(0x0066CC) : lv_color_hex(0xFF8800);"
+                    checked: !lambda |-
+                      auto now = id(sntp_time).now();
+                      if (!now.is_valid()) return true;
+                      return !(id(sw3_manual_override_time) > 0 && 
+                               (now.timestamp - id(sw3_manual_override_time)) < 86400);
+                  bg_color: !lambda |-
+                    auto now = id(sntp_time).now();
+                    if (!now.is_valid()) return lv_color_hex(0x00AA00);
+                    bool is_auto = !(id(sw3_manual_override_time) > 0 && 
+                                     (now.timestamp - id(sw3_manual_override_time)) < 86400);
+                    return is_auto ? lv_color_hex(0x00AA00) : lv_color_hex(0x444444);
                   widgets:
                     - label:
-                        id: season_mode_label
+                        id: auto_mode_label
                         text: !lambda |-
-                          if (id(sw3_winter_mode)) {
-                            return "Rain Mode";
-                          } else {
-                            return "Temp Mode";
-                          }
+                          auto now = id(sntp_time).now();
+                          if (!now.is_valid()) return "Auto Mode";
+                          bool is_auto = !(id(sw3_manual_override_time) > 0 && 
+                                           (now.timestamp - id(sw3_manual_override_time)) < 86400);
+                          return is_auto ? "Auto Mode" : "Auto Off";
                         text_font: roboto
                         align: center
                   on_click:
                     then:
                       - lambda: |-
-                          id(sw3_winter_mode) = !id(sw3_winter_mode);
-                      - script.execute: calculate_irrigation_needs
-                      - lvgl.label.update:
-                          id: season_mode_label
-                          text: !lambda |-
-                            if (id(sw3_winter_mode)) {
-                              return "Rain Mode";
-                            } else {
-                              return "Temp Mode";
-                            }
-                      - lvgl.label.update:
-                          id: sw3_mode_label
-                      - lvgl.label.update:
-                          id: sw3_button_label
-                          text: !lambda |-
-                            if (id(sw3_winter_mode)) {
-                              return "Valve (Winter)";
-                            } else {
-                              return "Valve (Summer)";
-                            }
+                          auto now = id(sntp_time).now();
+                          if (now.is_valid()) {
+                            // Deactivate manual mode (activate auto)
+                            id(sw3_manual_override_time) = 0;
+                            ESP_LOGI("automation", "SW3 switched to AUTO mode");
+                          }
                       - lvgl.widget.update:
-                          id: winter_summer_toggle
-                          bg_color: !lambda "return id(sw3_winter_mode) ? lv_color_hex(0x0066CC) : lv_color_hex(0xFF8800);"
+                          id: auto_mode_toggle
+                          state:
+                            checked: true
+                      - lvgl.widget.update:
+                          id: auto_mode_toggle
+                          bg_color: !lambda "return lv_color_hex(0x00AA00);"
+                      - lvgl.label.update:
+                          id: auto_mode_label
+                          text: "Auto Mode"
+                      - lvgl.widget.update:
+                          id: manual_irrigation_btn
+                          state:
+                            checked: false
+                      - lvgl.widget.update:
+                          id: manual_irrigation_btn
+                          bg_color: !lambda "return lv_color_hex(0x444444);"
+                      - lvgl.label.update:
+                          id: manual_irrigation_label
+                          text: "Manual"
 
               - button:
                   id: manual_irrigation_btn
@@ -4904,6 +4916,30 @@ lvgl:
                             bool is_active = id(sw3_manual_override_time) > 0 && 
                                              (now.timestamp - id(sw3_manual_override_time)) < 86400;
                             return is_active ? "Manual ON" : "Manual";
+                      - lvgl.widget.update:
+                          id: auto_mode_toggle
+                          state:
+                            checked: !lambda |-
+                              auto now = id(sntp_time).now();
+                              if (!now.is_valid()) return true;
+                              return !(id(sw3_manual_override_time) > 0 && 
+                                       (now.timestamp - id(sw3_manual_override_time)) < 86400);
+                      - lvgl.widget.update:
+                          id: auto_mode_toggle
+                          bg_color: !lambda |-
+                            auto now = id(sntp_time).now();
+                            if (!now.is_valid()) return lv_color_hex(0x00AA00);
+                            bool is_auto = !(id(sw3_manual_override_time) > 0 && 
+                                             (now.timestamp - id(sw3_manual_override_time)) < 86400);
+                            return is_auto ? lv_color_hex(0x00AA00) : lv_color_hex(0x444444);
+                      - lvgl.label.update:
+                          id: auto_mode_label
+                          text: !lambda |-
+                            auto now = id(sntp_time).now();
+                            if (!now.is_valid()) return "Auto Mode";
+                            bool is_auto = !(id(sw3_manual_override_time) > 0 && 
+                                             (now.timestamp - id(sw3_manual_override_time)) < 86400);
+                            return is_auto ? "Auto Mode" : "Auto Off";
 
               - button:
                   id: back_to_controls_btn
