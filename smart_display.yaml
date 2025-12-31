@@ -4720,15 +4720,20 @@ lvgl:
                   id: sw3_mode_label
                   text: !lambda |-
                     auto now = id(sntp_time).now();
-                    bool manual_active = now.is_valid() && id(sw3_manual_override_time) > 0 && 
+                    if (!now.is_valid()) return "Season: Unknown";
+                    
+                    // Calculate season based on day of year (same logic as irrigation calculation)
+                    int day_of_year = now.day_of_year;
+                    bool is_winter = (day_of_year <= 80 || day_of_year >= 355);
+                    
+                    // Check if manual mode is active
+                    bool manual_active = id(sw3_manual_override_time) > 0 && 
                                          (now.timestamp - id(sw3_manual_override_time)) < 86400;
                     
                     if (manual_active) {
-                      return "Current Mode: MANUAL";
-                    } else if (id(sw3_winter_mode)) {
-                      return "Current Mode: RAIN-BASED";
+                      return is_winter ? "Season: Winter (Manual)" : "Season: Summer (Manual)";
                     } else {
-                      return "Current Mode: TEMPERATURE-BASED";
+                      return is_winter ? "Season: Winter (Auto)" : "Season: Summer (Auto)";
                     }
                   text_font: roboto24
                   text_color: 0xFFFFFF
