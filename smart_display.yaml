@@ -4617,7 +4617,7 @@ lvgl:
             width: 460
             height: 160
             #bg_color: 0x000000
-            bg_opa: 40%
+            bg_opa: 80%
             radius: 10
             x: 10
             y: 70
@@ -4739,7 +4739,7 @@ lvgl:
                   text_color: 0xFFFFFF
                   align: center
                   x: 0
-                  y: 15
+                  y: -10
         # Weather Impact Section
         - obj:
             width: 460
@@ -4747,6 +4747,7 @@ lvgl:
             bg_color: 0x000000
             bg_opa: 0%
             scrollable: false
+            hidden: true
             border_width: 0
             radius: 10
             x: 10
@@ -4786,7 +4787,7 @@ lvgl:
             scrollable: false
             border_width: 0
             x: 10
-            y: 350
+            y: 300
             widgets:
               - button:
                   id: auto_mode_toggle
@@ -4968,8 +4969,8 @@ lvgl:
         - button:
             id: valve_training_btn
             x: 295
-            y: 460
-            hidden: true
+            y: 350
+            hidden: false
             width: 120
             height: 45
             styles: nav_button_style
@@ -4994,7 +4995,7 @@ lvgl:
         # Bucket volume controls for valve calibration
         - obj:
             x: 150
-            y: 460
+            y: 350
             width: 130
             height: 45
             bg_opa: 0%
