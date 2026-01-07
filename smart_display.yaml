@@ -4617,7 +4617,7 @@ lvgl:
             width: 460
             height: 160
             #bg_color: 0x000000
-            bg_opa: 80%
+            bg_opa: 0%
             radius: 10
             x: 10
             y: 70
@@ -4968,11 +4968,11 @@ lvgl:
         # Valve training and calibration
         - button:
             id: valve_training_btn
-            x: 295
-            y: 350
+            x: 180
+            y: 415
             hidden: false
             width: 120
-            height: 45
+            height: 50
             styles: nav_button_style
             widgets:
               - label:
@@ -4994,12 +4994,11 @@ lvgl:
 
         # Bucket volume controls for valve calibration
         - obj:
-            x: 150
-            y: 350
-            width: 130
-            height: 45
+            x: 10
+            y: 415
+            width: 160
+            height: 50
             bg_opa: 0%
-            hidden: true
             border_width: 0
             widgets:
               - label:
@@ -5012,7 +5011,7 @@ lvgl:
                   align: LEFT_MID
               - button:
                   x: 0
-                  y: 0
+                  y: 15
                   hidden: true
                   width: 25
                   height: 25
@@ -5027,11 +5026,10 @@ lvgl:
                       - lvgl.label.update:
                           id: bucket_volume_label
               - button:
-                  x: 30
-                  y: 0
+                  x: 125
+                  y: 15
                   width: 25
                   height: 25
-                  hidden: true
                   widgets:
                     - label:
                         text: "+"
