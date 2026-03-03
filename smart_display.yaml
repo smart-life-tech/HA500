@@ -2314,6 +2314,14 @@ lvgl:
                   text_font: roboto
                   x: 0
                   y: 30
+              - label:
+                  id: firmware_version_label
+                  align: center
+                  text: "FW: ${project_version}"
+                  text_color: 0xFFFFFF
+                  text_font: roboto
+                  x: 0
+                  y: 55
 
         # Navigation buttons
         - button:
