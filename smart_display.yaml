@@ -4662,7 +4662,7 @@ lvgl:
                   id: rainfall_display
                   text: !lambda |-
                     static char rain_text[40];
-                    float rainfall_liters = id(daily_rainfall_mm) * id(field_area_m2) / 1000.0;
+                    float rainfall_liters = id(daily_rainfall_mm) * id(field_area_m2);
                     snprintf(rain_text, sizeof(rain_text), "%.1f L (%.1f mm)", rainfall_liters, id(daily_rainfall_mm));
                     return rain_text;
                   text_font: roboto
@@ -4680,7 +4680,9 @@ lvgl:
                   text: !lambda |-
                     static char need_text[50];
                     if (id(irrigation_needed_liters) > 0) {
-                      float minutes_needed = id(irrigation_needed_liters) / id(valve_liters_per_minute);
+                      float flow_lpm = id(valve_liters_per_minute);
+                      if (flow_lpm <= 0.0f) flow_lpm = 1.0f;
+                      float minutes_needed = id(irrigation_needed_liters) / flow_lpm;
                       snprintf(need_text, sizeof(need_text), "%.1f L (%.1f min)", 
                               id(irrigation_needed_liters), minutes_needed);
                     } else {
@@ -4694,7 +4696,7 @@ lvgl:
                     if (id(irrigation_needed_liters) > 0) {
                       return lv_color_hex(0xFFA500);  // Orange
                     }
-                    return lv_color_hex(0x000000);  //  - no Water needed
+                    return lv_color_hex(0xCCCCCC);  // Light gray when no water needed
               - label:
                   text: "Mode:"
                   text_font: roboto
@@ -4704,7 +4706,14 @@ lvgl:
               - label:
                   id: irrigation_mode_display
                   text: !lambda |-
-                    if (id(sw3_winter_mode)) {
+                    auto now = id(time_comp).now();
+                    if (!now.is_valid()) now = id(sntp_time).now();
+                    bool is_winter = id(sw3_winter_mode);
+                    if (now.is_valid()) {
+                      int day_of_year = now.day_of_year;
+                      is_winter = (day_of_year <= 80 || day_of_year >= 355);
+                    }
+                    if (is_winter) {
                       return "Winter (Low evaporation)";
                     } else {
                       return "Summer (High evaporation)";
@@ -4727,8 +4736,11 @@ lvgl:
               - label:
                   id: sw3_mode_label
                   text: !lambda |-
-                    auto now = id(sntp_time).now();
-                    if (!now.is_valid()) return "Season: Unknown";
+                    auto now = id(time_comp).now();
+                    if (!now.is_valid()) now = id(sntp_time).now();
+                    if (!now.is_valid()) {
+                      return id(sw3_winter_mode) ? "Season: Winter" : "Season: Summer";
+                    }
                     
                     // Calculate season based on day of year (same logic as irrigation calculation)
                     int day_of_year = now.day_of_year;
@@ -4806,13 +4818,18 @@ lvgl:
                   checkable: true
                   state:
                     checked: !lambda |-
-                      auto now = id(sntp_time).now();
-                      if (!now.is_valid()) return true;
+                      auto now = id(time_comp).now();
+                      if (!now.is_valid()) now = id(sntp_time).now();
+                      if (!now.is_valid()) return id(sw3_manual_override_time) == 0;
                       return !(id(sw3_manual_override_time) > 0 && 
                                (now.timestamp - id(sw3_manual_override_time)) < 86400);
                   bg_color: !lambda |-
-                    auto now = id(sntp_time).now();
-                    if (!now.is_valid()) return lv_color_hex(0x00AA00);
+                    auto now = id(time_comp).now();
+                    if (!now.is_valid()) now = id(sntp_time).now();
+                    if (!now.is_valid()) {
+                      bool is_auto = id(sw3_manual_override_time) == 0;
+                      return is_auto ? lv_color_hex(0x00AA00) : lv_color_hex(0x444444);
+                    }
                     bool is_auto = !(id(sw3_manual_override_time) > 0 && 
                                      (now.timestamp - id(sw3_manual_override_time)) < 86400);
                     return is_auto ? lv_color_hex(0x00AA00) : lv_color_hex(0x444444);
@@ -4820,8 +4837,11 @@ lvgl:
                     - label:
                         id: auto_mode_label
                         text: !lambda |-
-                          auto now = id(sntp_time).now();
-                          if (!now.is_valid()) return "Auto Mode";
+                          auto now = id(time_comp).now();
+                          if (!now.is_valid()) now = id(sntp_time).now();
+                          if (!now.is_valid()) {
+                            return id(sw3_manual_override_time) == 0 ? "Auto Mode" : "Auto Off";
+                          }
                           bool is_auto = !(id(sw3_manual_override_time) > 0 && 
                                            (now.timestamp - id(sw3_manual_override_time)) < 86400);
                           return is_auto ? "Auto Mode" : "Auto Off";
@@ -4830,12 +4850,9 @@ lvgl:
                   on_click:
                     then:
                       - lambda: |-
-                          auto now = id(sntp_time).now();
-                          if (now.is_valid()) {
-                            // Deactivate manual mode (activate auto)
-                            id(sw3_manual_override_time) = 0;
-                            ESP_LOGI("automation", "SW3 switched to AUTO mode");
-                          }
+                          // Deactivate manual mode (activate auto)
+                          id(sw3_manual_override_time) = 0;
+                          ESP_LOGI("automation", "SW3 switched to AUTO mode");
                       - lvgl.widget.update:
                           id: auto_mode_toggle
                           state:
@@ -4866,13 +4883,18 @@ lvgl:
                   checkable: true
                   state:
                     checked: !lambda |-
-                      auto now = id(sntp_time).now();
-                      if (!now.is_valid()) return false;
+                      auto now = id(time_comp).now();
+                      if (!now.is_valid()) now = id(sntp_time).now();
+                      if (!now.is_valid()) return id(sw3_manual_override_time) > 0;
                       return id(sw3_manual_override_time) > 0 && 
                              (now.timestamp - id(sw3_manual_override_time)) < 86400;
                   bg_color: !lambda |-
-                    auto now = id(sntp_time).now();
-                    if (!now.is_valid()) return lv_color_hex(0x444444);
+                    auto now = id(time_comp).now();
+                    if (!now.is_valid()) now = id(sntp_time).now();
+                    if (!now.is_valid()) {
+                      bool is_active = id(sw3_manual_override_time) > 0;
+                      return is_active ? lv_color_hex(0xFF6600) : lv_color_hex(0x444444);
+                    }
                     bool is_active = id(sw3_manual_override_time) > 0 && 
                                      (now.timestamp - id(sw3_manual_override_time)) < 86400;
                     return is_active ? lv_color_hex(0xFF6600) : lv_color_hex(0x444444);
@@ -4880,8 +4902,11 @@ lvgl:
                     - label:
                         id: manual_irrigation_label
                         text: !lambda |-
-                          auto now = id(sntp_time).now();
-                          if (!now.is_valid()) return "Manual";
+                          auto now = id(time_comp).now();
+                          if (!now.is_valid()) now = id(sntp_time).now();
+                          if (!now.is_valid()) {
+                            return id(sw3_manual_override_time) > 0 ? "Manual ON" : "Manual";
+                          }
                           bool is_active = id(sw3_manual_override_time) > 0 && 
                                            (now.timestamp - id(sw3_manual_override_time)) < 86400;
                           return is_active ? "Manual ON" : "Manual";
@@ -4891,42 +4916,52 @@ lvgl:
                     then:
                       - switch.toggle: sw3
                       - lambda: |-
-                          auto now = id(sntp_time).now();
+                          auto now = id(time_comp).now();
+                          if (!now.is_valid()) now = id(sntp_time).now();
+                          // Toggle manual override
+                          bool is_active = false;
                           if (now.is_valid()) {
-                            // Toggle manual override
-                            bool is_active = id(sw3_manual_override_time) > 0 && 
-                                             (now.timestamp - id(sw3_manual_override_time)) < 86400;
-                            if (is_active) {
-                              // Deactivate manual override
-                              id(sw3_manual_override_time) = 0;
-                              ESP_LOGI("automation", "SW3 manual override deactivated");
-                            } else {
-                              // Activate manual override
-                              id(sw3_manual_override_time) = now.timestamp;
-                              ESP_LOGI("automation", "SW3 manual override activated for 24 hours");
-                            }
+                            is_active = id(sw3_manual_override_time) > 0 && 
+                                        (now.timestamp - id(sw3_manual_override_time)) < 86400;
+                          } else {
+                            is_active = id(sw3_manual_override_time) > 0;
+                          }
+                          if (is_active) {
+                            id(sw3_manual_override_time) = 0;
+                            ESP_LOGI("automation", "SW3 manual override deactivated");
+                          } else {
+                            id(sw3_manual_override_time) = now.is_valid() ? now.timestamp : 1;
+                            ESP_LOGI("automation", "SW3 manual override activated");
                           }
                       - lvgl.widget.update:
                           id: manual_irrigation_btn
                           state:
                             checked: !lambda |-
-                              auto now = id(sntp_time).now();
-                              if (!now.is_valid()) return false;
+                              auto now = id(time_comp).now();
+                              if (!now.is_valid()) now = id(sntp_time).now();
+                              if (!now.is_valid()) return id(sw3_manual_override_time) > 0;
                               return id(sw3_manual_override_time) > 0 && 
                                      (now.timestamp - id(sw3_manual_override_time)) < 86400;
                       - lvgl.widget.update:
                           id: manual_irrigation_btn
                           bg_color: !lambda |-
-                            auto now = id(sntp_time).now();
-                            if (!now.is_valid()) return lv_color_hex(0x444444);
+                            auto now = id(time_comp).now();
+                            if (!now.is_valid()) now = id(sntp_time).now();
+                            if (!now.is_valid()) {
+                              bool is_active = id(sw3_manual_override_time) > 0;
+                              return is_active ? lv_color_hex(0xFF6600) : lv_color_hex(0x444444);
+                            }
                             bool is_active = id(sw3_manual_override_time) > 0 && 
                                              (now.timestamp - id(sw3_manual_override_time)) < 86400;
                             return is_active ? lv_color_hex(0xFF6600) : lv_color_hex(0x444444);
                       - lvgl.label.update:
                           id: manual_irrigation_label
                           text: !lambda |-
-                            auto now = id(sntp_time).now();
-                            if (!now.is_valid()) return "Manual";
+                            auto now = id(time_comp).now();
+                            if (!now.is_valid()) now = id(sntp_time).now();
+                            if (!now.is_valid()) {
+                              return id(sw3_manual_override_time) > 0 ? "Manual ON" : "Manual";
+                            }
                             bool is_active = id(sw3_manual_override_time) > 0 && 
                                              (now.timestamp - id(sw3_manual_override_time)) < 86400;
                             return is_active ? "Manual ON" : "Manual";
@@ -4934,23 +4969,31 @@ lvgl:
                           id: auto_mode_toggle
                           state:
                             checked: !lambda |-
-                              auto now = id(sntp_time).now();
-                              if (!now.is_valid()) return true;
+                              auto now = id(time_comp).now();
+                              if (!now.is_valid()) now = id(sntp_time).now();
+                              if (!now.is_valid()) return id(sw3_manual_override_time) == 0;
                               return !(id(sw3_manual_override_time) > 0 && 
                                        (now.timestamp - id(sw3_manual_override_time)) < 86400);
                       - lvgl.widget.update:
                           id: auto_mode_toggle
                           bg_color: !lambda |-
-                            auto now = id(sntp_time).now();
-                            if (!now.is_valid()) return lv_color_hex(0x00AA00);
+                            auto now = id(time_comp).now();
+                            if (!now.is_valid()) now = id(sntp_time).now();
+                            if (!now.is_valid()) {
+                              bool is_auto = id(sw3_manual_override_time) == 0;
+                              return is_auto ? lv_color_hex(0x00AA00) : lv_color_hex(0x444444);
+                            }
                             bool is_auto = !(id(sw3_manual_override_time) > 0 && 
                                              (now.timestamp - id(sw3_manual_override_time)) < 86400);
                             return is_auto ? lv_color_hex(0x00AA00) : lv_color_hex(0x444444);
                       - lvgl.label.update:
                           id: auto_mode_label
                           text: !lambda |-
-                            auto now = id(sntp_time).now();
-                            if (!now.is_valid()) return "Auto Mode";
+                            auto now = id(time_comp).now();
+                            if (!now.is_valid()) now = id(sntp_time).now();
+                            if (!now.is_valid()) {
+                              return id(sw3_manual_override_time) == 0 ? "Auto Mode" : "Auto Off";
+                            }
                             bool is_auto = !(id(sw3_manual_override_time) > 0 && 
                                              (now.timestamp - id(sw3_manual_override_time)) < 86400);
                             return is_auto ? "Auto Mode" : "Auto Off";
@@ -6600,6 +6643,36 @@ script:
             temp_multiplier = 1.0f + (temp_diff * id(temp_rate_percent) / 100.0f);
           }
 
+          // Keep valve mode synced with season when time is available
+          auto season_now = id(time_comp).now();
+          if (!season_now.is_valid()) season_now = id(sntp_time).now();
+          if (season_now.is_valid()) {
+            int day_of_year = season_now.day_of_year;
+            id(sw3_winter_mode) = (day_of_year <= 80 || day_of_year >= 355);
+          }
+
+          // Compute daily evaporation (mm/day) from API weather inputs
+          float t = id(owm_temperature).has_state() ? id(owm_temperature).state : 25.0f;
+          float rh = id(owm_humidity).has_state() ? id(owm_humidity).state : 60.0f;
+          float wind = id(owm_wind_speed).has_state() ? id(owm_wind_speed).state : 1.0f;
+          float evap_mm_day = 0.15f * t + 0.03f * (100.0f - rh) + 0.40f * wind;
+          if (evap_mm_day < 0.0f) evap_mm_day = 0.0f;
+
+          // 1 mm over 1 m² equals 1 liter
+          float evap_liters = evap_mm_day * id(field_area_m2);
+          float rainfall_liters = id(daily_rainfall_mm) * id(field_area_m2);
+          id(calculated_evaporation_liters) = evap_liters;
+
+          if (id(sw3_winter_mode)) {
+            id(irrigation_needed_liters) = std::max(0.0f, rainfall_liters - evap_liters);  // Drain mode
+          } else {
+            id(irrigation_needed_liters) = std::max(0.0f, evap_liters - rainfall_liters);  // Fill mode
+          }
+
+          ESP_LOGI("irrigation_calc", "Water calc: temp=%.1fC rh=%.0f%% wind=%.1fm/s evap=%.1fL rain=%.1fL need=%.1fL mode=%s",
+                   t, rh, wind, evap_liters, rainfall_liters, id(irrigation_needed_liters),
+                   id(sw3_winter_mode) ? "WINTER(DRAIN)" : "SUMMER(FILL)");
+
           // Apply temperature adjustment and clamp to min/max (all in minutes)
           daily_runtime = (int) roundf(daily_runtime * temp_multiplier);
           if (daily_runtime < winter_minutes) daily_runtime = winter_minutes;
@@ -7422,7 +7495,7 @@ script:
             bool should_irrigate = false;
             // Recompute today's net water need based on mode
             float evap_liters = id(calculated_evaporation_liters);
-            float rainfall_liters = id(daily_rainfall_mm) * id(field_area_m2) / 1000.0f; // consistent with UI
+            float rainfall_liters = id(daily_rainfall_mm) * id(field_area_m2); // 1 mm * 1 m² = 1 liter
             float need_liters = 0.0f;
             if (id(sw3_winter_mode)) {
               // WINTER: drain excess (rain - evaporation)
@@ -8051,6 +8124,41 @@ interval:
                               
                             }
                           }
+
+                          // Parse rain in mm from OWM payload
+                          // Prefer rain.1h, fallback to rain.3h (converted to approximate daily)
+                          float rain_mm = 0.0f;
+                          bool rain_found = false;
+
+                          size_t rain_1h_pos = body.find("\"1h\":");
+                          if (rain_1h_pos != std::string::npos) {
+                            size_t start = rain_1h_pos + 5;
+                            size_t end = body.find_first_of(",}", start);
+                            if (end != std::string::npos) {
+                              std::string rain_str = body.substr(start, end - start);
+                              rain_mm = std::stof(rain_str) * 24.0f;
+                              rain_found = true;
+                            }
+                          }
+
+                          if (!rain_found) {
+                            size_t rain_3h_pos = body.find("\"3h\":");
+                            if (rain_3h_pos != std::string::npos) {
+                              size_t start = rain_3h_pos + 5;
+                              size_t end = body.find_first_of(",}", start);
+                              if (end != std::string::npos) {
+                                std::string rain_str = body.substr(start, end - start);
+                                rain_mm = std::stof(rain_str) * 8.0f;
+                                rain_found = true;
+                              }
+                            }
+                          }
+
+                          if (!rain_found) {
+                            rain_mm = 0.0f;
+                          }
+                          id(daily_rainfall_mm) = rain_mm;
+                          ESP_LOGD("weather", "Rainfall parsed: %.2f mm/day", rain_mm);
                           
                           // Parse pressure
                           size_t pressure_pos = body.find("\"pressure\":");
@@ -8229,6 +8337,23 @@ interval:
                         } else {
                           ESP_LOGW("weather", "Empty response from weather API");
                         }
+
+                    - script.execute: calculate_irrigation_needs
+
+                    - lvgl.label.update:
+                        id: evaporation_display
+
+                    - lvgl.label.update:
+                        id: rainfall_display
+
+                    - lvgl.label.update:
+                        id: irrigation_needed_display
+
+                    - lvgl.label.update:
+                        id: irrigation_mode_display
+
+                    - lvgl.label.update:
+                        id: sw3_mode_label
 
                     # UPDATE ALL WEATHER LABELS DIRECTLY HERE
                     - lvgl.label.update:
