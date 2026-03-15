@@ -1,4 +1,4 @@
-# ESPHome configuration for Guition ESP32-S3-4848S040
+# ESPHome configuration for Guition ESP32-S3-4848S040 version 12.8
 substitutions:
   name: "guition-esp32-s3-4848s040"
   friendly_name: "Guition Smart Display"
