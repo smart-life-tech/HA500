@@ -34,125 +34,286 @@ output:
   - platform: gpio
     id: sr_oe
     pin:
-      number: GPIO15   # OE (active low, keep LOW to enable outputs)
+      number: GPIO15   # OE (active low)
       inverted: true
 
-  - platform: shift_register
-    id: sr595
-    rclk_pin: sr_rclk
-    srclk_pin: sr_srclk
-    ser_pin: sr_ser
-    output_inverted: false   # Set true if relay activated at LOW
-    channels: 16
-    outputs:
-      - id: relay1
-      - id: relay2
-      - id: relay3
-      - id: relay4
-      - id: relay5
-      - id: relay6
-      - id: relay7
-      - id: relay8
-      - id: relay9
-      - id: relay10
-      - id: relay11
-      - id: relay12
-      - id: relay13
-      - id: relay14
-      - id: relay15
-      - id: relay16
+globals:
+  - id: relay1_state
+    type: bool
+    initial_value: 'false'
+  - id: relay2_state
+    type: bool
+    initial_value: 'false'
+  - id: relay3_state
+    type: bool
+    initial_value: 'false'
+  - id: relay4_state
+    type: bool
+    initial_value: 'false'
+  - id: relay5_state
+    type: bool
+    initial_value: 'false'
+  - id: relay6_state
+    type: bool
+    initial_value: 'false'
+  - id: relay7_state
+    type: bool
+    initial_value: 'false'
+  - id: relay8_state
+    type: bool
+    initial_value: 'false'
+  - id: relay9_state
+    type: bool
+    initial_value: 'false'
+  - id: relay10_state
+    type: bool
+    initial_value: 'false'
+  - id: relay11_state
+    type: bool
+    initial_value: 'false'
+  - id: relay12_state
+    type: bool
+    initial_value: 'false'
+  - id: relay13_state
+    type: bool
+    initial_value: 'false'
+  - id: relay14_state
+    type: bool
+    initial_value: 'false'
+  - id: relay15_state
+    type: bool
+    initial_value: 'false'
+  - id: relay16_state
+    type: bool
+    initial_value: 'false'
+
+script:
+  - id: write_shift_register
+    mode: queued
+    then:
+      - lambda: |-
+          bool states[16] = {
+            id(relay1_state), id(relay2_state), id(relay3_state), id(relay4_state),
+            id(relay5_state), id(relay6_state), id(relay7_state), id(relay8_state),
+            id(relay9_state), id(relay10_state), id(relay11_state), id(relay12_state),
+            id(relay13_state), id(relay14_state), id(relay15_state), id(relay16_state)
+          };
+          auto *ser = id(sr_ser);
+          auto *rclk = id(sr_rclk);
+          auto *srclk = id(sr_srclk);
+
+          // make sure outputs are enabled
+          id(sr_oe).turn_on();
+
+          rclk->turn_off();
+          for (int i = 15; i >= 0; i--) {
+            srclk->turn_off();
+            if (states[i]) ser->turn_on(); else ser->turn_off();
+            srclk->turn_on();
+          }
+          rclk->turn_on();
 
 # Expose the 16 relays as switches in Home Assistant
 switch:
-  - platform: output
+  - platform: template
     name: "Relay 1"
-    output: relay1
-  - platform: output
+    optimistic: true
+    turn_on_action:
+      - lambda: |-
+          id(relay1_state) = true;
+      - script.execute: write_shift_register
+    turn_off_action:
+      - lambda: |-
+          id(relay1_state) = false;
+      - script.execute: write_shift_register
+  - platform: template
     name: "Relay 2"
-    output: relay2
-  - platform: output
+    optimistic: true
+    turn_on_action:
+      - lambda: |-
+          id(relay2_state) = true;
+      - script.execute: write_shift_register
+    turn_off_action:
+      - lambda: |-
+          id(relay2_state) = false;
+      - script.execute: write_shift_register
+  - platform: template
     name: "Relay 3"
-    output: relay3
-  - platform: output
+    optimistic: true
+    turn_on_action:
+      - lambda: |-
+          id(relay3_state) = true;
+      - script.execute: write_shift_register
+    turn_off_action:
+      - lambda: |-
+          id(relay3_state) = false;
+      - script.execute: write_shift_register
+  - platform: template
     name: "Relay 4"
-    output: relay4
-  - platform: output
+    optimistic: true
+    turn_on_action:
+      - lambda: |-
+          id(relay4_state) = true;
+      - script.execute: write_shift_register
+    turn_off_action:
+      - lambda: |-
+          id(relay4_state) = false;
+      - script.execute: write_shift_register
+  - platform: template
     name: "Relay 5"
-    output: relay5
-  - platform: output
+    optimistic: true
+    turn_on_action:
+      - lambda: |-
+          id(relay5_state) = true;
+      - script.execute: write_shift_register
+    turn_off_action:
+      - lambda: |-
+          id(relay5_state) = false;
+      - script.execute: write_shift_register
+  - platform: template
     name: "Relay 6"
-    output: relay6
-  - platform: output
+    optimistic: true
+    turn_on_action:
+      - lambda: |-
+          id(relay6_state) = true;
+      - script.execute: write_shift_register
+    turn_off_action:
+      - lambda: |-
+          id(relay6_state) = false;
+      - script.execute: write_shift_register
+  - platform: template
     name: "Relay 7"
-    output: relay7
-  - platform: output
+    optimistic: true
+    turn_on_action:
+      - lambda: |-
+          id(relay7_state) = true;
+      - script.execute: write_shift_register
+    turn_off_action:
+      - lambda: |-
+          id(relay7_state) = false;
+      - script.execute: write_shift_register
+  - platform: template
     name: "Relay 8"
-    output: relay8
-  - platform: output
+    optimistic: true
+    turn_on_action:
+      - lambda: |-
+          id(relay8_state) = true;
+      - script.execute: write_shift_register
+    turn_off_action:
+      - lambda: |-
+          id(relay8_state) = false;
+      - script.execute: write_shift_register
+  - platform: template
     name: "Relay 9"
-    output: relay9
-  - platform: output
+    optimistic: true
+    turn_on_action:
+      - lambda: |-
+          id(relay9_state) = true;
+      - script.execute: write_shift_register
+    turn_off_action:
+      - lambda: |-
+          id(relay9_state) = false;
+      - script.execute: write_shift_register
+  - platform: template
     name: "Relay 10"
-    output: relay10
-  - platform: output
+    optimistic: true
+    turn_on_action:
+      - lambda: |-
+          id(relay10_state) = true;
+      - script.execute: write_shift_register
+    turn_off_action:
+      - lambda: |-
+          id(relay10_state) = false;
+      - script.execute: write_shift_register
+  - platform: template
     name: "Relay 11"
-    output: relay11
-  - platform: output
+    optimistic: true
+    turn_on_action:
+      - lambda: |-
+          id(relay11_state) = true;
+      - script.execute: write_shift_register
+    turn_off_action:
+      - lambda: |-
+          id(relay11_state) = false;
+      - script.execute: write_shift_register
+  - platform: template
     name: "Relay 12"
-    output: relay12
-  - platform: output
+    optimistic: true
+    turn_on_action:
+      - lambda: |-
+          id(relay12_state) = true;
+      - script.execute: write_shift_register
+    turn_off_action:
+      - lambda: |-
+          id(relay12_state) = false;
+      - script.execute: write_shift_register
+  - platform: template
     name: "Relay 13"
-    output: relay13
-  - platform: output
+    optimistic: true
+    turn_on_action:
+      - lambda: |-
+          id(relay13_state) = true;
+      - script.execute: write_shift_register
+    turn_off_action:
+      - lambda: |-
+          id(relay13_state) = false;
+      - script.execute: write_shift_register
+  - platform: template
     name: "Relay 14"
-    output: relay14
-  - platform: output
+    optimistic: true
+    turn_on_action:
+      - lambda: |-
+          id(relay14_state) = true;
+      - script.execute: write_shift_register
+    turn_off_action:
+      - lambda: |-
+          id(relay14_state) = false;
+      - script.execute: write_shift_register
+  - platform: template
     name: "Relay 15"
-    output: relay15
-  - platform: output
+    optimistic: true
+    turn_on_action:
+      - lambda: |-
+          id(relay15_state) = true;
+      - script.execute: write_shift_register
+    turn_off_action:
+      - lambda: |-
+          id(relay15_state) = false;
+      - script.execute: write_shift_register
+  - platform: template
     name: "Relay 16"
-    output: relay16
+    optimistic: true
+    turn_on_action:
+      - lambda: |-
+          id(relay16_state) = true;
+      - script.execute: write_shift_register
+    turn_off_action:
+      - lambda: |-
+          id(relay16_state) = false;
+      - script.execute: write_shift_register
 
   - platform: template
     name: "All Relays ON"
+    optimistic: true
     turn_on_action:
-      - switch.turn_on: relay1
-      - switch.turn_on: relay2
-      - switch.turn_on: relay3
-      - switch.turn_on: relay4
-      - switch.turn_on: relay5
-      - switch.turn_on: relay6
-      - switch.turn_on: relay7
-      - switch.turn_on: relay8
-      - switch.turn_on: relay9
-      - switch.turn_on: relay10
-      - switch.turn_on: relay11
-      - switch.turn_on: relay12
-      - switch.turn_on: relay13
-      - switch.turn_on: relay14
-      - switch.turn_on: relay15
-      - switch.turn_on: relay16
+      - lambda: |-
+          id(relay1_state) = true; id(relay2_state) = true; id(relay3_state) = true; id(relay4_state) = true;
+          id(relay5_state) = true; id(relay6_state) = true; id(relay7_state) = true; id(relay8_state) = true;
+          id(relay9_state) = true; id(relay10_state) = true; id(relay11_state) = true; id(relay12_state) = true;
+          id(relay13_state) = true; id(relay14_state) = true; id(relay15_state) = true; id(relay16_state) = true;
+      - script.execute: write_shift_register
     turn_off_action: []
 
   - platform: template
     name: "All Relays OFF"
+    optimistic: true
     turn_on_action:
-      - switch.turn_off: relay1
-      - switch.turn_off: relay2
-      - switch.turn_off: relay3
-      - switch.turn_off: relay4
-      - switch.turn_off: relay5
-      - switch.turn_off: relay6
-      - switch.turn_off: relay7
-      - switch.turn_off: relay8
-      - switch.turn_off: relay9
-      - switch.turn_off: relay10
-      - switch.turn_off: relay11
-      - switch.turn_off: relay12
-      - switch.turn_off: relay13
-      - switch.turn_off: relay14
-      - switch.turn_off: relay15
-      - switch.turn_off: relay16
+      - lambda: |-
+          id(relay1_state) = false; id(relay2_state) = false; id(relay3_state) = false; id(relay4_state) = false;
+          id(relay5_state) = false; id(relay6_state) = false; id(relay7_state) = false; id(relay8_state) = false;
+          id(relay9_state) = false; id(relay10_state) = false; id(relay11_state) = false; id(relay12_state) = false;
+          id(relay13_state) = false; id(relay14_state) = false; id(relay15_state) = false; id(relay16_state) = false;
+      - script.execute: write_shift_register
     turn_off_action: []
 
 binary_sensor:
@@ -165,16 +326,26 @@ on_boot:
   then:
     - logger.log: "Starting 16 relay self-test (one by one)."
     - lambda: |-
-        auto do_cycle = [&](bool state){
-          for(int i=0;i<16;i++){
-            auto *o = id(sr595).get_output(i);
-            if (o) {
-              if (state) o->turn_on(); else o->turn_off();
-              delay(120);
-            }
-          }
-        };
-        do_cycle(true);
-        delay(500);
-        do_cycle(false);
-    - logger.log: "Relay self-test complete."
+        // set all relays off first
+        id(relay1_state)=false; id(relay2_state)=false; id(relay3_state)=false; id(relay4_state)=false;
+        id(relay5_state)=false; id(relay6_state)=false; id(relay7_state)=false; id(relay8_state)=false;
+        id(relay9_state)=false; id(relay10_state)=false; id(relay11_state)=false; id(relay12_state)=false;
+        id(relay13_state)=false; id(relay14_state)=false; id(relay15_state)=false; id(relay16_state)=false;
+      - script.execute: write_shift_register
+      - delay: 500ms
+      - lambda: |-
+        // set all relays on
+        id(relay1_state)=true; id(relay2_state)=true; id(relay3_state)=true; id(relay4_state)=true;
+        id(relay5_state)=true; id(relay6_state)=true; id(relay7_state)=true; id(relay8_state)=true;
+        id(relay9_state)=true; id(relay10_state)=true; id(relay11_state)=true; id(relay12_state)=true;
+        id(relay13_state)=true; id(relay14_state)=true; id(relay15_state)=true; id(relay16_state)=true;
+      - script.execute: write_shift_register
+      - delay: 500ms
+      - lambda: |-
+        // restore off state
+        id(relay1_state)=false; id(relay2_state)=false; id(relay3_state)=false; id(relay4_state)=false;
+        id(relay5_state)=false; id(relay6_state)=false; id(relay7_state)=false; id(relay8_state)=false;
+        id(relay9_state)=false; id(relay10_state)=false; id(relay11_state)=false; id(relay12_state)=false;
+        id(relay13_state)=false; id(relay14_state)=false; id(relay15_state)=false; id(relay16_state)=false;
+      - script.execute: write_shift_register
+      - logger.log: "Relay self-test complete."
