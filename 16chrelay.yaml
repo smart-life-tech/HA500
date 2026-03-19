@@ -7,7 +7,7 @@ wifi:
   ssid: "relay16"
   password: "password"
 
-# Optional static IP
+# Optional fallback AP
 ap:
   ssid: "relay16 AP"
   password: "fallbackpassword"
@@ -23,96 +23,159 @@ output:
   - platform: gpio
     id: sr_ser
     pin:
-      number: GPIO12   # DS / SER
+      number: GPIO14   # DS / SER
   - platform: gpio
     id: sr_rclk
     pin:
-      number: GPIO13   # STCP / RCLK
+      number: GPIO12   # STCP / RCLK
   - platform: gpio
     id: sr_srclk
     pin:
-      number: GPIO14   # SHCP / SRCLK
+      number: GPIO13   # SHCP / SRCLK
   - platform: gpio
     id: sr_oe
     pin:
-      number: GPIO15   # often OE (active low) but we use it as latch enable here
-      inverted: true   # if active low usage; tune per module wiring
+      number: GPIO15   # OE (active low, keep LOW to enable outputs)
+      inverted: true
 
-# Define 16 relay outputs via shift register
   - platform: shift_register
     id: sr595
     rclk_pin: sr_rclk
     srclk_pin: sr_srclk
     ser_pin: sr_ser
-    output_inverted: false    # true if high means OFF on your board
+    output_inverted: false   # Set true if relay activated at LOW
     channels: 16
     outputs:
       - id: relay1
-        name: "Relay 1"
       - id: relay2
-        name: "Relay 2"
       - id: relay3
-        name: "Relay 3"
       - id: relay4
-        name: "Relay 4"
       - id: relay5
-        name: "Relay 5"
       - id: relay6
-        name: "Relay 6"
       - id: relay7
-        name: "Relay 7"
       - id: relay8
-        name: "Relay 8"
       - id: relay9
-        name: "Relay 9"
       - id: relay10
-        name: "Relay 10"
       - id: relay11
-        name: "Relay 11"
       - id: relay12
-        name: "Relay 12"
       - id: relay13
-        name: "Relay 13"
       - id: relay14
-        name: "Relay 14"
       - id: relay15
-        name: "Relay 15"
       - id: relay16
-        name: "Relay 16"
+
+# Expose the 16 relays as switches in Home Assistant
+switch:
+  - platform: output
+    name: "Relay 1"
+    output: relay1
+  - platform: output
+    name: "Relay 2"
+    output: relay2
+  - platform: output
+    name: "Relay 3"
+    output: relay3
+  - platform: output
+    name: "Relay 4"
+    output: relay4
+  - platform: output
+    name: "Relay 5"
+    output: relay5
+  - platform: output
+    name: "Relay 6"
+    output: relay6
+  - platform: output
+    name: "Relay 7"
+    output: relay7
+  - platform: output
+    name: "Relay 8"
+    output: relay8
+  - platform: output
+    name: "Relay 9"
+    output: relay9
+  - platform: output
+    name: "Relay 10"
+    output: relay10
+  - platform: output
+    name: "Relay 11"
+    output: relay11
+  - platform: output
+    name: "Relay 12"
+    output: relay12
+  - platform: output
+    name: "Relay 13"
+    output: relay13
+  - platform: output
+    name: "Relay 14"
+    output: relay14
+  - platform: output
+    name: "Relay 15"
+    output: relay15
+  - platform: output
+    name: "Relay 16"
+    output: relay16
+
+  - platform: template
+    name: "All Relays ON"
+    turn_on_action:
+      - switch.turn_on: relay1
+      - switch.turn_on: relay2
+      - switch.turn_on: relay3
+      - switch.turn_on: relay4
+      - switch.turn_on: relay5
+      - switch.turn_on: relay6
+      - switch.turn_on: relay7
+      - switch.turn_on: relay8
+      - switch.turn_on: relay9
+      - switch.turn_on: relay10
+      - switch.turn_on: relay11
+      - switch.turn_on: relay12
+      - switch.turn_on: relay13
+      - switch.turn_on: relay14
+      - switch.turn_on: relay15
+      - switch.turn_on: relay16
+    turn_off_action: []
+
+  - platform: template
+    name: "All Relays OFF"
+    turn_on_action:
+      - switch.turn_off: relay1
+      - switch.turn_off: relay2
+      - switch.turn_off: relay3
+      - switch.turn_off: relay4
+      - switch.turn_off: relay5
+      - switch.turn_off: relay6
+      - switch.turn_off: relay7
+      - switch.turn_off: relay8
+      - switch.turn_off: relay9
+      - switch.turn_off: relay10
+      - switch.turn_off: relay11
+      - switch.turn_off: relay12
+      - switch.turn_off: relay13
+      - switch.turn_off: relay14
+      - switch.turn_off: relay15
+      - switch.turn_off: relay16
+    turn_off_action: []
 
 binary_sensor:
   - platform: status
     name: "Relay Board Status"
 
-# Test all relays on boot
-interval:
-  - interval: 10s
-    then:
-      - logger.log: "Starting 16-relay test"
-      - lambda: |-
-          bool on = true;
-          for (int i = 1; i <= 16; i++) {
-            auto *o = id(sr595).get_output(i-1);
+# Boot-time relay self-test, one by one
+on_boot:
+  priority: 600.0
+  then:
+    - logger.log: "Starting 16 relay self-test (one by one)."
+    - lambda: |-
+        auto do_cycle = [&](bool state){
+          for(int i=0;i<16;i++){
+            auto *o = id(sr595).get_output(i);
             if (o) {
-              o->turn_on();
-              delay(150);
+              if (state) o->turn_on(); else o->turn_off();
+              delay(120);
             }
           }
-          delay(500);
-          for (int i = 1; i <= 16; i++) {
-            auto *o = id(sr595).get_output(i-1);
-            if (o) {
-              o->turn_off();
-              delay(150);
-            }
-          }
-      - logger.log: "Relay test done"
-
-# (Optionally) expose a switch group for manual/automation
-switch:
-  - platform: output
-    name: "All Relays ON"
-    output: relay_all_on
-  - platform: output
-    name: "All Relays OFF"
-    output: relay_all_off
+        };
+        do_cycle(true);
+        delay(500);
+        do_cycle(false);
+    - logger.log: "Relay self-test complete."
