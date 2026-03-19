@@ -1,0 +1,118 @@
+esphome:
+  name: relay16
+  platform: ESP8266
+  board: esp01_1m   # change to your board
+
+wifi:
+  ssid: "relay16"
+  password: "password"
+
+# Optional static IP
+ap:
+  ssid: "relay16 AP"
+  password: "fallbackpassword"
+
+logger:
+
+api:
+
+ota:
+
+# SPI-like bit-banged shift register pins (74HC595)
+output:
+  - platform: gpio
+    id: sr_ser
+    pin:
+      number: GPIO12   # DS / SER
+  - platform: gpio
+    id: sr_rclk
+    pin:
+      number: GPIO13   # STCP / RCLK
+  - platform: gpio
+    id: sr_srclk
+    pin:
+      number: GPIO14   # SHCP / SRCLK
+  - platform: gpio
+    id: sr_oe
+    pin:
+      number: GPIO15   # often OE (active low) but we use it as latch enable here
+      inverted: true   # if active low usage; tune per module wiring
+
+# Define 16 relay outputs via shift register
+  - platform: shift_register
+    id: sr595
+    rclk_pin: sr_rclk
+    srclk_pin: sr_srclk
+    ser_pin: sr_ser
+    output_inverted: false    # true if high means OFF on your board
+    channels: 16
+    outputs:
+      - id: relay1
+        name: "Relay 1"
+      - id: relay2
+        name: "Relay 2"
+      - id: relay3
+        name: "Relay 3"
+      - id: relay4
+        name: "Relay 4"
+      - id: relay5
+        name: "Relay 5"
+      - id: relay6
+        name: "Relay 6"
+      - id: relay7
+        name: "Relay 7"
+      - id: relay8
+        name: "Relay 8"
+      - id: relay9
+        name: "Relay 9"
+      - id: relay10
+        name: "Relay 10"
+      - id: relay11
+        name: "Relay 11"
+      - id: relay12
+        name: "Relay 12"
+      - id: relay13
+        name: "Relay 13"
+      - id: relay14
+        name: "Relay 14"
+      - id: relay15
+        name: "Relay 15"
+      - id: relay16
+        name: "Relay 16"
+
+binary_sensor:
+  - platform: status
+    name: "Relay Board Status"
+
+# Test all relays on boot
+interval:
+  - interval: 10s
+    then:
+      - logger.log: "Starting 16-relay test"
+      - lambda: |-
+          bool on = true;
+          for (int i = 1; i <= 16; i++) {
+            auto *o = id(sr595).get_output(i-1);
+            if (o) {
+              o->turn_on();
+              delay(150);
+            }
+          }
+          delay(500);
+          for (int i = 1; i <= 16; i++) {
+            auto *o = id(sr595).get_output(i-1);
+            if (o) {
+              o->turn_off();
+              delay(150);
+            }
+          }
+      - logger.log: "Relay test done"
+
+# (Optionally) expose a switch group for manual/automation
+switch:
+  - platform: output
+    name: "All Relays ON"
+    output: relay_all_on
+  - platform: output
+    name: "All Relays OFF"
+    output: relay_all_off
