@@ -44,6 +44,7 @@ logger:
 api:
 
 ota:
+  platform: esphome
 
 # SPI-like bit-banged shift register pins (74HC595)
 output:
