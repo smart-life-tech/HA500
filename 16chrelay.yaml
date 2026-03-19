@@ -8,10 +8,8 @@ wifi:
   ssid: "relay16"
   password: "password"
 
-# Optional fallback AP
-ap:
-  ssid: "relay16 AP"
-  password: "fallbackpassword"
+# Optional fallback captive portal (replaces old ap component)
+captive_portal:
 
 logger:
 
