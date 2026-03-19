@@ -1,5 +1,33 @@
 esphome:
   name: relay16
+  on_boot:
+    - priority: 600.0
+      then:
+        - logger.log: "Starting 16 relay self-test (one by one)."
+        - lambda: |-
+            // set all relays off first
+            id(relay1_state)=false; id(relay2_state)=false; id(relay3_state)=false; id(relay4_state)=false;
+            id(relay5_state)=false; id(relay6_state)=false; id(relay7_state)=false; id(relay8_state)=false;
+            id(relay9_state)=false; id(relay10_state)=false; id(relay11_state)=false; id(relay12_state)=false;
+            id(relay13_state)=false; id(relay14_state)=false; id(relay15_state)=false; id(relay16_state)=false;
+        - script.execute: write_shift_register
+        - delay: 500ms
+        - lambda: |-
+            // set all relays on
+            id(relay1_state)=true; id(relay2_state)=true; id(relay3_state)=true; id(relay4_state)=true;
+            id(relay5_state)=true; id(relay6_state)=true; id(relay7_state)=true; id(relay8_state)=true;
+            id(relay9_state)=true; id(relay10_state)=true; id(relay11_state)=true; id(relay12_state)=true;
+            id(relay13_state)=true; id(relay14_state)=true; id(relay15_state)=true; id(relay16_state)=true;
+        - script.execute: write_shift_register
+        - delay: 500ms
+        - lambda: |-
+            // restore off state
+            id(relay1_state)=false; id(relay2_state)=false; id(relay3_state)=false; id(relay4_state)=false;
+            id(relay5_state)=false; id(relay6_state)=false; id(relay7_state)=false; id(relay8_state)=false;
+            id(relay9_state)=false; id(relay10_state)=false; id(relay11_state)=false; id(relay12_state)=false;
+            id(relay13_state)=false; id(relay14_state)=false; id(relay15_state)=false; id(relay16_state)=false;
+        - script.execute: write_shift_register
+        - logger.log: "Relay self-test complete."
 
 esp8266:
   board: esp01_1m   # change to your board
@@ -321,31 +349,3 @@ binary_sensor:
     name: "Relay Board Status"
 
 # Boot-time relay self-test, one by one
-on_boot:
-  priority: 600.0
-  then:
-    - logger.log: "Starting 16 relay self-test (one by one)."
-    - lambda: |-
-        // set all relays off first
-        id(relay1_state)=false; id(relay2_state)=false; id(relay3_state)=false; id(relay4_state)=false;
-        id(relay5_state)=false; id(relay6_state)=false; id(relay7_state)=false; id(relay8_state)=false;
-        id(relay9_state)=false; id(relay10_state)=false; id(relay11_state)=false; id(relay12_state)=false;
-        id(relay13_state)=false; id(relay14_state)=false; id(relay15_state)=false; id(relay16_state)=false;
-    - script.execute: write_shift_register
-    - delay: 500ms
-    - lambda: |-
-        // set all relays on
-        id(relay1_state)=true; id(relay2_state)=true; id(relay3_state)=true; id(relay4_state)=true;
-        id(relay5_state)=true; id(relay6_state)=true; id(relay7_state)=true; id(relay8_state)=true;
-        id(relay9_state)=true; id(relay10_state)=true; id(relay11_state)=true; id(relay12_state)=true;
-        id(relay13_state)=true; id(relay14_state)=true; id(relay15_state)=true; id(relay16_state)=true;
-    - script.execute: write_shift_register
-    - delay: 500ms
-    - lambda: |-
-        // restore off state
-        id(relay1_state)=false; id(relay2_state)=false; id(relay3_state)=false; id(relay4_state)=false;
-        id(relay5_state)=false; id(relay6_state)=false; id(relay7_state)=false; id(relay8_state)=false;
-        id(relay9_state)=false; id(relay10_state)=false; id(relay11_state)=false; id(relay12_state)=false;
-        id(relay13_state)=false; id(relay14_state)=false; id(relay15_state)=false; id(relay16_state)=false;
-    - script.execute: write_shift_register
-    - logger.log: "Relay self-test complete."
