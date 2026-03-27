@@ -30,7 +30,7 @@ esphome:
         - logger.log: "Relay self-test complete."
 
 esp8266:
-  board: esp01_1m   # change to your board
+  board: esp01_1m   # change to your board its probabkt the esp12 e 01
 
 wifi:
   ssid: "relay16"

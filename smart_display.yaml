@@ -72,6 +72,7 @@ esphome:
           // Jump to your first page (id 0 or whatever main is)
           id(lvgl_comp).show_page(0, LV_SCR_LOAD_ANIM_FADE_ON, 400);
           ESP_LOGD("BOOT", "Showing main page");
+      - script.execute: calculate_irrigation_needs
       - number.set:
           id: pool_length
           value: !lambda "return id(global_pool_length);"
@@ -654,6 +655,7 @@ time:
       then:
         - logger.log: "TIME DEBUG: Time synchronized with Home Assistant"
         - script.execute: time_display_update # Changed from time_update
+        - script.execute: calculate_irrigation_needs
     on_time:
       # Check every minute if we should start irrigation
       - seconds: 0
@@ -5051,9 +5053,11 @@ lvgl:
             height: 50
             bg_opa: 0%
             border_width: 0
+            scrollable: false
             widgets:
               - label:
                   id: bucket_volume_label
+                  scrollable: false
                   text: !lambda |-
                     static char t[24];
                     snprintf(t, sizeof(t), "Bucket: %.1fL", id(bucket_volume_liters));
@@ -6617,7 +6621,8 @@ script:
           float seasonal_factor = 1.0;
           if (id(seasonal_pump_enabled)) {
             auto now = id(time_comp).now();
-            int day_of_year = now.day_of_year;
+            if (!now.is_valid()) now = id(sntp_time).now();
+            int day_of_year = now.is_valid() ? now.day_of_year : 172;
             if (day_of_year <= 80 || day_of_year >= 355) {
               seasonal_factor = 0.0; // Winter solstice
             } else if (day_of_year >= 172 && day_of_year <= 264) {
@@ -6719,6 +6724,23 @@ script:
 
           ESP_LOGI("irrigation", "Daily runtime: %d min, Center block: %d min, Free blocks: %d min each", 
                    daily_runtime, id(center_block_runtime), id(free_block_runtime));
+
+      - lvgl.label.update:
+          id: evaporation_display
+      - lvgl.label.update:
+          id: rainfall_display
+      - lvgl.label.update:
+          id: irrigation_needed_display
+      - lvgl.label.update:
+          id: irrigation_mode_display
+      - lvgl.label.update:
+          id: sw3_mode_label
+      - lvgl.label.update:
+          id: auto_mode_label
+      - lvgl.label.update:
+          id: manual_irrigation_label
+      - lvgl.label.update:
+          id: weather_recommendation
 
   - id: start_valve_training
     then:
