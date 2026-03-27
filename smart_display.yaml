@@ -635,6 +635,7 @@ wifi:
     then:
       - delay: 10s
       - logger.log: "WiFi connected, starting web server"
+      - script.execute: calculate_irrigation_needs
       #- script.execute: update_qr_display  # Update QR code
       - delay: 1s
       - script.execute: notify_web_portal
@@ -4627,7 +4628,7 @@ lvgl:
             width: 460
             height: 160
             #bg_color: 0x000000
-            bg_opa: 0%
+            bg_opa: 60%
             radius: 10
             x: 10
             y: 70
@@ -5023,7 +5024,7 @@ lvgl:
             id: valve_training_btn
             x: 180
             y: 415
-            hidden: false
+            hidden: true
             width: 120
             height: 50
             styles: nav_button_style
@@ -5054,6 +5055,7 @@ lvgl:
             bg_opa: 0%
             border_width: 0
             scrollable: false
+            hidden: true
             widgets:
               - label:
                   id: bucket_volume_label
@@ -6664,8 +6666,14 @@ script:
           if (evap_mm_day < 0.0f) evap_mm_day = 0.0f;
 
           // 1 mm over 1 m² equals 1 liter
-          float evap_liters = evap_mm_day * id(field_area_m2);
-          float rainfall_liters = id(daily_rainfall_mm) * id(field_area_m2);
+          float area_m2 = id(field_area_m2);
+          if (area_m2 <= 0.0f) {
+            area_m2 = 48.0f;
+            id(field_area_m2) = area_m2;
+            ESP_LOGW("irrigation_calc", "Field area was invalid, resetting to %.1f m²", area_m2);
+          }
+          float evap_liters = evap_mm_day * area_m2;
+          float rainfall_liters = id(daily_rainfall_mm) * area_m2;
           id(calculated_evaporation_liters) = evap_liters;
 
           if (id(sw3_winter_mode)) {
