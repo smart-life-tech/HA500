@@ -8226,6 +8226,20 @@ interval:
                               //id(weather_city).publish_state(city_name);
                             }
                           }
+
+                          // Convert OWM UTC timestamps into local time using the current HA time offset.
+                          int owm_local_offset_minutes = 0;
+                          auto local_now = id(time_comp).now();
+                          if (local_now.is_valid()) {
+                            auto utc_now = ESPTime::from_epoch_utc(local_now.timestamp);
+                            owm_local_offset_minutes = (local_now.hour - utc_now.hour) * 60 +
+                                                       (local_now.minute - utc_now.minute);
+                            if (owm_local_offset_minutes <= -720) {
+                              owm_local_offset_minutes += 1440;
+                            } else if (owm_local_offset_minutes > 720) {
+                              owm_local_offset_minutes -= 1440;
+                            }
+                          }
                           
                           // Parse sunrise time (Unix timestamp)
                           size_t sunrise_pos = body.find("\"sunrise\":");
@@ -8240,9 +8254,13 @@ interval:
                               
                               // OWM returns UTC timestamp - convert to ESPHome time object
                               ESPTime sunrise_time = ESPTime::from_epoch_utc(sunrise_unix);
+                                    int sunrise_total_min = sunrise_time.hour * 60 + sunrise_time.minute + owm_local_offset_minutes;
+                                    sunrise_total_min = (sunrise_total_min % 1440 + 1440) % 1440;
+                                    int sunrise_h = sunrise_total_min / 60;
+                                    int sunrise_m = sunrise_total_min % 60;
                               char time_str[20];
                               snprintf(time_str, sizeof(time_str), "%02d:%02d", 
-                                      sunrise_time.hour, sunrise_time.minute);
+                                      sunrise_h, sunrise_m);
                               id(owm_sunrise_time).publish_state(time_str);
                               ESP_LOGD("weather", "Sunrise: %s (Unix: %ld)", time_str, sunrise_unix);
                             }
@@ -8261,9 +8279,13 @@ interval:
                               
                               // OWM returns UTC timestamp - convert to ESPHome time object
                               ESPTime sunset_time = ESPTime::from_epoch_utc(sunset_unix);
+                                    int sunset_total_min = sunset_time.hour * 60 + sunset_time.minute + owm_local_offset_minutes;
+                                    sunset_total_min = (sunset_total_min % 1440 + 1440) % 1440;
+                                    int sunset_h = sunset_total_min / 60;
+                                    int sunset_m = sunset_total_min % 60;
                               char time_str[20];
                               snprintf(time_str, sizeof(time_str), "%02d:%02d", 
-                                      sunset_time.hour, sunset_time.minute);
+                                      sunset_h, sunset_m);
                               id(owm_sunset_time).publish_state(time_str);
                               ESP_LOGD("weather", "Sunset: %s (Unix: %ld)", time_str, sunset_unix);
                             }
