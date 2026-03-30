@@ -6101,23 +6101,6 @@ light:
 
 switch:
   - platform: output
-    id: pump_relay
-    name: "Watering Pump"
-    output: internal_relay_3
-    on_turn_on:
-      then:
-        - lvgl.label.update:
-            id: current_status_display
-            text: "Pump ON - Irrigating..."
-        - logger.log: "Watering pump turned ON"
-    on_turn_off:
-      then:
-        - lvgl.label.update:
-            id: current_status_display
-            text: "Pump OFF - Watering stopped"
-        - logger.log: "Watering pump turned OFF"
-
-  - platform: output
     id: sw1
     name: "Light Control"
     output: internal_relay_1
@@ -6302,7 +6285,7 @@ script:
       - lvgl.label.update:
           id: current_status_display
           text: " Starting test irrigation..."
-      - switch.turn_on: pump_relay
+      - switch.turn_on: sw2
       - lambda: |-
           id(irrigation_duration_remaining) = 2; // 2 minute test
       - lvgl.label.update:
@@ -6315,7 +6298,7 @@ script:
           id: current_status_display
           text: " Test irrigation running - 1 min"
       - delay: 60s # 1 more minute (total 2 minutes)
-      - switch.turn_off: pump_relay
+      - switch.turn_off: sw2
       - lambda: |-
           id(irrigation_duration_remaining) = 0;
       - lvgl.label.update:
@@ -6776,7 +6759,7 @@ script:
     then:
       - if:
           condition:
-            lambda: "return id(auto_irrigation_enabled) && !id(pump_relay).state;"
+            lambda: "return id(auto_irrigation_enabled) && !id(sw2).state;"
           then:
             - logger.log: "Starting scheduled irrigation"
             - script.execute: calculate_irrigation_needs
