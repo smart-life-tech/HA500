@@ -4699,13 +4699,13 @@ lvgl:
                     if (id(irrigation_needed_liters) > 0) {
                       return lv_color_hex(0xFFA500);  // Orange
                     }
-                    return lv_color_hex(0xCCCCCC);  // Light gray when no water needed
+                    return lv_color_hex(0xFFFFFF);  // Light gray when no water needed
               - label:
                   text: "Mode:"
                   text_font: roboto
                   x: 10
                   y: 110
-                  text_color: 0xCCCCCC
+                  text_color: 0xFFFFFF
               - label:
                   id: irrigation_mode_display
                   text: !lambda |-
