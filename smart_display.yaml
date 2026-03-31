@@ -4803,7 +4803,7 @@ lvgl:
         # Control Buttons Section
         - obj:
             width: 460
-            height: 100
+            height: 170
             bg_color: 0x000000
             bg_opa: 0%
             radius: 10
@@ -5003,9 +5003,9 @@ lvgl:
 
               - button:
                   id: back_to_controls_btn
-                  x: 300
+                  x: 350
                   y: 10
-                  width: 150
+                  width: 100
                   height: 60
                   bg_color: 0x00FF00
                   widgets:
@@ -5018,6 +5018,74 @@ lvgl:
                       - lambda: |-
                           // go to sttong page from control page
                           id(lvgl_comp).show_page(1, LV_SCR_LOAD_ANIM_OVER_RIGHT, 300);
+
+              - label:
+                  text: "Bucket Vol:"
+                  text_font: roboto
+                  x: 10
+                  y: 88
+                  text_color: 0xFFFFFF
+
+              - label:
+                  id: bucket_volume_display
+                  text: !lambda |-
+                    static char bucket_text[20];
+                    snprintf(bucket_text, sizeof(bucket_text), "%.1f L", id(bucket_volume_liters));
+                    return bucket_text;
+                  text_font: roboto24
+                  x: 130
+                  y: 82
+                  text_color: 0xFFFFFF
+
+              - button:
+                  id: bucket_minus_btn
+                  x: 280
+                  y: 78
+                  width: 70
+                  height: 44
+                  bg_color: 0x444444
+                  widgets:
+                    - label:
+                        text: "-"
+                        text_font: roboto24
+                        align: center
+                  on_click:
+                    then:
+                      - lambda: |-
+                          id(bucket_volume_liters) -= 0.5f;
+                          if (id(bucket_volume_liters) < 1.0f) id(bucket_volume_liters) = 1.0f;
+                          ESP_LOGI("irrigation", "Bucket volume set to %.1f L", id(bucket_volume_liters));
+                      - lvgl.label.update:
+                          id: bucket_volume_display
+                          text: !lambda |-
+                            static char bucket_text[20];
+                            snprintf(bucket_text, sizeof(bucket_text), "%.1f L", id(bucket_volume_liters));
+                            return bucket_text;
+
+              - button:
+                  id: bucket_plus_btn
+                  x: 360
+                  y: 78
+                  width: 70
+                  height: 44
+                  bg_color: 0x444444
+                  widgets:
+                    - label:
+                        text: "+"
+                        text_font: roboto24
+                        align: center
+                  on_click:
+                    then:
+                      - lambda: |-
+                          id(bucket_volume_liters) += 0.5f;
+                          if (id(bucket_volume_liters) > 50.0f) id(bucket_volume_liters) = 50.0f;
+                          ESP_LOGI("irrigation", "Bucket volume set to %.1f L", id(bucket_volume_liters));
+                      - lvgl.label.update:
+                          id: bucket_volume_display
+                          text: !lambda |-
+                            static char bucket_text[20];
+                            snprintf(bucket_text, sizeof(bucket_text), "%.1f L", id(bucket_volume_liters));
+                            return bucket_text;
 
   
 
