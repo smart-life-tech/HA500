@@ -386,7 +386,7 @@ psram:
 
 # Enable logging
 logger:
-  level: DEBUG
+  level: verbose
   baud_rate: 115200
 
 external_components:
@@ -607,6 +607,7 @@ http_request:
   buffer_size_rx: 1024 # Add buffer size
 
 wifi:
+  enabled: false
   # networks:
   #   - ssid: !secret wifi_ssid3
   #     password: !secret wifi_password3
