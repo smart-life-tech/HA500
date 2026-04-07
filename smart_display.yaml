@@ -1,7 +1,8 @@
 # known values as variables in code 'MIDDLE_LEFT', valid options are 'TOP_LEFT', 'TOP_MID', 'TOP_RIGHT', 'LEFT_MID', 'CENTER', 'RIGHT_MID', 'BOTTOM_LEFT', 'BOTTOM_MID', 'BOTTOM_RIGHT'.
 substitutions:
-  name: "phijo-smart-device"
-  friendly_name: "Phijo Smart"
+  device_number: "1"   # change to 2, 3, 4... on each device
+  name: "phijo-smart-device-${device_number}"
+  friendly_name: "Phijo Smart ${device_number}"
   device_description: " Smart Controller"
   project_name: "Guition.ESP32_S3_4848S040"
   project_version: "1.0.2"
