@@ -2302,7 +2302,7 @@ lvgl:
             widgets:
               - label:
                   id: status_label
-                  hidden: true
+                  hidden: false
                   text: "Ready"
                   text_color: 0xFFFFFF
                   text_font: roboto
@@ -3898,7 +3898,7 @@ lvgl:
                   size: 150
                   text: !lambda |-
                     if (id(ip_address).has_state() && !id(ip_address).state.empty()) {
-                     return "phijo-smart-device.local/";
+                     return "http://${name}.local/";
                     }
                     return "http://192.168.4.1/";
 
@@ -6755,7 +6755,7 @@ script:
           id: settings_qr
           text: !lambda |-
             if (id(ip_address).has_state() && !id(ip_address).state.empty()) {
-              return "phijo-smart-device.local/";
+              return "http://${name}.local/";
             }
             return "http://192.168.4.1/";
 
@@ -6780,8 +6780,8 @@ script:
                 src: wifi_icon_online
             - lvgl.label.update:
                 id: status_label
-                text: " "
-                text_color: ha_blue
+                text: "Online: http://${name}.local/"
+                text_color: green_color
             - logger.log:
                 format: "Web portal active at http://%s"
                 args:
@@ -6791,7 +6791,7 @@ script:
                 #Update QR code when WiFi is connected
             - lvgl.qrcode.update:
                 id: settings_qr
-                text: http://phijo-smart-device.local
+                text: "http://${name}.local/"
             - lvgl.label.update:
                 id: qr_url_label
                 text: !lambda |-
