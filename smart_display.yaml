@@ -1836,6 +1836,20 @@ globals:
     #restore_value: yes
     initial_value: "0"
 
+  # Last trigger reason for switch state-change logging
+  - id: sw1_last_trigger
+    type: std::string
+    restore_value: no
+    initial_value: '"unspecified"'
+  - id: sw2_last_trigger
+    type: std::string
+    restore_value: no
+    initial_value: '"unspecified"'
+  - id: sw3_last_trigger
+    type: std::string
+    restore_value: no
+    initial_value: '"unspecified"'
+
   # SW3 mode (winter/summer)
   - id: sw3_winter_mode
     type: bool
@@ -2588,6 +2602,8 @@ lvgl:
                   align: center
             on_click:
               then:
+                - lambda: |-
+                    id(sw1_last_trigger) = id(sw1).state ? "UI button requested OFF" : "UI button requested ON";
                 - switch.toggle: sw1
                 - lambda: |-
                     id(sw1_manual_override_time) = id(time_comp).now().timestamp;
@@ -2624,6 +2640,8 @@ lvgl:
                   align: center
             on_click:
               then:
+                - lambda: |-
+                    id(sw2_last_trigger) = id(sw2).state ? "UI button requested OFF" : "UI button requested ON";
                 - switch.toggle: sw2
                 - lambda: |-
                     id(sw2_manual_override_time) = id(time_comp).now().timestamp;
@@ -2657,6 +2675,10 @@ lvgl:
                   align: center
             on_click:
               then:
+                - lambda: |-
+                    id(sw3_last_trigger) = id(valve_training_mode)
+                      ? (id(sw3).state ? "Training valve test requested OFF" : "Training valve test requested ON")
+                      : (id(sw3).state ? "UI button requested OFF" : "UI button requested ON");
                 - switch.toggle: sw3
                 - lambda: |-
                     id(sw3_manual_override_time) = id(time_comp).now().timestamp;
@@ -4373,6 +4395,7 @@ lvgl:
                           // If already in Duration mode, deselect and turn off light
                           if (id(automation_mode) == 0) {
                             id(automation_mode) = -1; // No mode selected
+                            id(sw1_last_trigger) = "UI deselected Duration mode";
                             id(sw1).turn_off();
                             id(sw1_off_time) = 0;
                             ESP_LOGI("automation", "No automation mode selected: Light turned OFF");
@@ -4380,6 +4403,7 @@ lvgl:
                           }
                           // If leaving Manual mode, turn light off
                           if (id(automation_mode) == 3) {
+                            id(sw1_last_trigger) = "UI left Manual mode for Duration";
                             id(sw1).turn_off();
                             ESP_LOGI("automation", "Left Manual mode: Light turned OFF");
                           }
@@ -4431,6 +4455,7 @@ lvgl:
                           // If already in Until Time mode, deselect and turn off light
                           if (id(automation_mode) == 1) {
                             id(automation_mode) = -1; // No mode selected
+                            id(sw1_last_trigger) = "UI deselected Until Time mode";
                             id(sw1).turn_off();
                             id(sw1_off_time) = 0;
                             ESP_LOGI("automation", "No automation mode selected: Light turned OFF");
@@ -4438,6 +4463,7 @@ lvgl:
                           }
                           // If leaving Manual mode, turn light off
                           if (id(automation_mode) == 3) {
+                            id(sw1_last_trigger) = "UI left Manual mode for Until Time";
                             id(sw1).turn_off();
                             ESP_LOGI("automation", "Left Manual mode: Light turned OFF");
                           }
@@ -4489,6 +4515,7 @@ lvgl:
                           // If already in Between Times mode, deselect and turn off light
                           if (id(automation_mode) == 2) {
                             id(automation_mode) = -1; // No mode selected
+                            id(sw1_last_trigger) = "UI deselected Between mode";
                             id(sw1).turn_off();
                             id(sw1_off_time) = 0;
                             ESP_LOGI("automation", "No automation mode selected: Light turned OFF");
@@ -4496,6 +4523,7 @@ lvgl:
                           }
                           // If leaving Manual mode, turn light off
                           if (id(automation_mode) == 3) {
+                            id(sw1_last_trigger) = "UI left Manual mode for Between";
                             id(sw1).turn_off();
                             ESP_LOGI("automation", "Left Manual mode: Light turned OFF");
                           }
@@ -4546,6 +4574,7 @@ lvgl:
                           // If already in Manual mode, deselect and turn off light
                           if (id(automation_mode) == 3) {
                             id(automation_mode) = -1; // No mode selected
+                            id(sw1_last_trigger) = "UI deselected Manual mode";
                             id(sw1).turn_off();
                             id(sw1_off_time) = 0;
                             ESP_LOGI("automation", "No automation mode selected: Light turned OFF");
@@ -4557,6 +4586,7 @@ lvgl:
                           // Turn light ON immediately in Manual mode and set timer
                           auto now = id(sntp_time).now();
                           if (now.is_valid()) {
+                            id(sw1_last_trigger) = "UI selected Manual mode";
                             id(sw1).turn_on();
                             id(sw1_off_time) = now.timestamp + (id(manual_duration_hours) * 3600);
                             id(sw1_manual_override_time) = 0; // Clear override so timer works
@@ -4967,6 +4997,8 @@ lvgl:
                         align: center
                   on_click:
                     then:
+                      - lambda: |-
+                          id(sw3_last_trigger) = id(sw3).state ? "Manual irrigation button requested OFF" : "Manual irrigation button requested ON";
                       - switch.toggle: sw3
                       - lambda: |-
                           auto now = id(time_comp).now();
@@ -6225,7 +6257,10 @@ switch:
     on_turn_on:
       then:
         - lambda: |-
-            ESP_LOGW("switch_state", "SW1 Light Control -> ON");
+            ESP_LOGW("switch_state", "SW1 Light Control -> ON | trigger=%s | mode=%d | override=%s | off_time=%u",
+                     id(sw1_last_trigger).c_str(), id(automation_mode),
+                     id(sw1_manual_override_time) > 0 ? "YES" : "NO", id(sw1_off_time));
+            id(sw1_last_trigger) = "unspecified";
         - lvgl.widget.update:
             id: sw1_button
             state:
@@ -6237,7 +6272,10 @@ switch:
     on_turn_off:
       then:
         - lambda: |-
-            ESP_LOGW("switch_state", "SW1 Light Control -> OFF");
+            ESP_LOGW("switch_state", "SW1 Light Control -> OFF | trigger=%s | mode=%d | override=%s | off_time=%u",
+                     id(sw1_last_trigger).c_str(), id(automation_mode),
+                     id(sw1_manual_override_time) > 0 ? "YES" : "NO", id(sw1_off_time));
+            id(sw1_last_trigger) = "unspecified";
         - lvgl.widget.update:
             id: sw1_button
             state:
@@ -6254,7 +6292,12 @@ switch:
     on_turn_on:
       then:
         - lambda: |-
-            ESP_LOGW("switch_state", "SW2 Water Pump -> ON");
+            ESP_LOGW("switch_state", "SW2 Water Pump -> ON | trigger=%s | seasonal=%s | override=%s | runtime=%d min | blocks=%d",
+                     id(sw2_last_trigger).c_str(),
+                     id(seasonal_pump_enabled) ? "YES" : "NO",
+                     id(sw2_manual_override_time) > 0 ? "YES" : "NO",
+                     id(calculated_daily_runtime), id(pump_runtime_blocks));
+            id(sw2_last_trigger) = "unspecified";
         - lvgl.widget.update:
             id: sw2_button
             state:
@@ -6266,7 +6309,12 @@ switch:
     on_turn_off:
       then:
         - lambda: |-
-            ESP_LOGW("switch_state", "SW2 Water Pump -> OFF");
+            ESP_LOGW("switch_state", "SW2 Water Pump -> OFF | trigger=%s | seasonal=%s | override=%s | runtime=%d min | blocks=%d",
+                     id(sw2_last_trigger).c_str(),
+                     id(seasonal_pump_enabled) ? "YES" : "NO",
+                     id(sw2_manual_override_time) > 0 ? "YES" : "NO",
+                     id(calculated_daily_runtime), id(pump_runtime_blocks));
+            id(sw2_last_trigger) = "unspecified";
         - lvgl.widget.update:
             id: sw2_button
             state:
@@ -6283,7 +6331,12 @@ switch:
     on_turn_on:
       then:
         - lambda: |-
-            ESP_LOGW("switch_state", "SW3 Watering Valve -> ON");
+            ESP_LOGW("switch_state", "SW3 Watering Valve -> ON | trigger=%s | mode=%s | override=%s | need=%.1fL | off_time=%u",
+                     id(sw3_last_trigger).c_str(),
+                     id(valve_training_mode) ? "TRAINING" : (id(sw3_winter_mode) ? "WINTER" : "SUMMER"),
+                     id(sw3_manual_override_time) > 0 ? "YES" : "NO",
+                     id(irrigation_needed_liters), id(sw3_off_time));
+            id(sw3_last_trigger) = "unspecified";
         - lvgl.label.update:
             id: current_status_display
             text: " Pump ON - Irrigating..."
@@ -6323,7 +6376,12 @@ switch:
     on_turn_off:
       then:
         - lambda: |-
-            ESP_LOGW("switch_state", "SW3 Watering Valve -> OFF");
+            ESP_LOGW("switch_state", "SW3 Watering Valve -> OFF | trigger=%s | mode=%s | override=%s | remaining=%.1fL",
+                     id(sw3_last_trigger).c_str(),
+                     id(valve_training_mode) ? "TRAINING" : (id(sw3_winter_mode) ? "WINTER" : "SUMMER"),
+                     id(sw3_manual_override_time) > 0 ? "YES" : "NO",
+                     id(irrigation_needed_liters));
+            id(sw3_last_trigger) = "unspecified";
         - lvgl.label.update:
             id: current_status_display
             text: "Pump OFF - Watering stopped"
@@ -7289,6 +7347,7 @@ script:
             // If no mode selected, ensure light is OFF
             if (mode == -1) {
               if (id(sw1).state) {
+                id(sw1_last_trigger) = "No automation mode selected";
                 id(sw1).turn_off();
                 id(sw1_off_time) = 0;
                 ESP_LOGI("automation", "No automation mode selected: SW1 turned OFF");
@@ -7304,6 +7363,7 @@ script:
               if ((int32_t)(sunrise_ts - now.timestamp) <= sunrise_seconds && 
                   (int32_t)(sunrise_ts - now.timestamp) > (sunrise_seconds - 60) && 
                   !id(sw1_before_sunrise) && !id(sw1).state) {
+                  id(sw1_last_trigger) = "Before sunrise automation";
                   id(sw1).turn_on();
                   id(sw1_before_sunrise) = true;
                   ESP_LOGI("automation", "SW1 turned ON - %d hours before sunrise (mode=%d)", id(sunrise_duration_hours), mode);
@@ -7315,6 +7375,7 @@ script:
               // 2. In Between mode (mode 2) and light is on with off_time set to sunrise
               if (abs((int32_t)(sunrise_ts - now.timestamp)) < 60 && id(sw1).state) {
                 if (id(sw1_before_sunrise) || mode == 2) {
+                  id(sw1_last_trigger) = "Sunrise reached";
                   id(sw1).turn_off();
                   id(sw1_before_sunrise) = false;
                   id(sw1_off_time) = 0;
@@ -7372,6 +7433,7 @@ script:
               
               // Check if we're between today's sunset and tomorrow's sunrise
               if (now.timestamp > sunset_ts && now.timestamp < next_sunrise_ts) {
+                id(sw1_last_trigger) = "Between mode catchup";
                 id(sw1).turn_on();
                 id(sw1_off_time) = next_sunrise_ts;
                 int hrs_until = (next_sunrise_ts - now.timestamp) / 3600;
@@ -7386,6 +7448,7 @@ script:
               uint32_t expected_off_time = sunset_ts + (id(sunset_duration_hours) * 3600);
               // If we're past sunset but before expected off time, turn on
               if (now.timestamp > sunset_ts && now.timestamp < expected_off_time) {
+                id(sw1_last_trigger) = "Duration mode catchup";
                 id(sw1).turn_on();
                 id(sw1_off_time) = expected_off_time;
                 int mins_left = (expected_off_time - now.timestamp) / 60;
@@ -7405,6 +7468,7 @@ script:
               }
               // If we're past sunset but before until time, turn on
               if (now.timestamp > sunset_ts && now.timestamp < until_ts) {
+                id(sw1_last_trigger) = "Until Time mode catchup";
                 id(sw1).turn_on();
                 id(sw1_off_time) = until_ts;
                 int mins_left = (until_ts - now.timestamp) / 60;
@@ -7416,6 +7480,7 @@ script:
             // Turn on at sunset (except in manual mode 3)
             if (mode != 3 && (in_sunset_window || past_sunset_today) && 
                 !id(sw1).state && id(sw1_off_time) == 0) {
+                id(sw1_last_trigger) = mode == 0 ? "Sunset schedule (Duration mode)" : (mode == 1 ? "Sunset schedule (Until Time mode)" : "Sunset schedule (Between mode)");
                 id(sw1).turn_on();
                 
                 // Calculate off time based on automation mode
@@ -7489,6 +7554,7 @@ script:
             // For Between mode (mode 2), this will trigger at sunrise time
             // For other modes, this will trigger at the calculated off time
             if (id(sw1).state && id(sw1_off_time) > 0 && now.timestamp >= id(sw1_off_time)) {
+              id(sw1_last_trigger) = "SW1 off timer expired";
               id(sw1).turn_off();
               id(sw1_off_time) = 0;
               id(sw1_before_sunrise) = false;  // Clear the before-sunrise flag
@@ -7501,6 +7567,7 @@ script:
           // Check manual mode timer even when in override (manual button press)
           if (id(sw1_manual_override_time) > 0 && id(sw1).state && 
               id(sw1_off_time) > 0 && now.timestamp >= id(sw1_off_time)) {
+            id(sw1_last_trigger) = "Manual duration expired";
             id(sw1).turn_off();
             id(sw1_off_time) = 0;
             ESP_LOGI("automation", "SW1 manual OFF - timer expired after %d hours", id(manual_duration_hours));
@@ -7596,11 +7663,13 @@ script:
             
             // Turn pump ON if in window and not already on
             if (in_runtime_window && !id(sw2).state) {
+              id(sw2_last_trigger) = "Pool runtime block schedule";
               id(sw2).turn_on();
               ESP_LOGI("automation", "✓✓✓ SW2 PUMP turned ON - runtime block active (daily: %d min)", daily_runtime);
             }
             // Turn pump OFF if outside window and currently on
             else if (!in_runtime_window && id(sw2).state) {
+              id(sw2_last_trigger) = "Outside pool runtime window";
               id(sw2).turn_off();
               id(sw2_off_time) = 0;  // clear any pending timers when schedule says OFF
               ESP_LOGI("automation", "SW2 PUMP turned OFF - outside runtime window");
@@ -7655,12 +7724,14 @@ script:
               irrigation_minutes = std::min(irrigation_minutes, 30.0f); // Max 30 minutes
               
               // Turn on valve first
+              id(sw3_last_trigger) = "Auto irrigation schedule";
               id(sw3).turn_on();
               delay(2000); // Wait 2 seconds
               
               // SUMMER(fill): optionally assist with pump; WINTER(drain): do not turn pump on
               if (!id(sw3_winter_mode)) {
                 if (!id(sw2).state) {
+                  id(sw2_last_trigger) = "Irrigation assist pump";
                   id(sw2).turn_on();
                   ESP_LOGI("automation", "SW2 PUMP turned ON - for filling");
                 }
@@ -7676,10 +7747,12 @@ script:
               // Turn off pump first (if it was turned on for irrigation)
               bool pump_was_for_irrigation = id(sw2).state && !id(seasonal_pump_enabled);
               if (pump_was_for_irrigation) {
+                id(sw2_last_trigger) = "Irrigation complete";
                 id(sw2).turn_off();
                 ESP_LOGI("automation", "SW2 PUMP turned OFF - irrigation complete");
               }
               
+              id(sw3_last_trigger) = "Auto irrigation timer expired";
               id(sw3).turn_off();
               id(sw3_off_time) = 0;
                     ESP_LOGI("automation", "SW3 VALVE OFF - Remaining need: %.1fL", id(irrigation_needed_liters));
