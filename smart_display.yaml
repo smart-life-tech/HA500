@@ -2681,8 +2681,8 @@ lvgl:
                   text: !lambda |-
                     static char line1_text[60];
                     snprintf(line1_text, sizeof(line1_text), 
-                            "Field: %.1f m^3 | Flow: %.1f L/min", 
-                            id(pool_volume), id(pump_flow_rate));
+                            "Size : %.1f m^3 | Flow: %.1f L/min", 
+                            id(pool_volume).state, id(pump_flow_rate));
                     return line1_text;
                   text_font: roboto
                   text_color: black_color
@@ -2847,7 +2847,7 @@ lvgl:
                   y: -7
                   width: 100
                   radius: 10
-                  height: 35
+                  height: 40
                   styles: nav_button_style
                   bg_color: 0x00FF00
                   widgets:
@@ -4684,7 +4684,13 @@ lvgl:
                   id: evaporation_display
                   text: !lambda |-
                     static char evap_text[40];
-                    snprintf(evap_text, sizeof(evap_text), "%.1f L/day", id(calculated_evaporation_liters));
+                    bool api_ready = id(owm_temperature).has_state() || id(owm_humidity).has_state() || id(owm_wind_speed).has_state();
+                    float evap = id(calculated_evaporation_liters);
+                    if (!api_ready && evap <= 0.0f) {
+                      snprintf(evap_text, sizeof(evap_text), "Waiting API...");
+                    } else {
+                      snprintf(evap_text, sizeof(evap_text), "%.1f L/day", evap);
+                    }
                     return evap_text;
                   text_font: roboto
                   x: 120
@@ -4700,8 +4706,14 @@ lvgl:
                   id: rainfall_display
                   text: !lambda |-
                     static char rain_text[40];
-                    float rainfall_liters = id(daily_rainfall_mm) * id(field_area_m2);
-                    snprintf(rain_text, sizeof(rain_text), "%.1f L (%.1f mm)", rainfall_liters, id(daily_rainfall_mm));
+                    bool api_ready = id(owm_temperature).has_state() || id(owm_humidity).has_state() || id(owm_wind_speed).has_state();
+                    float rain_mm = id(daily_rainfall_mm);
+                    float rainfall_liters = rain_mm * id(field_area_m2);
+                    if (!api_ready && rain_mm == 0.0f) {
+                      snprintf(rain_text, sizeof(rain_text), "Waiting API...");
+                    } else {
+                      snprintf(rain_text, sizeof(rain_text), "%.1f L (%.1f mm)", rainfall_liters, rain_mm);
+                    }
                     return rain_text;
                   text_font: roboto
                   x: 80
@@ -4717,14 +4729,17 @@ lvgl:
                   id: irrigation_needed_display
                   text: !lambda |-
                     static char need_text[50];
-                    if (id(irrigation_needed_liters) > 0) {
+                    bool api_ready = id(owm_temperature).has_state() || id(owm_humidity).has_state() || id(owm_wind_speed).has_state();
+                    if (!api_ready && id(irrigation_needed_liters) <= 0.0f) {
+                      snprintf(need_text, sizeof(need_text), "Calculating...");
+                    } else if (id(irrigation_needed_liters) > 0) {
                       float flow_lpm = id(valve_liters_per_minute);
                       if (flow_lpm <= 0.0f) flow_lpm = 1.0f;
                       float minutes_needed = id(irrigation_needed_liters) / flow_lpm;
                       snprintf(need_text, sizeof(need_text), "%.1f L (%.1f min)", 
                               id(irrigation_needed_liters), minutes_needed);
                     } else {
-                      snprintf(need_text, sizeof(need_text), "0 L (No Water needed)");
+                      snprintf(need_text, sizeof(need_text), "0.0 L (No water needed)");
                     }
                     return need_text;
                   text_font: roboto
@@ -6752,12 +6767,73 @@ script:
           ESP_LOGI("irrigation", "Daily runtime: %d min, Center block: %d min, Free blocks: %d min each", 
                    daily_runtime, id(center_block_runtime), id(free_block_runtime));
 
+      - sensor.template.publish:
+          id: daily_evaporation_sensor
+          state: !lambda "return id(calculated_evaporation_liters);"
+      - sensor.template.publish:
+          id: irrigation_needed_sensor
+          state: !lambda "return id(irrigation_needed_liters);"
+      - sensor.template.publish:
+          id: daily_rainfall_sensor
+          state: !lambda "return id(daily_rainfall_mm);"
+
       - lvgl.label.update:
           id: evaporation_display
+          text: !lambda |-
+            static char evap_text[40];
+            bool api_ready = id(owm_temperature).has_state() || id(owm_humidity).has_state() || id(owm_wind_speed).has_state();
+            float evap = id(calculated_evaporation_liters);
+            if (!api_ready && evap <= 0.0f) {
+              snprintf(evap_text, sizeof(evap_text), "Waiting API...");
+            } else {
+              snprintf(evap_text, sizeof(evap_text), "%.1f L/day", evap);
+            }
+            return evap_text;
       - lvgl.label.update:
           id: rainfall_display
+          text: !lambda |-
+            static char rain_text[40];
+            bool api_ready = id(owm_temperature).has_state() || id(owm_humidity).has_state() || id(owm_wind_speed).has_state();
+            float rain_mm = id(daily_rainfall_mm);
+            float rainfall_liters = rain_mm * id(field_area_m2);
+            if (!api_ready && rain_mm == 0.0f) {
+              snprintf(rain_text, sizeof(rain_text), "Waiting API...");
+            } else {
+              snprintf(rain_text, sizeof(rain_text), "%.1f L (%.1f mm)", rainfall_liters, rain_mm);
+            }
+            return rain_text;
       - lvgl.label.update:
           id: irrigation_needed_display
+          text: !lambda |-
+            static char need_text[50];
+            bool api_ready = id(owm_temperature).has_state() || id(owm_humidity).has_state() || id(owm_wind_speed).has_state();
+            if (!api_ready && id(irrigation_needed_liters) <= 0.0f) {
+              snprintf(need_text, sizeof(need_text), "Calculating...");
+            } else if (id(irrigation_needed_liters) > 0) {
+              float flow_lpm = id(valve_liters_per_minute);
+              if (flow_lpm <= 0.0f) flow_lpm = 1.0f;
+              float minutes_needed = id(irrigation_needed_liters) / flow_lpm;
+              snprintf(need_text, sizeof(need_text), "%.1f L (%.1f min)", id(irrigation_needed_liters), minutes_needed);
+            } else {
+              snprintf(need_text, sizeof(need_text), "0.0 L (No water needed)");
+            }
+            return need_text;
+      - lvgl.label.update:
+          id: irrigation_summary_line1
+          text: !lambda |-
+            static char line1_text[60];
+            snprintf(line1_text, sizeof(line1_text), 
+                    "Size : %.1f m^3 | Flow: %.1f L/min", 
+                    id(pool_volume).state, id(valve_liters_per_minute));
+            return line1_text;
+      - lvgl.label.update:
+          id: irrigation_summary_line2
+          text: !lambda |-
+            static char line2_text[60];
+            snprintf(line2_text, sizeof(line2_text), 
+                    "Evap: %.1fL/day | Need: %.1fL", 
+                    id(calculated_evaporation_liters), id(irrigation_needed_liters));
+            return line2_text;
       - lvgl.label.update:
           id: irrigation_mode_display
       - lvgl.label.update:
