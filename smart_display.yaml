@@ -7,6 +7,19 @@ substitutions:
   project_version: "1.0.2"
   wifi_ssid: ""
   wifi_password: ""
+
+  # Per-section log toggles: change any value to INFO or DEBUG when needed.
+  log_main: "ERROR"
+  log_boot: "ERROR"
+  log_light_time: "ERROR"
+  log_irrigation: "ERROR"
+  log_automation: "ERROR"
+  log_pump: "ERROR"
+  log_weather: "ERROR"
+  log_ui: "ERROR"
+  log_touch: "ERROR"
+  log_switch_state: "WARN"
+
   lightbulb: "\U000F0335"
   ceiling_light: "\U000F0769"
   lamp: "\U000F06B5"
@@ -385,8 +398,30 @@ psram:
 
 # Enable logging
 logger:
-  level: DEBUG
+  # Keep the device quiet by default; only switch state changes stay visible.
+  level: WARN
   baud_rate: 115200
+  logs:
+    # Change any section below from ERROR to INFO or DEBUG when needed.
+    main: ${log_main}
+    BOOT: ${log_boot}
+    "BOOT RUNTIME": ${log_boot}
+    light_time: ${log_light_time}
+    irrigation: ${log_irrigation}
+    irrigation_calc: ${log_irrigation}
+    automation: ${log_automation}
+    pump_debug: ${log_pump}
+    pump_time: ${log_pump}
+    pump: ${log_pump}
+    pool_pump: ${log_pump}
+    weather: ${log_weather}
+    geo: ${log_weather}
+    ip_debug: ${log_weather}
+    ui: ${log_ui}
+    location_setup: ${log_ui}
+    touch: ${log_touch}
+    swipe: ${log_touch}
+    switch_state: ${log_switch_state}
 
 external_components:
   source: components
@@ -6174,6 +6209,8 @@ switch:
     output: internal_relay_1
     on_turn_on:
       then:
+        - lambda: |-
+            ESP_LOGW("switch_state", "SW1 Light Control -> ON");
         - lvgl.widget.update:
             id: sw1_button
             state:
@@ -6184,6 +6221,8 @@ switch:
             text_color: green_color
     on_turn_off:
       then:
+        - lambda: |-
+            ESP_LOGW("switch_state", "SW1 Light Control -> OFF");
         - lvgl.widget.update:
             id: sw1_button
             state:
@@ -6199,6 +6238,8 @@ switch:
     output: internal_relay_2
     on_turn_on:
       then:
+        - lambda: |-
+            ESP_LOGW("switch_state", "SW2 Water Pump -> ON");
         - lvgl.widget.update:
             id: sw2_button
             state:
@@ -6209,6 +6250,8 @@ switch:
             text_color: green_color
     on_turn_off:
       then:
+        - lambda: |-
+            ESP_LOGW("switch_state", "SW2 Water Pump -> OFF");
         - lvgl.widget.update:
             id: sw2_button
             state:
@@ -6224,10 +6267,11 @@ switch:
     output: internal_relay_3
     on_turn_on:
       then:
+        - lambda: |-
+            ESP_LOGW("switch_state", "SW3 Watering Valve -> ON");
         - lvgl.label.update:
             id: current_status_display
             text: " Pump ON - Irrigating..."
-        - logger.log: "Watering pump turned ON"
         - if:
             condition:
               lambda: "return id(valve_training_mode);"
@@ -6263,10 +6307,11 @@ switch:
               checked: true
     on_turn_off:
       then:
+        - lambda: |-
+            ESP_LOGW("switch_state", "SW3 Watering Valve -> OFF");
         - lvgl.label.update:
             id: current_status_display
             text: "Pump OFF - Watering stopped"
-        - logger.log: "Watering pump turned OFF"
         - if:
             condition:
               lambda: "return id(valve_training_mode) && id(valve_training_start_time) > 0;"
