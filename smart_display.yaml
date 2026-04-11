@@ -211,6 +211,11 @@ esphome:
           id(sw1_manual_override_time) = 0;
           id(sw2_manual_override_time) = 0;
           id(sw3_manual_override_time) = 0;
+
+          // Keep auto irrigation hard-disabled to prevent relay/pump retrigger loops.
+          id(auto_irrigation_enabled) = false;
+          id(irrigation_duration_remaining) = 0;
+          id(sw3_off_time) = 0;
           
           // Force correct runtime defaults if they got corrupted
           if (id(winter_min_runtime) < 0.5f || id(winter_min_runtime) > 8.0f) {
@@ -1742,8 +1747,8 @@ globals:
 
   - id: auto_irrigation_enabled
     type: bool
-    restore_value: true
-    initial_value: "true"
+    restore_value: false
+    initial_value: "false"
   # Watering system globals
   - id: field_area_m2
     type: float
@@ -3734,35 +3739,26 @@ lvgl:
                   y: 20
                   width: 150
                   height: 40
-                  checkable: true
+                  checkable: false
                   state:
-                    checked: !lambda "return id(auto_irrigation_enabled);"
+                    checked: false
                   widgets:
                     - label:
                         id: auto_irrigation_label
-                        text: !lambda |-
-                          if (id(auto_irrigation_enabled)) {
-                            return "Auto: ON";
-                          } else {
-                            return "Auto: OFF";
-                          }
+                        text: "Auto: DISABLED"
                         text_font: roboto
                         align: center
                   on_click:
                     then:
                       - lambda: |-
-                          id(auto_irrigation_enabled) = !id(auto_irrigation_enabled);
-                      - if:
-                          condition:
-                            lambda: "return id(auto_irrigation_enabled);"
-                          then:
-                            - lvgl.label.update:
-                                id: auto_irrigation_label
-                                text: "Auto: ON"
-                          else:
-                            - lvgl.label.update:
-                                id: auto_irrigation_label
-                                text: "Auto: OFF"
+                          id(auto_irrigation_enabled) = false;
+                      - lvgl.widget.update:
+                          id: auto_irrigation_toggle
+                          state:
+                            checked: false
+                      - lvgl.label.update:
+                          id: auto_irrigation_label
+                          text: "Auto: DISABLED"
 
               # Calculate button
               - button:
@@ -6514,7 +6510,7 @@ script:
           id: irrigation_schedule_minute_input
           value: 0
       - lambda: |-
-          id(auto_irrigation_enabled) = true;
+          id(auto_irrigation_enabled) = false;
           // Reset all irrigation globals to defaults
           id(field_area_m2) = 48.0;
           id(valve_liters_per_minute) = 20.0;
@@ -6524,10 +6520,10 @@ script:
       - lvgl.widget.update:
           id: auto_irrigation_toggle
           state:
-            checked: true
+            checked: false
       - lvgl.label.update:
           id: auto_irrigation_label
-          text: "Auto Irrigation: ON"
+          text: "Auto: DISABLED"
       - script.execute: calculate_irrigation_needs
       - delay: 1s
       - lvgl.label.update:
@@ -7586,10 +7582,11 @@ script:
           }
           
           // Log why pump automation might be disabled
-          ESP_LOGI("pump_debug", "SW2 automation check: manual_override=%d seasonal_enabled=%d (both must be 0 and 1 to run)",
-                   id(sw2_manual_override_time), id(seasonal_pump_enabled));
+          bool irrigation_assist_active = id(sw3).state && id(sw3_off_time) > 0 && !id(sw3_winter_mode);
+          ESP_LOGI("pump_debug", "SW2 automation check: manual_override=%d seasonal_enabled=%d irrigation_assist=%d",
+                   id(sw2_manual_override_time), id(seasonal_pump_enabled), irrigation_assist_active ? 1 : 0);
 
-          if (id(sw2_manual_override_time) == 0 && id(seasonal_pump_enabled)) {
+          if (id(sw2_manual_override_time) == 0 && id(seasonal_pump_enabled) && !irrigation_assist_active) {
             // Calculate if pump should be running based on runtime blocks
             // PRIMARY SOURCE: total_runtime_multiple from pool pump settings (in hours)
             // FALLBACK: calculated_daily_runtime (in minutes) from seasonal calculation
@@ -7685,40 +7682,41 @@ script:
           // Similar logic for SW2 
           // ---- SWITCH 3: IRRIGATION VALVE CONTROL ----
           if (id(sw3_manual_override_time) == 0) {
-            // Check if irrigation is needed and it's appropriate time
-            bool should_irrigate = false;
-            // Recompute today's net water need based on mode
-            float evap_liters = id(calculated_evaporation_liters);
-            float rainfall_liters = id(daily_rainfall_mm) * id(field_area_m2); // 1 mm * 1 m² = 1 liter
-            float need_liters = 0.0f;
-            if (id(sw3_winter_mode)) {
-              // WINTER: drain excess (rain - evaporation)
-              need_liters = std::max(0.0f, rainfall_liters - evap_liters);
-            } else {
-              // SUMMER: fill deficit (evaporation - rain)
-              need_liters = std::max(0.0f, evap_liters - rainfall_liters);
-            }
-            id(irrigation_needed_liters) = need_liters;
-            ESP_LOGI("automation", "SW3 need: mode=%s evap=%.1fL rain=%.1fL need=%.1fL",
-                     id(sw3_winter_mode) ? "WINTER(DRAIN)" : "SUMMER(FILL)",
-                     evap_liters, rainfall_liters, need_liters);
-            
-            // Only irrigate during appropriate hours (early morning or evening)
-            int hour = now.hour;
-            bool appropriate_time = (hour >= 5 && hour <= 7) || (hour >= 18 && hour <= 20);
-            
-            if (appropriate_time && id(irrigation_needed_liters) > 10.0) {
+            if (id(auto_irrigation_enabled)) {
+              // Check if irrigation is needed and it's appropriate time
+              bool should_irrigate = false;
+              // Recompute today's net water need based on mode
+              float evap_liters = id(calculated_evaporation_liters);
+              float rainfall_liters = id(daily_rainfall_mm) * id(field_area_m2); // 1 mm * 1 m² = 1 liter
+              float need_liters = 0.0f;
               if (id(sw3_winter_mode)) {
-                // Winter mode: Only irrigate if really needed (>15L)
-                should_irrigate = id(irrigation_needed_liters) > 15.0;
+                // WINTER: drain excess (rain - evaporation)
+                need_liters = std::max(0.0f, rainfall_liters - evap_liters);
               } else {
-                // Summer mode: Irrigate if needed (>10L)
-                should_irrigate = id(irrigation_needed_liters) > 10.0;
+                // SUMMER: fill deficit (evaporation - rain)
+                need_liters = std::max(0.0f, evap_liters - rainfall_liters);
               }
-            }
-            
-            // Turn on irrigation if needed
-            if (should_irrigate && !id(sw3).state) {
+              id(irrigation_needed_liters) = need_liters;
+              ESP_LOGI("automation", "SW3 need: mode=%s evap=%.1fL rain=%.1fL need=%.1fL",
+                       id(sw3_winter_mode) ? "WINTER(DRAIN)" : "SUMMER(FILL)",
+                       evap_liters, rainfall_liters, need_liters);
+              
+              // Only irrigate during appropriate hours (early morning or evening)
+              int hour = now.hour;
+              bool appropriate_time = (hour >= 5 && hour <= 7) || (hour >= 18 && hour <= 20);
+              
+              if (appropriate_time && id(irrigation_needed_liters) > 10.0) {
+                if (id(sw3_winter_mode)) {
+                  // Winter mode: Only irrigate if really needed (>15L)
+                  should_irrigate = id(irrigation_needed_liters) > 15.0;
+                } else {
+                  // Summer mode: Irrigate if needed (>10L)
+                  should_irrigate = id(irrigation_needed_liters) > 10.0;
+                }
+              }
+              
+              // Turn on irrigation if needed
+              if (should_irrigate && !id(sw3).state) {
               // Calculate irrigation time based on needs
               float irrigation_minutes = id(irrigation_needed_liters) / id(valve_liters_per_minute);
               irrigation_minutes = std::min(irrigation_minutes, 30.0f); // Max 30 minutes
@@ -7741,6 +7739,7 @@ script:
               ESP_LOGI("automation", "SW3 VALVE turned ON - %.1f min for %.1fL (mode: %s)", 
                       irrigation_minutes, id(irrigation_needed_liters),
                       id(sw3_winter_mode) ? "WINTER" : "SUMMER");
+              }
             }
             // Turn off irrigation when timer expires
             if (id(sw3).state && now.timestamp >= id(sw3_off_time) && id(sw3_off_time) > 0) {
