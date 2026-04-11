@@ -4,7 +4,7 @@ substitutions:
   friendly_name: "Phijo Smart"
   device_description: " Smart Controller"
   project_name: "Guition.ESP32_S3_4848S040"
-  project_version: "1.0.2"
+  project_version: "1.1.2"
   wifi_ssid: ""
   wifi_password: ""
 
@@ -2561,10 +2561,26 @@ lvgl:
                   y: 250
                   width: 280
 
+              # Firmware version
+              - label:
+                  text: "FW:"
+                  text_font: roboto
+                  text_color: 0xCCCCCC
+                  x: 10
+                  y: 275
+              - label:
+                  id: wifi_firmware_text
+                  text: "v${project_version}"
+                  text_font: roboto
+                  text_color: 0xFFFFFF
+                  x: 80
+                  y: 275
+                  width: 280
+
               # Refresh button
               - button:
                   x: 10
-                  y: 280
+                  y: 305
                   width: 100
                   height: 30
                   widgets:
@@ -6608,6 +6624,9 @@ script:
                     return id(wifi_mac).state.c_str();
                   }
                   return "N/A";
+            - lvgl.label.update:
+                id: wifi_firmware_text
+                text: "v${project_version}"
             - delay: 1s
           else:
             - lvgl.widget.hide: wifi_popup_obj
@@ -6686,6 +6705,9 @@ script:
                     return id(wifi_mac).state.c_str();
                   }
                   return "N/A";
+            - lvgl.label.update:
+                id: wifi_firmware_text
+                text: "v${project_version}"
           # else:
           #   - lvgl.widget.hide: wifi_popup_obj
 
