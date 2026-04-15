@@ -2344,7 +2344,8 @@ lvgl:
         # Status and IP section
         - obj:
             width: 460
-            scrollable: false # Add this
+            scrollable: false 
+            hidenn: true 
             height: 85
             bg_color: 0x000000
             bg_opa: 0%
@@ -2588,6 +2589,45 @@ lvgl:
                         text: "Refresh"
                         text_font: roboto
                         align: center
+
+        # Relay status indicators - bottom right corner
+        # Light=yellow, Pump=green, Valve=blue when ON; blank circle when OFF
+        - obj:
+            id: relay_light_indicator
+            x: 378
+            y: 442
+            width: 28
+            height: 28
+            radius: 14
+            border_width: 2
+            border_color: 0x444444
+            bg_color: 0x000000
+            bg_opa: 0%
+            scrollable: false
+        - obj:
+            id: relay_pump_indicator
+            x: 410
+            y: 442
+            width: 28
+            height: 28
+            radius: 14
+            border_width: 2
+            border_color: 0x444444
+            bg_color: 0x000000
+            bg_opa: 0%
+            scrollable: false
+        - obj:
+            id: relay_valve_indicator
+            x: 442
+            y: 442
+            width: 28
+            height: 28
+            radius: 14
+            border_width: 2
+            border_color: 0x444444
+            bg_color: 0x000000
+            bg_opa: 0%
+            scrollable: false
 
     # Controls Page - Light Control Buttons
     - id: controls_page
@@ -6281,6 +6321,11 @@ switch:
             id: status_label
             text: "Light ON"
             text_color: green_color
+        - lvgl.widget.update:
+            id: relay_light_indicator
+            bg_color: 0xFFCC00
+            bg_opa: cover
+            border_color: 0xFFCC00
     on_turn_off:
       then:
         - lambda: |-
@@ -6296,6 +6341,11 @@ switch:
             id: status_label
             text: "Light OFF"
             text_color: red_color
+        - lvgl.widget.update:
+            id: relay_light_indicator
+            bg_color: 0x000000
+            bg_opa: 0%
+            border_color: 0x444444
 
   - platform: output
     id: sw2
@@ -6318,6 +6368,11 @@ switch:
             id: status_label
             text: "Water Pump ON"
             text_color: green_color
+        - lvgl.widget.update:
+            id: relay_pump_indicator
+            bg_color: 0x00AA00
+            bg_opa: cover
+            border_color: 0x00AA00
     on_turn_off:
       then:
         - lambda: |-
@@ -6335,6 +6390,11 @@ switch:
             id: status_label
             text: "Water Pump OFF"
             text_color: red_color
+        - lvgl.widget.update:
+            id: relay_pump_indicator
+            bg_color: 0x000000
+            bg_opa: 0%
+            border_color: 0x444444
 
   - platform: output
     id: sw3
@@ -6385,6 +6445,11 @@ switch:
             id: sw3_button
             state:
               checked: true
+        - lvgl.widget.update:
+            id: relay_valve_indicator
+            bg_color: 0x0088FF
+            bg_opa: cover
+            border_color: 0x0088FF
     on_turn_off:
       then:
         - lambda: |-
@@ -6451,6 +6516,11 @@ switch:
             id: sw3_button
             state:
               checked: false
+        - lvgl.widget.update:
+            id: relay_valve_indicator
+            bg_color: 0x000000
+            bg_opa: 0%
+            border_color: 0x444444
 
 #-------------------------------------------
 # Scripts for automation logic
