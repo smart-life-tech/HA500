@@ -6354,12 +6354,12 @@ switch:
     on_turn_on:
       then:
         - lambda: |-
-            ESP_LOGW("switch_state", "SW2 Water Pump -> ON | trigger=%s | seasonal=%s | override=%s | runtime=%d min | blocks=%d",
+            ESP_LOGW("switch_state", "SW2 Water Pump -> now ON | trigger=%s | seasonal=%s | override=%s | runtime=%d min | blocks=%d",
                      id(sw2_last_trigger).c_str(),
                      id(seasonal_pump_enabled) ? "YES" : "NO",
                      id(sw2_manual_override_time) > 0 ? "YES" : "NO",
                      id(calculated_daily_runtime), id(pump_runtime_blocks));
-            id(sw2_last_trigger) = "unspecified";
+            id(sw2_last_trigger) = "unknown/unspecified";
         - lvgl.widget.update:
             id: sw2_button
             state:
