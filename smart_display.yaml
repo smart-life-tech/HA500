@@ -2404,9 +2404,9 @@ lvgl:
             id: wifi_popup_obj
             hidden: true
             x: 50
-            y: 70
+            y: 60
             width: 380
-            height: 350
+            height: 360
             bg_color: 0x000000
             bg_opa: 100%
             radius: 15
