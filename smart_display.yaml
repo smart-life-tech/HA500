@@ -8333,7 +8333,6 @@ interval:
                 request_headers:
                   User-Agent: "ESPHome/1.0"
                 capture_response: true
-                timeout: 15s
                 on_response:
                   then:
                     - lambda: |-
@@ -8418,7 +8417,6 @@ interval:
                 request_headers:
                   User-Agent: "ESPHome/1.0"
                 capture_response: true
-                timeout: 15s
                 on_response:
                   then:
                     - lambda: |-
