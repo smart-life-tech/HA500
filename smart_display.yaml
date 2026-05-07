@@ -2421,7 +2421,7 @@ lvgl:
                   text_font: roboto24
                   text_color: 0xFFFFFF
 
-                  x: 0
+                  x: 50
                   y: 10
                   width: 380
 
@@ -8661,38 +8661,8 @@ interval:
                             size_t end = body.find("\"", start);
                             if (end != std::string::npos) {
                               std::string city_name = body.substr(start, end - start);
-                              // Normalize common UTF-8 accents to ASCII so the current font can render it.
-                              auto normalize_ascii = [](const std::string& in) -> std::string {
-                                std::string out;
-                                out.reserve(in.size());
-                                for (size_t i = 0; i < in.size(); i++) {
-                                  unsigned char c = static_cast<unsigned char>(in[i]);
-                                  if (c == 0xC3 && (i + 1) < in.size()) {
-                                    unsigned char d = static_cast<unsigned char>(in[i + 1]);
-                                    switch (d) {
-                                      case 0xA1: case 0xA0: case 0xA2: case 0xA3: case 0xA4: out += 'a'; i++; continue;
-                                      case 0x81: case 0x80: case 0x82: case 0x83: case 0x84: out += 'A'; i++; continue;
-                                      case 0xA9: case 0xAA: case 0xA8: case 0xAB: out += 'e'; i++; continue;
-                                      case 0x89: case 0x8A: case 0x88: case 0x8B: out += 'E'; i++; continue;
-                                      case 0xAD: case 0xAC: case 0xAE: case 0xAF: out += 'i'; i++; continue;
-                                      case 0x8D: case 0x8C: case 0x8E: case 0x8F: out += 'I'; i++; continue;
-                                      case 0xB3: case 0xB2: case 0xB4: case 0xB5: case 0xB6: out += 'o'; i++; continue;
-                                      case 0x93: case 0x92: case 0x94: case 0x95: case 0x96: out += 'O'; i++; continue;
-                                      case 0xBA: case 0xB9: case 0xBB: case 0xBC: out += 'u'; i++; continue;
-                                      case 0x9A: case 0x99: case 0x9B: case 0x9C: out += 'U'; i++; continue;
-                                      case 0xA7: out += 'c'; i++; continue;
-                                      case 0x87: out += 'C'; i++; continue;
-                                      default: break;
-                                    }
-                                  }
-                                  if (c < 0x80) {
-                                    out += static_cast<char>(c);
-                                  }
-                                }
-                                return out;
-                              };
-                              id(location_name_str) = normalize_ascii(city_name);
-                              ESP_LOGW("weather", "City name: %s", id(location_name_str).c_str());
+                              // Keep geocoding ZIP name as the source of truth for location label.
+                              ESP_LOGW("weather", "Weather city parsed (ignored for label): %s", city_name.c_str());
                             }
                           }
 
