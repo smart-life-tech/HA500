@@ -2345,7 +2345,7 @@ lvgl:
         - obj:
             width: 460
             scrollable: false 
-            hidenn: true 
+            hidden: true 
             height: 85
             bg_color: 0x000000
             bg_opa: 0%
