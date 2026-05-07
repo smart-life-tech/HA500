@@ -8298,8 +8298,10 @@ interval:
                          zip_code.c_str(), encoded_zip.c_str(), 
                          country.c_str(), encoded_country.c_str());
                 
-                // Store for use in next action
-                id(location_name_str) = zip_code + ", " + country;
+                // Only use ZIP as a temporary fallback until geocoding returns a city name.
+                if (id(location_name_str).empty() || id(location_name_str) == "Unknown") {
+                  id(location_name_str) = zip_code + ", " + country;
+                }
             
             - http_request.get:
                 url: !lambda |-
@@ -8340,9 +8342,9 @@ interval:
                     - lambda: |-
                         ESP_LOGD("geo", "Geocoding response (status %d): %s", response->status_code, body.c_str());
 
-                          // Check for error response
-                          if (response->status_code != 200 || body.find("\"cod\":") == std::string::npos) {
-                            ESP_LOGW("geo", "Invalid geocoding response - API error or no data");
+                          // The ZIP geocoding endpoint returns lat/lon/name and may not include "cod".
+                          if (response->status_code != 200 || body.empty()) {
+                            ESP_LOGW("geo", "Invalid geocoding response - status=%d", response->status_code);
                             return;
                           }
 
@@ -8628,7 +8630,8 @@ interval:
                             size_t end = body.find("\"", start);
                             if (end != std::string::npos) {
                               std::string city_name = body.substr(start, end - start);
-                              ESP_LOGD("weather", "City name: %s", city_name.c_str());
+                              id(location_name_str) = city_name;
+                              ESP_LOGW("weather", "City name: %s", city_name.c_str());
                             }
                           }
 
