@@ -8253,108 +8253,164 @@ interval:
             wifi.connected:
           then:
             - logger.log: "Making weather API request..."
-            # - http_request.get:
-            #     url: "https://api.ip2location.io/"
-            #     capture_response: true
-            #     on_response:
-            #       then:
-            #         - lambda: |-
-            #             ESP_LOGI("geo", "Geo API response: %s", body.c_str());
-
-            #             // Minimal JSON extraction using find/substr to reduce stack load
-            #             size_t lat_pos = body.find("\"latitude\":");
-            #             size_t lon_pos = body.find("\"longitude\":");
-            #             size_t city_pos = body.find("\"city_name\":");
-
-            #             if (lat_pos != std::string::npos && lon_pos != std::string::npos) {
-            #               float lat = atof(body.substr(lat_pos + 11).c_str());
-            #               float lon = atof(body.substr(lon_pos + 12).c_str());
-            #               id(current_lat) = lat;
-            #               id(current_lon) = lon;
-            #               ESP_LOGI("geo", "Lat: %.4f, Lon: %.4f", lat, lon);
-            #             }
-
-            #             if (city_pos != std::string::npos) {
-            #               size_t start = city_pos + 13;
-            #               size_t end = body.find("\"", start);
-            #               if (end != std::string::npos) {
-            #                // id(location_name_str) = body.substr(start, end - start);
-            #                 ESP_LOGI("geo", "City: %s", id(location_name_str).c_str());
-            #               }
-            #             }
             - delay: 3s
             - lvgl.label.update:
                 id: location_display_label
                 text: !lambda |-
                   return id(location_name_str).c_str();
 
-            # Step 1: Get coordinates from ZIP code
+            # Step 1: Get coordinates from ZIP code (with URL encoding and validation)
             - logger.log: "Fetching coordinates from ZIP code..."
+            - lambda: |-
+                // URL encode the zip code and country to handle spaces and special characters
+                std::string zip_code = id(user_zip_code);
+                std::string country = id(user_country);
+                
+                // Basic validation
+                if (zip_code.empty() || country.empty()) {
+                  ESP_LOGW("geo", "ZIP code or country is empty, skipping weather update");
+                  return;
+                }
+                
+                // URL encode function - replace spaces with %20 and handle special chars
+                auto url_encode = [](const std::string& str) -> std::string {
+                  std::string encoded;
+                  for (char c : str) {
+                    if (c == ' ') {
+                      encoded += "%20";
+                    } else if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || 
+                               (c >= 'a' && c <= 'z') || c == '-' || c == '_' || c == '.' || c == '~') {
+                      encoded += c;
+                    } else {
+                      encoded += '%';
+                      static const char hex[] = "0123456789ABCDEF";
+                      encoded += hex[(c >> 4) & 0xF];
+                      encoded += hex[c & 0xF];
+                    }
+                  }
+                  return encoded;
+                };
+                
+                std::string encoded_zip = url_encode(zip_code);
+                std::string encoded_country = url_encode(country);
+                
+                ESP_LOGI("geo", "Using ZIP: %s (%s), Country: %s (%s)", 
+                         zip_code.c_str(), encoded_zip.c_str(), 
+                         country.c_str(), encoded_country.c_str());
+                
+                // Store for use in next action
+                id(location_name_str) = zip_code + ", " + country;
+            
             - http_request.get:
                 url: !lambda |-
+                  // URL encode function - replace spaces with %20
+                  auto url_encode = [](const std::string& str) -> std::string {
+                    std::string encoded;
+                    for (char c : str) {
+                      if (c == ' ') {
+                        encoded += "%20";
+                      } else if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || 
+                                 (c >= 'a' && c <= 'z') || c == '-' || c == '_' || c == '.' || c == '~') {
+                        encoded += c;
+                      } else {
+                        encoded += '%';
+                        static const char hex[] = "0123456789ABCDEF";
+                        encoded += hex[(c >> 4) & 0xF];
+                        encoded += hex[c & 0xF];
+                      }
+                    }
+                    return encoded;
+                  };
+                  
                   char url[512];
-                  sprintf(url,
+                  std::string enc_zip = url_encode(id(user_zip_code));
+                  std::string enc_country = url_encode(id(user_country));
+                  snprintf(url, sizeof(url),
                     "http://api.openweathermap.org/geo/1.0/zip?zip=%s,%s&appid=b0fed035f1b875bafaf66f85d33f4e71",
-                    id(user_zip_code).c_str(), id(user_country).c_str());
+                    enc_zip.c_str(), enc_country.c_str());
+                  ESP_LOGD("geo", "Geocoding URL: %s", url);
                   return std::string(url);
                 request_headers:
                   User-Agent: "ESPHome/1.0"
                 capture_response: true
+                timeout: 15s
                 on_response:
                   then:
                     - lambda: |-
-                        ESP_LOGD("geo", "Geocoding response: %s", body.c_str());
+                        try {
+                          ESP_LOGD("geo", "Geocoding response (status %d): %s", response->status_code, body.c_str());
 
-                        // Parse latitude
-                        size_t lat_pos = body.find("\"lat\":");
-                        if (lat_pos != std::string::npos) {
-                          size_t start = lat_pos + 6;
-                          size_t end = body.find(",", start);
-                          if (end == std::string::npos) end = body.find("}", start);
-                          
-                          if (end != std::string::npos) {
-                            std::string lat_str = body.substr(start, end - start);
-                            id(current_lat) = std::stof(lat_str);
-                            ESP_LOGI("geo", "Latitude: %.4f", id(current_lat));
+                          // Check for error response
+                          if (response->status_code != 200 || body.find("\"cod\":") == std::string::npos) {
+                            ESP_LOGW("geo", "Invalid geocoding response - API error or no data");
+                            return;
                           }
+
+                          // Parse latitude
+                          size_t lat_pos = body.find("\"lat\":");
+                          if (lat_pos != std::string::npos) {
+                            size_t start = lat_pos + 6;
+                            size_t end = body.find(",", start);
+                            if (end == std::string::npos) end = body.find("}", start);
+                            
+                            if (end != std::string::npos) {
+                              std::string lat_str = body.substr(start, end - start);
+                              id(current_lat) = std::stof(lat_str);
+                              ESP_LOGI("geo", "✓ Latitude: %.4f", id(current_lat));
+                            }
+                          }
+
+                          // Parse longitude
+                          size_t lon_pos = body.find("\"lon\":");
+                          if (lon_pos != std::string::npos) {
+                            size_t start = lon_pos + 6;
+                            size_t end = body.find(",", start);
+                            if (end == std::string::npos) end = body.find("}", start);
+                            
+                            if (end != std::string::npos) {
+                              std::string lon_str = body.substr(start, end - start);
+                              id(current_lon) = std::stof(lon_str);
+                              ESP_LOGI("geo", "✓ Longitude: %.4f", id(current_lon));
+                            }
+                          }
+
+                          // Parse location name
+                          size_t name_pos = body.find("\"name\":\"");
+                          if (name_pos != std::string::npos) {
+                            size_t start = name_pos + 8;
+                            size_t end = body.find("\"", start);
+                            
+                            if (end != std::string::npos) {
+                              id(location_name_str) = body.substr(start, end - start);
+                              ESP_LOGI("geo", "✓ Location: %s", id(location_name_str).c_str());
+                            }
+                          }
+                        } catch (const std::exception& e) {
+                          ESP_LOGE("geo", "Exception parsing geocoding response: %s", e.what());
                         }
 
-                        // Parse longitude
-                        size_t lon_pos = body.find("\"lon\":");
-                        if (lon_pos != std::string::npos) {
-                          size_t start = lon_pos + 6;
-                          size_t end = body.find(",", start);
-                          if (end == std::string::npos) end = body.find("}", start);
-                          
-                          if (end != std::string::npos) {
-                            std::string lon_str = body.substr(start, end - start);
-                            id(current_lon) = std::stof(lon_str);
-                            ESP_LOGI("geo", "Longitude: %.4f", id(current_lon));
-                          }
-                        }
-
-                        // Parse location name
-                        size_t name_pos = body.find("\"name\":\"");
-                        if (name_pos != std::string::npos) {
-                          size_t start = name_pos + 8;
-                          size_t end = body.find("\"", start);
-                          
-                          if (end != std::string::npos) {
-                            id(location_name_str) = body.substr(start, end - start);
-                            ESP_LOGI("geo", "Location: %s", id(location_name_str).c_str());
-                          }
-                        }
                 on_error:
                   then:
-                    - logger.log: "Failed to fetch coordinates from ZIP code"
+                    - lambda: |-
+                        ESP_LOGW("geo", "⚠ Failed to fetch coordinates - API unavailable or network error");
+                        ESP_LOGW("geo", "Will retry next interval. Current fallback: lat=%.4f lon=%.4f", 
+                                 id(current_lat), id(current_lon));
 
-            # Step 2: Get weather data using coordinates
+            # Step 2: Get weather data using coordinates (only if coordinates are valid)
             - delay: 2s
             - logger.log: "Making OpenWeatherMap weather API request..."
+            - lambda: |-
+                // Validate coordinates before making weather request
+                if (id(current_lat) == 0.0f && id(current_lon) == 0.0f) {
+                  ESP_LOGW("weather", "Skipping weather API - no valid coordinates yet");
+                } else {
+                  ESP_LOGD("weather", "Using coordinates: lat=%.4f lon=%.4f for weather request", 
+                           id(current_lat), id(current_lon));
+                }
             - http_request.get:
                 url: !lambda |-
                   char url[512];
-                  sprintf(url,
+                  snprintf(url, sizeof(url),
                     "http://api.openweathermap.org/data/2.5/weather?lat=%.4f&lon=%.4f&appid=b0fed035f1b875bafaf66f85d33f4e71&units=metric",
                     id(current_lat), id(current_lon));
                   return std::string(url);
@@ -8362,13 +8418,25 @@ interval:
                 request_headers:
                   User-Agent: "ESPHome/1.0"
                 capture_response: true
+                timeout: 15s
                 on_response:
                   then:
                     - lambda: |-
-                        ESP_LOGD("weather", "HTTP Status: %d", response->status_code);
-                        ESP_LOGD("weather", "Response body: %s", body.c_str());
+                        try {
+                          ESP_LOGD("weather", "HTTP Status: %d", response->status_code);
+                          
+                          // Check for valid response
+                          if (response->status_code != 200) {
+                            ESP_LOGW("weather", "Weather API returned status %d", response->status_code);
+                            return;
+                          }
 
-                        if (body.length() > 0) {
+                          if (body.length() == 0) {
+                            ESP_LOGW("weather", "Empty response from weather API");
+                            return;
+                          }
+
+                          ESP_LOGD("weather", "Response body: %s", body.c_str());
                           
                           // Parse temperature
                           size_t temp_pos = body.find("\"temp\":");
@@ -8410,12 +8478,10 @@ interval:
                               std::string humidity_str = body.substr(start, end - start);
                               float humidity = std::stof(humidity_str);
                               id(owm_humidity).publish_state(humidity);
-                              
                             }
                           }
 
                           // Parse rain in mm from OWM payload
-                          // Prefer rain.1h, fallback to rain.3h (converted to approximate daily)
                           float rain_mm = 0.0f;
                           bool rain_found = false;
 
@@ -8474,10 +8540,8 @@ interval:
                               std::string wind_str = body.substr(start, end - start);
                               float wind_speed = std::stof(wind_str);
                               id(owm_wind_speed).publish_state(wind_speed);
-                             
                             }
                           }
-                          
                           
                           size_t gust_pos = body.find("\"gust\":");
                           if (gust_pos != std::string::npos) {
@@ -8489,11 +8553,10 @@ interval:
                               std::string gust_str = body.substr(start, end - start);
                               float wind_gust = std::stof(gust_str);
                               id(owm_wind_gust).publish_state(wind_gust);
-                              
                             }
                           }
                           
-                          // ADD NEW PARSING - Wind direction
+                          // Parse wind direction
                           size_t deg_pos = body.find("\"deg\":");
                           if (deg_pos != std::string::npos) {
                             size_t start = deg_pos + 6;
@@ -8504,11 +8567,10 @@ interval:
                               std::string deg_str = body.substr(start, end - start);
                               float wind_direction = std::stof(deg_str);
                               id(owm_wind_direction).publish_state(wind_direction);
-                              
-                              }
+                            }
                           }
                           
-                          // ADD NEW PARSING - Visibility
+                          // Parse visibility
                           size_t vis_pos = body.find("\"visibility\":");
                           if (vis_pos != std::string::npos) {
                             size_t start = vis_pos + 13;
@@ -8517,13 +8579,12 @@ interval:
                             
                             if (end != std::string::npos) {
                               std::string vis_str = body.substr(start, end - start);
-                              float visibility = std::stof(vis_str) / 1000.0; // Convert meters to kilometers
+                              float visibility = std::stof(vis_str) / 1000.0;
                               id(owm_visibility).publish_state(visibility);
-                              
                             }
                           }
                           
-                          // ADD NEW PARSING - Cloud coverage
+                          // Parse cloud coverage
                           size_t clouds_pos = body.find("\"all\":");
                           if (clouds_pos != std::string::npos) {
                             size_t start = clouds_pos + 6;
@@ -8534,11 +8595,10 @@ interval:
                               std::string clouds_str = body.substr(start, end - start);
                               float cloud_coverage = std::stof(clouds_str);
                               id(owm_clouds).publish_state(cloud_coverage);
-                            
                             }
                           }
                           
-                          // Parse weather main condition (e.g., "Clear", "Clouds", "Rain")
+                          // Parse weather main condition
                           size_t main_pos = body.find("\"main\":\"");
                           if (main_pos != std::string::npos) {
                             size_t start = main_pos + 8;
@@ -8547,11 +8607,10 @@ interval:
                             if (end != std::string::npos) {
                               std::string main_weather = body.substr(start, end - start);
                               id(weather_condition).publish_state(main_weather);
-                             
                             }
                           }
                           
-                          // Parse weather description (e.g., "clear sky", "few clouds")
+                          // Parse weather description
                           size_t desc_pos = body.find("\"description\":\"");
                           if (desc_pos != std::string::npos) {
                             size_t start = desc_pos + 15;
@@ -8559,28 +8618,25 @@ interval:
                             
                             if (end != std::string::npos) {
                               std::string description = body.substr(start, end - start);
-                              // Capitalize first letter
                               if (!description.empty()) {
                                 description[0] = std::toupper(description[0]);
                               }
                               id(weather_description).publish_state(description);
-
                             }
                           }
-                          // Parse city name (e.g., "London")
+                          
+                          // Parse city name
                           size_t name_pos = body.find("\"name\":\"");
                           if (name_pos != std::string::npos) {
-                            size_t start = name_pos + 8;  // skip `"name":"`
+                            size_t start = name_pos + 8;
                             size_t end = body.find("\"", start);
                             if (end != std::string::npos) {
                               std::string city_name = body.substr(start, end - start);
-                              //id(location_name_str) = city_name;
                               ESP_LOGD("weather", "City name: %s", city_name.c_str());
-                              //id(weather_city).publish_state(city_name);
                             }
                           }
 
-                          // Convert OWM UTC timestamps into local time using the current HA time offset.
+                          // Convert OWM UTC timestamps into local time
                           int owm_local_offset_minutes = 0;
                           auto local_now = id(time_comp).now();
                           if (local_now.is_valid()) {
@@ -8594,7 +8650,7 @@ interval:
                             }
                           }
                           
-                          // Parse sunrise time (Unix timestamp)
+                          // Parse sunrise time
                           size_t sunrise_pos = body.find("\"sunrise\":");
                           if (sunrise_pos != std::string::npos) {
                             size_t start = sunrise_pos + 10;
@@ -8605,21 +8661,19 @@ interval:
                               std::string sunrise_str = body.substr(start, end - start);
                               time_t sunrise_unix = std::stol(sunrise_str);
                               
-                              // OWM returns UTC timestamp - convert to ESPHome time object
                               ESPTime sunrise_time = ESPTime::from_epoch_utc(sunrise_unix);
-                                    int sunrise_total_min = sunrise_time.hour * 60 + sunrise_time.minute + owm_local_offset_minutes;
-                                    sunrise_total_min = (sunrise_total_min % 1440 + 1440) % 1440;
-                                    int sunrise_h = sunrise_total_min / 60;
-                                    int sunrise_m = sunrise_total_min % 60;
+                              int sunrise_total_min = sunrise_time.hour * 60 + sunrise_time.minute + owm_local_offset_minutes;
+                              sunrise_total_min = (sunrise_total_min % 1440 + 1440) % 1440;
+                              int sunrise_h = sunrise_total_min / 60;
+                              int sunrise_m = sunrise_total_min % 60;
                               char time_str[20];
-                              snprintf(time_str, sizeof(time_str), "%02d:%02d", 
-                                      sunrise_h, sunrise_m);
+                              snprintf(time_str, sizeof(time_str), "%02d:%02d", sunrise_h, sunrise_m);
                               id(owm_sunrise_time).publish_state(time_str);
                               ESP_LOGD("weather", "Sunrise: %s (Unix: %ld)", time_str, sunrise_unix);
                             }
                           }
                           
-                          // Parse sunset time (Unix timestamp)
+                          // Parse sunset time
                           size_t sunset_pos = body.find("\"sunset\":");
                           if (sunset_pos != std::string::npos) {
                             size_t start = sunset_pos + 9;
@@ -8630,23 +8684,23 @@ interval:
                               std::string sunset_str = body.substr(start, end - start);
                               time_t sunset_unix = std::stol(sunset_str);
                               
-                              // OWM returns UTC timestamp - convert to ESPHome time object
                               ESPTime sunset_time = ESPTime::from_epoch_utc(sunset_unix);
-                                    int sunset_total_min = sunset_time.hour * 60 + sunset_time.minute + owm_local_offset_minutes;
-                                    sunset_total_min = (sunset_total_min % 1440 + 1440) % 1440;
-                                    int sunset_h = sunset_total_min / 60;
-                                    int sunset_m = sunset_total_min % 60;
+                              int sunset_total_min = sunset_time.hour * 60 + sunset_time.minute + owm_local_offset_minutes;
+                              sunset_total_min = (sunset_total_min % 1440 + 1440) % 1440;
+                              int sunset_h = sunset_total_min / 60;
+                              int sunset_m = sunset_total_min % 60;
                               char time_str[20];
-                              snprintf(time_str, sizeof(time_str), "%02d:%02d", 
-                                      sunset_h, sunset_m);
+                              snprintf(time_str, sizeof(time_str), "%02d:%02d", sunset_h, sunset_m);
                               id(owm_sunset_time).publish_state(time_str);
                               ESP_LOGD("weather", "Sunset: %s (Unix: %ld)", time_str, sunset_unix);
                             }
                           }
 
-                          ESP_LOGD("weather", "Weather data parsing complete - updating display");
-                        } else {
-                          ESP_LOGW("weather", "Empty response from weather API");
+                          ESP_LOGI("weather", "✓ Weather data parsing complete");
+
+                        } catch (const std::exception& e) {
+                          ESP_LOGE("weather", "Exception parsing weather response: %s", e.what());
+                          return;
                         }
 
                     - script.execute: calculate_irrigation_needs
@@ -8706,10 +8760,10 @@ interval:
                         id: pressure_label
                         text: !lambda |-
                           static char info_text[50];
-                          if ( id(owm_pressure).has_state()) {
+                          if (id(owm_pressure).has_state()) {
                             snprintf(info_text, sizeof(info_text), " %.0fhPa ", 
                                      id(owm_pressure).state);
-                          }else {
+                          } else {
                             snprintf(info_text, sizeof(info_text), "--%");
                           }
                           return info_text;
@@ -8760,10 +8814,12 @@ interval:
                           }
                           return "--:--";
 
-                    - logger.log: "All weather display labels updated"
+                    - logger.log: "✓ All weather display labels updated"
 
                 on_error:
                   then:
-                    - logger.log: "Weather API request failed"
+                    - lambda: |-
+                        ESP_LOGW("weather", "⚠ Weather API request failed - will retry next interval");
+                        ESP_LOGW("weather", "This is normal when internet is unavailable");
           else:
             - logger.log: "WiFi not connected, skipping weather update"
