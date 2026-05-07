@@ -4952,62 +4952,48 @@ lvgl:
                   height: 60
                   checkable: true
                   state:
-                    checked: !lambda |-
-                      auto now = id(time_comp).now();
-                      if (!now.is_valid()) now = id(sntp_time).now();
-                      if (!now.is_valid()) return id(sw3_manual_override_time) == 0;
-                      return !(id(sw3_manual_override_time) > 0 && 
-                               (now.timestamp - id(sw3_manual_override_time)) < 86400);
+                    checked: !lambda "return id(auto_irrigation_enabled);"
                   bg_color: !lambda |-
-                    auto now = id(time_comp).now();
-                    if (!now.is_valid()) now = id(sntp_time).now();
-                    if (!now.is_valid()) {
-                      bool is_auto = id(sw3_manual_override_time) == 0;
-                      return is_auto ? lv_color_hex(0x00AA00) : lv_color_hex(0x444444);
-                    }
-                    bool is_auto = !(id(sw3_manual_override_time) > 0 && 
-                                     (now.timestamp - id(sw3_manual_override_time)) < 86400);
-                    return is_auto ? lv_color_hex(0x00AA00) : lv_color_hex(0x444444);
+                    return id(auto_irrigation_enabled) ? lv_color_hex(0x00AA00) : lv_color_hex(0x444444);
                   widgets:
                     - label:
                         id: auto_mode_label
                         text: !lambda |-
-                          auto now = id(time_comp).now();
-                          if (!now.is_valid()) now = id(sntp_time).now();
-                          if (!now.is_valid()) {
-                            return id(sw3_manual_override_time) == 0 ? "Auto Mode" : "Auto Off";
-                          }
-                          bool is_auto = !(id(sw3_manual_override_time) > 0 && 
-                                           (now.timestamp - id(sw3_manual_override_time)) < 86400);
-                          return is_auto ? "Auto Mode" : "Auto Off";
+                          return id(auto_irrigation_enabled) ? "Auto ON" : "Auto OFF";
                         text_font: roboto
                         align: center
                   on_click:
                     then:
                       - lambda: |-
-                          // Deactivate manual mode (activate auto)
-                          id(sw3_manual_override_time) = 0;
-                          ESP_LOGI("automation", "SW3 switched to AUTO mode");
+                          // True toggle for scheduled irrigation enable/disable.
+                          id(auto_irrigation_enabled) = !id(auto_irrigation_enabled);
+                          if (id(auto_irrigation_enabled)) {
+                            // Enabling auto clears manual override flags.
+                            id(sw3_manual_override_time) = 0;
+                            ESP_LOGI("automation", "Auto irrigation ENABLED");
+                          } else {
+                            ESP_LOGI("automation", "Auto irrigation DISABLED");
+                          }
                       - lvgl.widget.update:
                           id: auto_mode_toggle
                           state:
-                            checked: true
+                            checked: !lambda "return id(auto_irrigation_enabled);"
                       - lvgl.widget.update:
                           id: auto_mode_toggle
-                          bg_color: !lambda "return lv_color_hex(0x00AA00);"
+                          bg_color: !lambda "return id(auto_irrigation_enabled) ? lv_color_hex(0x00AA00) : lv_color_hex(0x444444);"
                       - lvgl.label.update:
                           id: auto_mode_label
-                          text: "Auto Mode"
+                          text: !lambda "return id(auto_irrigation_enabled) ? \"Auto ON\" : \"Auto OFF\";"
                       - lvgl.widget.update:
                           id: manual_irrigation_btn
                           state:
-                            checked: false
+                            checked: !lambda "return id(sw3).state || id(sw2).state;"
                       - lvgl.widget.update:
                           id: manual_irrigation_btn
-                          bg_color: !lambda "return lv_color_hex(0x444444);"
+                          bg_color: !lambda "return (id(sw3).state || id(sw2).state) ? lv_color_hex(0xFF6600) : lv_color_hex(0x444444);"
                       - lvgl.label.update:
                           id: manual_irrigation_label
-                          text: "Manual"
+                          text: !lambda "return (id(sw3).state || id(sw2).state) ? \"Manual ON\" : \"Manual\";"
 
               - button:
                   id: manual_irrigation_btn
@@ -5017,123 +5003,66 @@ lvgl:
                   height: 60
                   checkable: true
                   state:
-                    checked: !lambda |-
-                      auto now = id(time_comp).now();
-                      if (!now.is_valid()) now = id(sntp_time).now();
-                      if (!now.is_valid()) return id(sw3_manual_override_time) > 0;
-                      return id(sw3_manual_override_time) > 0 && 
-                             (now.timestamp - id(sw3_manual_override_time)) < 86400;
+                    checked: !lambda "return id(sw3).state || id(sw2).state;"
                   bg_color: !lambda |-
-                    auto now = id(time_comp).now();
-                    if (!now.is_valid()) now = id(sntp_time).now();
-                    if (!now.is_valid()) {
-                      bool is_active = id(sw3_manual_override_time) > 0;
-                      return is_active ? lv_color_hex(0xFF6600) : lv_color_hex(0x444444);
-                    }
-                    bool is_active = id(sw3_manual_override_time) > 0 && 
-                                     (now.timestamp - id(sw3_manual_override_time)) < 86400;
+                    bool is_active = id(sw3).state || id(sw2).state;
                     return is_active ? lv_color_hex(0xFF6600) : lv_color_hex(0x444444);
                   widgets:
                     - label:
                         id: manual_irrigation_label
                         text: !lambda |-
-                          auto now = id(time_comp).now();
-                          if (!now.is_valid()) now = id(sntp_time).now();
-                          if (!now.is_valid()) {
-                            return id(sw3_manual_override_time) > 0 ? "Manual ON" : "Manual";
-                          }
-                          bool is_active = id(sw3_manual_override_time) > 0 && 
-                                           (now.timestamp - id(sw3_manual_override_time)) < 86400;
+                          bool is_active = id(sw3).state || id(sw2).state;
                           return is_active ? "Manual ON" : "Manual";
                         text_font: roboto
                         align: center
                   on_click:
                     then:
                       - lambda: |-
-                          id(sw3_last_trigger) = id(sw3).state ? "Manual irrigation button requested OFF" : "Manual irrigation button requested ON";
-                      - switch.toggle: sw3
-                      - lambda: |-
+                          bool manual_active = id(sw3).state || id(sw2).state;
                           auto now = id(time_comp).now();
                           if (!now.is_valid()) now = id(sntp_time).now();
-                          // Toggle manual override
-                          bool is_active = false;
-                          if (now.is_valid()) {
-                            is_active = id(sw3_manual_override_time) > 0 && 
-                                        (now.timestamp - id(sw3_manual_override_time)) < 86400;
-                          } else {
-                            is_active = id(sw3_manual_override_time) > 0;
-                          }
-                          if (is_active) {
+                          if (manual_active) {
+                            // Safe stop: valve first, then pump.
+                            id(sw3_last_trigger) = "Manual irrigation button requested OFF";
+                            id(sw2_last_trigger) = "Manual irrigation button requested OFF";
+                            id(sw3).turn_off();
+                            id(sw2).turn_off();
                             id(sw3_manual_override_time) = 0;
-                            ESP_LOGI("automation", "SW3 manual override deactivated");
+                            ESP_LOGI("automation", "Manual irrigation OFF (valve+pump)");
                           } else {
+                            // Manual start: disable auto mode and start valve then pump.
+                            id(auto_irrigation_enabled) = false;
+                            id(sw3_last_trigger) = "Manual irrigation button requested ON";
+                            id(sw2_last_trigger) = "Manual irrigation button requested ON";
+                            id(sw3).turn_on();
+                            id(sw2).turn_on();
                             id(sw3_manual_override_time) = now.is_valid() ? now.timestamp : 1;
-                            ESP_LOGI("automation", "SW3 manual override activated");
+                            ESP_LOGI("automation", "Manual irrigation ON (valve+pump), auto disabled");
                           }
                       - lvgl.widget.update:
                           id: manual_irrigation_btn
                           state:
-                            checked: !lambda |-
-                              auto now = id(time_comp).now();
-                              if (!now.is_valid()) now = id(sntp_time).now();
-                              if (!now.is_valid()) return id(sw3_manual_override_time) > 0;
-                              return id(sw3_manual_override_time) > 0 && 
-                                     (now.timestamp - id(sw3_manual_override_time)) < 86400;
+                            checked: !lambda "return id(sw3).state || id(sw2).state;"
                       - lvgl.widget.update:
                           id: manual_irrigation_btn
                           bg_color: !lambda |-
-                            auto now = id(time_comp).now();
-                            if (!now.is_valid()) now = id(sntp_time).now();
-                            if (!now.is_valid()) {
-                              bool is_active = id(sw3_manual_override_time) > 0;
-                              return is_active ? lv_color_hex(0xFF6600) : lv_color_hex(0x444444);
-                            }
-                            bool is_active = id(sw3_manual_override_time) > 0 && 
-                                             (now.timestamp - id(sw3_manual_override_time)) < 86400;
+                            bool is_active = id(sw3).state || id(sw2).state;
                             return is_active ? lv_color_hex(0xFF6600) : lv_color_hex(0x444444);
                       - lvgl.label.update:
                           id: manual_irrigation_label
                           text: !lambda |-
-                            auto now = id(time_comp).now();
-                            if (!now.is_valid()) now = id(sntp_time).now();
-                            if (!now.is_valid()) {
-                              return id(sw3_manual_override_time) > 0 ? "Manual ON" : "Manual";
-                            }
-                            bool is_active = id(sw3_manual_override_time) > 0 && 
-                                             (now.timestamp - id(sw3_manual_override_time)) < 86400;
+                            bool is_active = id(sw3).state || id(sw2).state;
                             return is_active ? "Manual ON" : "Manual";
                       - lvgl.widget.update:
                           id: auto_mode_toggle
                           state:
-                            checked: !lambda |-
-                              auto now = id(time_comp).now();
-                              if (!now.is_valid()) now = id(sntp_time).now();
-                              if (!now.is_valid()) return id(sw3_manual_override_time) == 0;
-                              return !(id(sw3_manual_override_time) > 0 && 
-                                       (now.timestamp - id(sw3_manual_override_time)) < 86400);
+                            checked: !lambda "return id(auto_irrigation_enabled);"
                       - lvgl.widget.update:
                           id: auto_mode_toggle
-                          bg_color: !lambda |-
-                            auto now = id(time_comp).now();
-                            if (!now.is_valid()) now = id(sntp_time).now();
-                            if (!now.is_valid()) {
-                              bool is_auto = id(sw3_manual_override_time) == 0;
-                              return is_auto ? lv_color_hex(0x00AA00) : lv_color_hex(0x444444);
-                            }
-                            bool is_auto = !(id(sw3_manual_override_time) > 0 && 
-                                             (now.timestamp - id(sw3_manual_override_time)) < 86400);
-                            return is_auto ? lv_color_hex(0x00AA00) : lv_color_hex(0x444444);
+                          bg_color: !lambda "return id(auto_irrigation_enabled) ? lv_color_hex(0x00AA00) : lv_color_hex(0x444444);"
                       - lvgl.label.update:
                           id: auto_mode_label
-                          text: !lambda |-
-                            auto now = id(time_comp).now();
-                            if (!now.is_valid()) now = id(sntp_time).now();
-                            if (!now.is_valid()) {
-                              return id(sw3_manual_override_time) == 0 ? "Auto Mode" : "Auto Off";
-                            }
-                            bool is_auto = !(id(sw3_manual_override_time) > 0 && 
-                                             (now.timestamp - id(sw3_manual_override_time)) < 86400);
-                            return is_auto ? "Auto Mode" : "Auto Off";
+                          text: !lambda "return id(auto_irrigation_enabled) ? \"Auto ON\" : \"Auto OFF\";"
 
               - button:
                   id: back_to_controls_btn
@@ -5155,7 +5084,7 @@ lvgl:
 
               - label:
                   text: "Bucket Vol:"
-                  text_font: roboto
+                  text_font: roboto24
                   x: 10
                   y: 88
                   text_color: 0xFFFFFF
