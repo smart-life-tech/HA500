@@ -22,41 +22,33 @@ substitutions:
 
   lightbulb: "\U000F0335"
   ceiling_light: "\U000F0769"
-  lamp: "\U000F06B5"
   floor_lamp: "\U000F08DD"
-  string_lights: "\U000F12BA"
   settings_icon: "\U000F0493"
   home_icon: "\U000F02DC"
   sun_icon: "\U000F0599"
   moon_icon: "\U000F0F64"
   rain_icon: "\U000F0596"
-  thermometer_icon: "\U000F050F"
 
 esphome:
   name: "${name}"
   friendly_name: "${friendly_name}"
   project:
     name: "${project_name}"
-    version: "${project_version}"
   platformio_options:
     board_build.flash_mode: dio
-    build_unflags: "-f"
-    build_flags:
+    build_unflags:
+      - "-f"
       - "-shared"
-      #- "-DCONFIG_ESP_MAIN_TASK_STACK_SIZE=8192"
   on_boot:
-    priority: -100.0
     then:
-      - delay: 6s # Wait for LVGL to be ready
       - lambda: |-
-          id(lvgl_comp).show_page(8, LV_SCR_LOAD_ANIM_FADE_ON, 400);
           ESP_LOGD("BOOT", "Displaying splash logo");
       - delay: 500ms
       - lambda: |-
           auto now = id(time_comp).now();
           auto sunrise_opt = id(sun_comp).sunrise(0.0);
           auto sunset_opt = id(sun_comp).sunset(0.0);
-          ESP_LOGI("light_time", "BOOT: time_valid=%d sunrise_available=%d sunset_available=%d lat=%.4f lon=%.4f",
+          ESP_LOGI("light_time", "BOOT: time_valid=%d sunrise_ok=%d sunset_ok=%d lat=%.4f lon=%.4f",
                    now.is_valid() ? 1 : 0,
                    sunrise_opt.has_value() ? 1 : 0,
                    sunset_opt.has_value() ? 1 : 0,
@@ -75,13 +67,10 @@ esphome:
           }
       - delay: 5s
       - lambda: |-
-          id(lvgl_comp).show_page(0, LV_SCR_LOAD_ANIM_FADE_ON, 400);
           ESP_LOGD("BOOT", "Hiding splash logo and showing main page");
       - delay: 2s
-      # Push global into number on startup
       - lambda: |-
           //id(total_runtime).publish_state(id(total_runtime_multiple));
-          ESP_LOGD("BOOT RUNTIME", ": %.2f minutes", id(global_cycles_count));
           // Jump to your first page (id 0 or whatever main is)
           id(lvgl_comp).show_page(0, LV_SCR_LOAD_ANIM_FADE_ON, 400);
           ESP_LOGD("BOOT", "Showing main page");
@@ -5003,55 +4992,51 @@ lvgl:
                   height: 60
                   checkable: true
                   state:
-                    checked: !lambda "return id(sw3).state || id(sw2).state;"
+                    checked: !lambda "return id(sw3).state;"
                   bg_color: !lambda |-
-                    bool is_active = id(sw3).state || id(sw2).state;
+                    bool is_active = id(sw3).state;
                     return is_active ? lv_color_hex(0xFF6600) : lv_color_hex(0x444444);
                   widgets:
                     - label:
                         id: manual_irrigation_label
                         text: !lambda |-
-                          bool is_active = id(sw3).state || id(sw2).state;
+                          bool is_active = id(sw3).state;
                           return is_active ? "Manual ON" : "Manual";
                         text_font: roboto
                         align: center
                   on_click:
                     then:
                       - lambda: |-
-                          bool manual_active = id(sw3).state || id(sw2).state;
+                          bool manual_active = id(sw3).state;
                           auto now = id(time_comp).now();
                           if (!now.is_valid()) now = id(sntp_time).now();
                           if (manual_active) {
-                            // Safe stop: valve first, then pump.
+                            // Manual stop: valve only on this page.
                             id(sw3_last_trigger) = "Manual irrigation button requested OFF";
-                            id(sw2_last_trigger) = "Manual irrigation button requested OFF";
                             id(sw3).turn_off();
-                            id(sw2).turn_off();
                             id(sw3_manual_override_time) = 0;
-                            ESP_LOGI("automation", "Manual irrigation OFF (valve+pump)");
+                            ESP_LOGI("automation", "Manual irrigation OFF (valve only)");
                           } else {
-                            // Manual start: disable auto mode and start valve then pump.
+                            // Manual start: disable auto mode and start valve only.
                             id(auto_irrigation_enabled) = false;
                             id(sw3_last_trigger) = "Manual irrigation button requested ON";
-                            id(sw2_last_trigger) = "Manual irrigation button requested ON";
                             id(sw3).turn_on();
-                            id(sw2).turn_on();
                             id(sw3_manual_override_time) = now.is_valid() ? now.timestamp : 1;
-                            ESP_LOGI("automation", "Manual irrigation ON (valve+pump), auto disabled");
+                            ESP_LOGI("automation", "Manual irrigation ON (valve only), auto disabled");
                           }
                       - lvgl.widget.update:
                           id: manual_irrigation_btn
                           state:
-                            checked: !lambda "return id(sw3).state || id(sw2).state;"
+                            checked: !lambda "return id(sw3).state;"
                       - lvgl.widget.update:
                           id: manual_irrigation_btn
                           bg_color: !lambda |-
-                            bool is_active = id(sw3).state || id(sw2).state;
+                            bool is_active = id(sw3).state;
                             return is_active ? lv_color_hex(0xFF6600) : lv_color_hex(0x444444);
                       - lvgl.label.update:
                           id: manual_irrigation_label
                           text: !lambda |-
-                            bool is_active = id(sw3).state || id(sw2).state;
+                            bool is_active = id(sw3).state;
                             return is_active ? "Manual ON" : "Manual";
                       - lvgl.widget.update:
                           id: auto_mode_toggle
