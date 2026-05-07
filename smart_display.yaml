@@ -8336,8 +8336,7 @@ interval:
                 on_response:
                   then:
                     - lambda: |-
-                        try {
-                          ESP_LOGD("geo", "Geocoding response (status %d): %s", response->status_code, body.c_str());
+                        ESP_LOGD("geo", "Geocoding response (status %d): %s", response->status_code, body.c_str());
 
                           // Check for error response
                           if (response->status_code != 200 || body.find("\"cod\":") == std::string::npos) {
@@ -8384,9 +8383,7 @@ interval:
                               ESP_LOGI("geo", "✓ Location: %s", id(location_name_str).c_str());
                             }
                           }
-                        } catch (const std::exception& e) {
-                          ESP_LOGE("geo", "Exception parsing geocoding response: %s", e.what());
-                        }
+                        
 
                 on_error:
                   then:
@@ -8420,8 +8417,7 @@ interval:
                 on_response:
                   then:
                     - lambda: |-
-                        try {
-                          ESP_LOGD("weather", "HTTP Status: %d", response->status_code);
+                        ESP_LOGD("weather", "HTTP Status: %d", response->status_code);
                           
                           // Check for valid response
                           if (response->status_code != 200) {
@@ -8696,10 +8692,7 @@ interval:
 
                           ESP_LOGI("weather", "✓ Weather data parsing complete");
 
-                        } catch (const std::exception& e) {
-                          ESP_LOGE("weather", "Exception parsing weather response: %s", e.what());
-                          return;
-                        }
+                        
 
                     - script.execute: calculate_irrigation_needs
 
