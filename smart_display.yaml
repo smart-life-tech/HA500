@@ -5017,12 +5017,25 @@ lvgl:
                             id(sw3_manual_override_time) = 0;
                             ESP_LOGI("automation", "Manual irrigation OFF (valve only)");
                           } else {
-                            // Manual start: disable auto mode and start valve only.
+                            // Manual start: fill exactly the evaporation deficit (evap - rain).
+                            // Runtime = irrigation_needed_liters / valve_liters_per_minute (capped 60 min).
                             id(auto_irrigation_enabled) = false;
                             id(sw3_last_trigger) = "Manual irrigation button requested ON";
+                            float need = id(irrigation_needed_liters);
+                            float flow = id(valve_liters_per_minute);
+                            if (flow <= 0.0f) flow = 1.0f;
+                            float fill_minutes = (need > 0.0f) ? (need / flow) : 0.0f;
+                            if (fill_minutes > 60.0f) fill_minutes = 60.0f;
                             id(sw3).turn_on();
                             id(sw3_manual_override_time) = now.is_valid() ? now.timestamp : 1;
-                            ESP_LOGI("automation", "Manual irrigation ON (valve only), auto disabled");
+                            if (fill_minutes > 0.0f && now.is_valid()) {
+                              id(sw3_off_time) = now.timestamp + (int)(fill_minutes * 60);
+                              ESP_LOGI("automation", "Manual irrigation ON: need=%.1fL flow=%.1fL/min → %.1f min, auto-stop set",
+                                       need, flow, fill_minutes);
+                            } else {
+                              id(sw3_off_time) = 0;
+                              ESP_LOGW("automation", "Manual irrigation ON: no water need calculated, valve open until manual stop");
+                            }
                           }
                       - lvgl.widget.update:
                           id: manual_irrigation_btn
