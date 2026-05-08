@@ -4722,7 +4722,7 @@ lvgl:
               - button:
                   id: back_to_controls_btn
                   x: 358
-                  y: -2
+                  y: -5
                   width: 82
                   height: 30
                   bg_color: 0x22C55E
@@ -4867,7 +4867,7 @@ lvgl:
                   text_color: 0x60A5FA
               - label:
                   text: "Season"
-                  text_font: roboto
+                  text_font: roboto24
                   x: 10
                   y: 63
                   text_color: 0x94A3B8
@@ -4894,7 +4894,7 @@ lvgl:
         # ── CONTROL BUTTONS ──────────────────────────────────────────
         - obj:
             width: 460
-            height: 74
+            height: 90
             bg_color: 0x000000
             bg_opa: 0%
             radius: 10
@@ -4921,7 +4921,7 @@ lvgl:
                           return std::string(id(auto_irrigation_enabled) ? "Auto ON" : "Auto OFF");
                         text_font: roboto24
                         align: center
-                        y: -8
+                        y: -10
                     - label:
                         text: "Schedule"
                         text_font: roboto
@@ -4977,7 +4977,7 @@ lvgl:
                           return std::string(id(sw3).state ? "Valve ON" : "Fill Now");
                         text_font: roboto24
                         align: center
-                        y: -8
+                        y: -10
                     - label:
                         text: "Manual fill"
                         text_font: roboto
@@ -5065,7 +5065,7 @@ lvgl:
               - button:
                   id: bucket_minus_btn
                   x: 216
-                  y: -2
+                  y: -5
                   width: 44
                   height: 40
                   bg_color: 0x374151
@@ -5089,7 +5089,7 @@ lvgl:
               - button:
                   id: bucket_plus_btn
                   x: 268
-                  y: -2
+                  y: -5
                   width: 44
                   height: 40
                   bg_color: 0x374151
