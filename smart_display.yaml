@@ -4961,7 +4961,7 @@ lvgl:
 
               - button:
                   id: manual_irrigation_btn
-                  x: 290
+                  x: 280
                   y: 0
                   width: 170
                   height: 75
