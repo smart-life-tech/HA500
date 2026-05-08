@@ -34,6 +34,7 @@ esphome:
   friendly_name: "${friendly_name}"
   project:
     name: "${project_name}"
+    version: "${project_version}"
   platformio_options:
     board_build.flash_mode: dio
     build_unflags:
