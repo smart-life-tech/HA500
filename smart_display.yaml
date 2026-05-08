@@ -8695,7 +8695,7 @@ interval:
                         id: irrigation_needed_display
 
                     - lvgl.label.update:
-                      id: fill_time_display
+                        id: fill_time_display
 
                     - lvgl.label.update:
                         id: irrigation_mode_display
