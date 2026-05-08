@@ -4718,11 +4718,11 @@ lvgl:
                   align: center
                   text_color: 0xFFFFFF
                   x: 0
-                  y: 3
+                  y: 0
               - button:
                   id: back_to_controls_btn
                   x: 358
-                  y: -5
+                  y: -9
                   width: 82
                   height: 30
                   bg_color: 0x22C55E
@@ -4838,7 +4838,7 @@ lvgl:
                       snprintf(evap_text, sizeof(evap_text), "%.1f L/day", evap);
                     }
                     return evap_text;
-                  text_font: roboto
+                  text_font: roboto24
                   x: 160
                   y: -2
                   text_color: 0xFFFFFF
@@ -4907,8 +4907,8 @@ lvgl:
                   id: auto_mode_toggle
                   x: 0
                   y: 0
-                  width: 200
-                  height: 85
+                  width: 170
+                  height: 75
                   checkable: true
                   state:
                     checked: !lambda "return id(auto_irrigation_enabled);"
@@ -4921,7 +4921,7 @@ lvgl:
                           return std::string(id(auto_irrigation_enabled) ? "Auto ON" : "Auto OFF");
                         text_font: roboto24
                         align: center
-                        y: -10
+                        y: -20
                     - label:
                         text: "Schedule"
                         text_font: roboto
@@ -4963,8 +4963,8 @@ lvgl:
                   id: manual_irrigation_btn
                   x: 238
                   y: 0
-                  width: 200
-                  height: 85
+                  width: 170
+                  height: 75
                   checkable: true
                   state:
                     checked: !lambda "return id(sw3).state;"
@@ -4977,7 +4977,7 @@ lvgl:
                           return std::string(id(sw3).state ? "Valve ON" : "Fill Now");
                         text_font: roboto24
                         align: center
-                        y: -10
+                        y: -20
                     - label:
                         text: "Manual fill"
                         text_font: roboto
@@ -5065,7 +5065,7 @@ lvgl:
               - button:
                   id: bucket_minus_btn
                   x: 216
-                  y: -5
+                  y: -8
                   width: 44
                   height: 40
                   bg_color: 0x374151
@@ -5089,7 +5089,7 @@ lvgl:
               - button:
                   id: bucket_plus_btn
                   x: 268
-                  y: -5
+                  y: -8
                   width: 44
                   height: 40
                   bg_color: 0x374151
@@ -5112,9 +5112,9 @@ lvgl:
                             return bucket_text;
               - button:
                   id: start_cal_btn
-                  x: 326
-                  y: -2
-                  width: 124
+                  x: 320
+                  y: -8
+                  width: 100
                   height: 40
                   bg_color: 0x7C3AED
                   widgets:
@@ -5154,7 +5154,7 @@ lvgl:
                     } else {
                       return is_winter ? "Season: Winter (Auto)" : "Season: Summer (Auto)";
                     }
-                  text_font: roboto
+                  text_font: roboto24
                   text_color: 0xFFFFFF
                   align: center
                   x: 0
