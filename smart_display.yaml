@@ -4949,7 +4949,7 @@ lvgl:
                     - label:
                         id: auto_mode_label
                         text: !lambda |-
-                          return id(auto_irrigation_enabled) ? "Auto ON" : "Auto OFF";
+                          return std::string(id(auto_irrigation_enabled) ? "Auto ON" : "Auto OFF");
                         text_font: roboto
                         align: center
                   on_click:
@@ -4973,7 +4973,7 @@ lvgl:
                           bg_color: !lambda "return id(auto_irrigation_enabled) ? lv_color_hex(0x00AA00) : lv_color_hex(0x444444);"
                       - lvgl.label.update:
                           id: auto_mode_label
-                          text: !lambda "return id(auto_irrigation_enabled) ? \"Auto ON\" : \"Auto OFF\";"
+                          text: !lambda "return std::string(id(auto_irrigation_enabled) ? \"Auto ON\" : \"Auto OFF\");"
                       - lvgl.widget.update:
                           id: manual_irrigation_btn
                           state:
@@ -4983,7 +4983,7 @@ lvgl:
                           bg_color: !lambda "return (id(sw3).state || id(sw2).state) ? lv_color_hex(0xFF6600) : lv_color_hex(0x444444);"
                       - lvgl.label.update:
                           id: manual_irrigation_label
-                          text: !lambda "return (id(sw3).state || id(sw2).state) ? \"Manual ON\" : \"Manual\";"
+                          text: !lambda "return std::string((id(sw3).state || id(sw2).state) ? \"Manual ON\" : \"Manual\");"
 
               - button:
                   id: manual_irrigation_btn
@@ -5002,7 +5002,7 @@ lvgl:
                         id: manual_irrigation_label
                         text: !lambda |-
                           bool is_active = id(sw3).state;
-                          return is_active ? "Manual ON" : "Manual";
+                          return std::string(is_active ? "Manual ON" : "Manual");
                         text_font: roboto
                         align: center
                   on_click:
@@ -5051,7 +5051,7 @@ lvgl:
                           id: manual_irrigation_label
                           text: !lambda |-
                             bool is_active = id(sw3).state;
-                            return is_active ? "Manual ON" : "Manual";
+                            return std::string(is_active ? "Manual ON" : "Manual");
                       - lvgl.widget.update:
                           id: auto_mode_toggle
                           state:
@@ -5061,7 +5061,7 @@ lvgl:
                           bg_color: !lambda "return id(auto_irrigation_enabled) ? lv_color_hex(0x00AA00) : lv_color_hex(0x444444);"
                       - lvgl.label.update:
                           id: auto_mode_label
-                          text: !lambda "return id(auto_irrigation_enabled) ? \"Auto ON\" : \"Auto OFF\";"
+                          text: !lambda "return std::string(id(auto_irrigation_enabled) ? \"Auto ON\" : \"Auto OFF\");"
 
               - button:
                   id: back_to_controls_btn
