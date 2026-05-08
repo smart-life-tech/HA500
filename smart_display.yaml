@@ -1909,7 +1909,7 @@ globals:
   - id: automation_mode
     type: int
     restore_value: true
-    initial_value: "0" # 0=duration, 1=until_time, 2=between_times, 3=manual
+    initial_value: "2" # 0=duration, 1=until_time, 2=between_times, 3=manual
 
 button:
   - platform: template
@@ -4718,11 +4718,11 @@ lvgl:
                   align: center
                   text_color: 0xFFFFFF
                   x: 0
-                  y: 8
+                  y: 3
               - button:
                   id: back_to_controls_btn
-                  x: 368
-                  y: 7
+                  x: 358
+                  y: 2
                   width: 82
                   height: 30
                   bg_color: 0x22C55E
@@ -4901,7 +4901,7 @@ lvgl:
             scrollable: false
             border_width: 0
             x: 10
-            y: 265
+            y: 250
             widgets:
               - button:
                   id: auto_mode_toggle
@@ -5050,7 +5050,7 @@ lvgl:
                   text: "Bucket:"
                   text_font: roboto24
                   x: 10
-                  y: 14
+                  y: 2
                   text_color: 0xFFFFFF
               - label:
                   id: bucket_volume_display
@@ -5060,12 +5060,12 @@ lvgl:
                     return bucket_text;
                   text_font: roboto24
                   x: 110
-                  y: 14
+                  y: 2
                   text_color: 0xFBBF24
               - button:
                   id: bucket_minus_btn
                   x: 216
-                  y: 8
+                  y: 2
                   width: 44
                   height: 40
                   bg_color: 0x374151
@@ -5089,7 +5089,7 @@ lvgl:
               - button:
                   id: bucket_plus_btn
                   x: 268
-                  y: 8
+                  y: 2
                   width: 44
                   height: 40
                   bg_color: 0x374151
@@ -5113,7 +5113,7 @@ lvgl:
               - button:
                   id: start_cal_btn
                   x: 326
-                  y: 8
+                  y: 2
                   width: 124
                   height: 40
                   bg_color: 0x7C3AED
@@ -5130,7 +5130,7 @@ lvgl:
         - obj:
             id: sw3_mode_toggle
             width: 460
-            height: 44
+            height: 54
             x: 10
             y: 411
             bg_color: 0x1E3A8A
