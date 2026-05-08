@@ -4722,7 +4722,7 @@ lvgl:
               - button:
                   id: back_to_controls_btn
                   x: 358
-                  y: 2
+                  y: -2
                   width: 82
                   height: 30
                   bg_color: 0x22C55E
@@ -4822,9 +4822,9 @@ lvgl:
             widgets:
               - label:
                   text: "Evaporation"
-                  text_font: roboto
+                  text_font: roboto24
                   x: 10
-                  y: 8
+                  y: -2
                   text_color: 0x94A3B8
               - label:
                   id: evaporation_display
@@ -4840,13 +4840,13 @@ lvgl:
                     return evap_text;
                   text_font: roboto
                   x: 160
-                  y: 8
+                  y: -2
                   text_color: 0xFFFFFF
               - label:
                   text: "Rainfall today"
-                  text_font: roboto
+                  text_font: roboto24
                   x: 10
-                  y: 40
+                  y: 30
                   text_color: 0x94A3B8
               - label:
                   id: rainfall_display
@@ -4861,15 +4861,15 @@ lvgl:
                       snprintf(rain_text, sizeof(rain_text), "%.1f L  (%.1f mm)", rainfall_liters, rain_mm);
                     }
                     return rain_text;
-                  text_font: roboto
+                  text_font: roboto24
                   x: 160
-                  y: 40
+                  y: 30
                   text_color: 0x60A5FA
               - label:
                   text: "Season"
                   text_font: roboto
                   x: 10
-                  y: 73
+                  y: 63
                   text_color: 0x94A3B8
               - label:
                   id: irrigation_mode_display
@@ -4888,7 +4888,7 @@ lvgl:
                     }
                   text_font: roboto
                   x: 160
-                  y: 73
+                  y: 63
                   text_color: 0xFFFFFF
 
         # ── CONTROL BUTTONS ──────────────────────────────────────────
@@ -4907,8 +4907,8 @@ lvgl:
                   id: auto_mode_toggle
                   x: 0
                   y: 0
-                  width: 222
-                  height: 70
+                  width: 200
+                  height: 85
                   checkable: true
                   state:
                     checked: !lambda "return id(auto_irrigation_enabled);"
@@ -4963,8 +4963,8 @@ lvgl:
                   id: manual_irrigation_btn
                   x: 238
                   y: 0
-                  width: 222
-                  height: 70
+                  width: 200
+                  height: 85
                   checkable: true
                   state:
                     checked: !lambda "return id(sw3).state;"
@@ -5050,7 +5050,7 @@ lvgl:
                   text: "Bucket:"
                   text_font: roboto24
                   x: 10
-                  y: 2
+                  y: -2
                   text_color: 0xFFFFFF
               - label:
                   id: bucket_volume_display
@@ -5060,12 +5060,12 @@ lvgl:
                     return bucket_text;
                   text_font: roboto24
                   x: 110
-                  y: 2
+                  y: -2
                   text_color: 0xFBBF24
               - button:
                   id: bucket_minus_btn
                   x: 216
-                  y: 2
+                  y: -2
                   width: 44
                   height: 40
                   bg_color: 0x374151
@@ -5089,7 +5089,7 @@ lvgl:
               - button:
                   id: bucket_plus_btn
                   x: 268
-                  y: 2
+                  y: -2
                   width: 44
                   height: 40
                   bg_color: 0x374151
@@ -5113,7 +5113,7 @@ lvgl:
               - button:
                   id: start_cal_btn
                   x: 326
-                  y: 2
+                  y: -2
                   width: 124
                   height: 40
                   bg_color: 0x7C3AED
@@ -5158,7 +5158,7 @@ lvgl:
                   text_color: 0xFFFFFF
                   align: center
                   x: 0
-                  y: 12
+                  y: 0
 
         # Hidden label retained for script compatibility
         - label:
