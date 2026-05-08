@@ -4893,7 +4893,7 @@ lvgl:
 
         # ── CONTROL BUTTONS ──────────────────────────────────────────
         - obj:
-            width: 460
+            width: 480
             height: 90
             bg_color: 0x000000
             bg_opa: 0%
@@ -4961,7 +4961,7 @@ lvgl:
 
               - button:
                   id: manual_irrigation_btn
-                  x: 285
+                  x: 290
                   y: 0
                   width: 170
                   height: 75
