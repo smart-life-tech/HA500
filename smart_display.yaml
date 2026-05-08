@@ -4900,7 +4900,7 @@ lvgl:
             radius: 10
             scrollable: false
             border_width: 0
-            x: 10
+            x: 0
             y: 250
             widgets:
               - button:
@@ -4961,7 +4961,7 @@ lvgl:
 
               - button:
                   id: manual_irrigation_btn
-                  x: 238
+                  x: 278
                   y: 0
                   width: 170
                   height: 75
