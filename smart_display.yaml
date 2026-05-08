@@ -4873,9 +4873,6 @@ lvgl:
                   text_color: 0x94A3B8
               - label:
                   id: irrigation_mode_display
-                            - lvgl.label.update:
-                              id: fill_time_display
-
                   text: !lambda |-
                     auto now = id(time_comp).now();
                     if (!now.is_valid()) now = id(sntp_time).now();
@@ -8696,6 +8693,9 @@ interval:
 
                     - lvgl.label.update:
                         id: irrigation_needed_display
+
+                    - lvgl.label.update:
+                      id: fill_time_display
 
                     - lvgl.label.update:
                         id: irrigation_mode_display
