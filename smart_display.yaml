@@ -196,10 +196,9 @@ esphome:
             static char buf[20];
             sprintf(buf, "%d", id(pump_runtime_blocks));
             return buf;
-      # Reset manual override timers to enable automation
+        # Reset selected manual override timers at boot
       - lambda: |-
           id(sw1_manual_override_time) = 0;
-          id(sw2_manual_override_time) = 0;
           id(sw3_manual_override_time) = 0;
 
           // Keep auto irrigation hard-disabled to prevent relay/pump retrigger loops.
@@ -235,6 +234,8 @@ esphome:
                    id(center_pump_time_hour), id(pump_runtime_blocks));
           ESP_LOGI("BOOT", "total_runtime_multiple=%.2fh calculated_daily_runtime=%d min",
                    id(total_runtime_multiple), id(calculated_daily_runtime));
+          ESP_LOGI("BOOT", "sw2_manual_override_time=%d (manual pump lockout %s)",
+                   id(sw2_manual_override_time), id(sw2_manual_override_time) > 0 ? "RESTORED" : "NONE");
           
           ESP_LOGI("BOOT", "=== LIGHT SETTINGS LOADED ===");
           ESP_LOGI("BOOT", "automation_mode=%d sunset_duration=%.1fh sunrise_duration=%.1fh manual_duration=%.1fh",
@@ -1824,7 +1825,7 @@ globals:
     initial_value: "0"
   - id: sw2_manual_override_time
     type: int
-    #restore_value: yes
+    restore_value: true
     initial_value: "0"
   - id: sw3_manual_override_time
     type: int
