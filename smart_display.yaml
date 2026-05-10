@@ -2743,13 +2743,21 @@ lvgl:
         # Add irrigation status display
         - obj:
             width: 340
-            height: 80
+            height: 100
             bg_color: 0x000000
             bg_opa: 5%
             radius: 40
             x: 40
             y: 315
             widgets:
+              - label:
+                  text: "Pool Pump (SW2)"
+                  text_font: roboto
+                  text_color: 0x00FFFF
+                  align: center
+                  x: 0
+                  y: 0
+                  border_width: 0
               - label:
                   id: irrigation_summary_line1
                   text: !lambda |-
@@ -2762,7 +2770,7 @@ lvgl:
                   text_color: black_color
                   align: center
                   x: 0
-                  y: -15
+                  y: 15
                   border_width: 0
 
               - label:
