@@ -1326,8 +1326,8 @@ number:
               uint32_t day_start_ts = now.timestamp - (now.hour * 3600) - (now.minute * 60) - now.second;
               uint32_t until_ts = day_start_ts + (id(sunset_until_time_hour) * 3600) + (id(sunset_until_time_minute) * 60);
               
-              // If until_time is earlier than now, it means next day
-              if (until_ts < now.timestamp) {
+              // Ensure off time is always in the future (supports 00:00 reliably)
+              if (until_ts <= now.timestamp) {
                 until_ts += 86400; // Add 24 hours
               }
               
@@ -1367,8 +1367,8 @@ number:
               uint32_t day_start_ts = now.timestamp - (now.hour * 3600) - (now.minute * 60) - now.second;
               uint32_t until_ts = day_start_ts + (id(sunset_until_time_hour) * 3600) + (id(sunset_until_time_minute) * 60);
               
-              // If until_time is earlier than now, it means next day
-              if (until_ts < now.timestamp) {
+              // Ensure off time is always in the future (supports 00:00 reliably)
+              if (until_ts <= now.timestamp) {
                 until_ts += 86400; // Add 24 hours
               }
               
@@ -4450,6 +4450,7 @@ lvgl:
                             ESP_LOGI("automation", "Left Manual mode: Light turned OFF");
                           }
                           id(automation_mode) = 0;
+                          id(sw1_manual_override_time) = 0;  // Ensure auto scheduling is active
                       - lvgl.widget.update:
                           id: mode_duration_btn
                           state:
@@ -4510,6 +4511,7 @@ lvgl:
                             ESP_LOGI("automation", "Left Manual mode: Light turned OFF");
                           }
                           id(automation_mode) = 1;
+                          id(sw1_manual_override_time) = 0;  // Ensure auto scheduling is active
                       - lvgl.widget.update:
                           id: mode_duration_btn
                           state:
@@ -4570,6 +4572,7 @@ lvgl:
                             ESP_LOGI("automation", "Left Manual mode: Light turned OFF");
                           }
                           id(automation_mode) = 2;
+                          id(sw1_manual_override_time) = 0;  // Ensure auto scheduling is active
                       - lvgl.widget.update:
                           id: mode_duration_btn
                           state:
@@ -7503,8 +7506,8 @@ script:
               uint32_t until_ts = day_start_ts + 
                                   (uint32_t)id(sunset_until_time_hour) * 3600u + 
                                   (uint32_t)id(sunset_until_time_minute) * 60u;
-              // If until_time is before sunset, it's tomorrow
-              if (until_ts < sunset_ts) {
+              // Ensure until_ts is in the future from current time
+              if (until_ts <= now.timestamp) {
                 until_ts += 86400u;
               }
               // If we're past sunset but before until time, turn on
@@ -7537,8 +7540,8 @@ script:
                                       (uint32_t)id(sunset_until_time_hour) * 3600u + 
                                       (uint32_t)id(sunset_until_time_minute) * 60u;
                   
-                  // If until_time is before sunset (e.g., 02:00), it's tomorrow
-                  if (until_ts < sunset_ts) {
+                  // Ensure until_ts is in the future from current time
+                  if (until_ts <= now.timestamp) {
                     until_ts += 86400u;
                   }
                   id(sw1_off_time) = until_ts;
