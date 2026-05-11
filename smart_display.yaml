@@ -1786,6 +1786,11 @@ globals:
     restore_value: no
     initial_value: "0.0"
 
+  - id: weather_api_retry_until_ms
+    type: uint32_t
+    restore_value: no
+    initial_value: "0"
+
   - id: sw3_on_time
     type: int
     restore_value: no
@@ -8215,6 +8220,14 @@ interval:
     then:
       - if:
           condition:
+            lambda: |-
+              return millis() < id(weather_api_retry_until_ms);
+          then:
+            - logger.log: "Weather API is in backoff period; skipping this cycle"
+            - lambda: |-
+                return;
+      - if:
+          condition:
             wifi.connected:
           then:
             - logger.log: "Making weather API request..."
@@ -8391,6 +8404,7 @@ interval:
                         ESP_LOGW("geo", "⚠ Failed to fetch coordinates - API unavailable or network error");
                         ESP_LOGW("geo", "Will retry next interval. Current fallback: lat=%.4f lon=%.4f", 
                                  id(current_lat), id(current_lon));
+                        id(weather_api_retry_until_ms) = millis() + 900000UL;
 
             # Step 2: Get weather data using coordinates (only if coordinates are valid)
             - delay: 2s
@@ -8692,6 +8706,7 @@ interval:
                           }
 
                           ESP_LOGI("weather", "✓ Weather data parsing complete");
+                            id(weather_api_retry_until_ms) = 0;
 
                         
 
@@ -8816,5 +8831,6 @@ interval:
                     - lambda: |-
                         ESP_LOGW("weather", "⚠ Weather API request failed - will retry next interval");
                         ESP_LOGW("weather", "This is normal when internet is unavailable");
+                        id(weather_api_retry_until_ms) = millis() + 900000UL;
           else:
             - logger.log: "WiFi not connected, skipping weather update"
