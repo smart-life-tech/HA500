@@ -4975,7 +4975,24 @@ lvgl:
                       - lvgl.label.update:
                           id: manual_irrigation_label
                           text: !lambda "return std::string(id(sw3).state ? \"Valve ON\" : \"Fill Now\");"
-
+              - label:
+                  id: bucket_time_label
+                  text: !lambda |-
+                    static char bucket_time_text[32];
+                    float flow = id(valve_liters_per_minute);
+                    if (flow <= 0.0f) {
+                      snprintf(bucket_time_text, sizeof(bucket_time_text), "Bucket time: ---");
+                    } else {
+                      snprintf(bucket_time_text, sizeof(bucket_time_text), "Bucket time: %.1f min", id(bucket_volume_liters) / flow);
+                    }
+                    return bucket_time_text;
+                  text_font: roboto
+                  text_color: 0xE5E7EB
+                  width: 100
+                  align: center
+                  x: 175
+                  y: 0
+                  
               - button:
                   id: manual_irrigation_btn
                   x: 280
@@ -5052,23 +5069,7 @@ lvgl:
                           id: auto_mode_label
                           text: !lambda "return std::string(id(auto_irrigation_enabled) ? \"Auto ON\" : \"Auto OFF\");"
 
-              - label:
-                  id: bucket_time_label
-                  text: !lambda |-
-                    static char bucket_time_text[32];
-                    float flow = id(valve_liters_per_minute);
-                    if (flow <= 0.0f) {
-                      snprintf(bucket_time_text, sizeof(bucket_time_text), "Bucket time: ---");
-                    } else {
-                      snprintf(bucket_time_text, sizeof(bucket_time_text), "Bucket time: %.1f min", id(bucket_volume_liters) / flow);
-                    }
-                    return bucket_time_text;
-                  text_font: roboto
-                  text_color: 0xE5E7EB
-                  width: 100
-                  align: center
-                  x: 175
-                  y: 26
+              
 
         # ── BUCKET CALIBRATION ROW ───────────────────────────────────
         - obj:
