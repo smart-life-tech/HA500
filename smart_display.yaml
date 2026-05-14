@@ -4,7 +4,7 @@ substitutions:
   friendly_name: "Phijo Smart"
   device_description: " Smart Controller"
   project_name: "Guition.ESP32_S3_4848S040"
-  project_version: "5.14.26.1"
+  project_version: "5.14.26.3"
   wifi_ssid: ""
   wifi_password: ""
 
@@ -5136,6 +5136,7 @@ lvgl:
                   bg_color: 0x7C3AED
                   widgets:
                     - label:
+                        id: start_cal_btn_label
                         text: "Calibrate"
                         text_font: roboto
                         align: center
@@ -6452,6 +6453,12 @@ switch:
                     snprintf(msg, sizeof(msg), "Calibration: %.2f L/min (bucket %.1fL)", id(valve_liters_per_minute), id(bucket_volume_liters));
                     return msg;
                   text_color: green_color
+              - lvgl.widget.update:
+                  id: start_cal_btn
+                  bg_color: 0x7C3AED
+              - lvgl.label.update:
+                  id: start_cal_btn_label
+                  text: "Calibrate"
               - delay: 3s
               - lvgl.label.update:
                   id: status_label
@@ -6969,19 +6976,43 @@ script:
           then:
             - lambda: |-
                 id(valve_training_mode) = true;
-                ESP_LOGI("irrigation", "Training mode activated - Turn ON valve manually");
+                id(sw3_last_trigger) = "Calibration start";
+                ESP_LOGI("irrigation", "Training mode activated - opening valve and starting timer");
+            - lvgl.widget.update:
+                id: start_cal_btn
+                bg_color: 0xDC2626
+            - lvgl.label.update:
+                id: start_cal_btn_label
+                text: "Stop"
             - lvgl.label.update:
                 id: status_label
-                text: "Training: Turn ON valve manually, then OFF when done"
+                text: "TRAINING: Valve opening..."
                 text_color: orange_color
+            - switch.turn_on: sw3
           else:
-            - lambda: |-
-                id(valve_training_mode) = false;
-                ESP_LOGI("irrigation", "Training mode cancelled");
-            - lvgl.label.update:
-                id: status_label
-                text: "Training cancelled"
-                text_color: red_color
+            - if:
+                condition:
+                  switch.is_on: sw3
+                then:
+                  - lambda: |-
+                      id(sw3_last_trigger) = "Calibration stop";
+                      ESP_LOGI("irrigation", "Calibration stop requested - closing valve and calculating result");
+                  - switch.turn_off: sw3
+                else:
+                  - lambda: |-
+                      id(valve_training_mode) = false;
+                      id(valve_training_start_time) = 0;
+                      ESP_LOGI("irrigation", "Training cancelled (valve already off)");
+                  - lvgl.widget.update:
+                      id: start_cal_btn
+                      bg_color: 0x7C3AED
+                  - lvgl.label.update:
+                      id: start_cal_btn_label
+                      text: "Calibrate"
+                  - lvgl.label.update:
+                      id: status_label
+                      text: "Training cancelled"
+                      text_color: red_color
 
   - id: update_qr_display
     then:
