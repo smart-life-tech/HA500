@@ -2570,7 +2570,7 @@ lvgl:
                   text: "v${project_version}"
                   text_font: roboto
                   text_color: 0xFFFFFF
-                  x: 80
+                  x: 100
                   y: 275
                   width: 280
 
