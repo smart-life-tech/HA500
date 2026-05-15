@@ -4,7 +4,7 @@ substitutions:
   friendly_name: "Phijo Smart"
   device_description: " Smart Controller"
   project_name: "Guition.ESP32_S3_4848S040"
-  project_version: "5.15.26.3"
+  project_version: "5.15.26.4"
   wifi_ssid: ""
   wifi_password: ""
 
@@ -2771,7 +2771,7 @@ lvgl:
                             "Size : %.1f m^3 | Flow: %.1f L/min", 
                             id(pool_volume).state, id(pump_flow_rate));
                     return line1_text;
-                  text_font: roboto
+                  text_font: roboto24
                   text_color: black_color
                   align: center
                   x: 0
@@ -4988,8 +4988,8 @@ lvgl:
                   widgets:
                     - label:
                         text: "Bucket time"
-                        text_font: roboto
-                        text_color: 0xE5E7EB
+                        text_font: roboto24
+                        text_color: black_color
                         align: center
                         y: -10
                     - label:
@@ -5003,7 +5003,7 @@ lvgl:
                           }
                           return bucket_time_value;
                         text_font: roboto24
-                        text_color: 0xE5E7EB
+                        text_color: black_color
                         align: center
                         y: 12
 
