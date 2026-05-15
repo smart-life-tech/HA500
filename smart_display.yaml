@@ -6486,22 +6486,40 @@ switch:
               lambda: "return id(valve_training_mode) && id(valve_training_start_time) > 0;"
             then:
               - lambda: |-
-                  int training_duration = id(time_comp).now().timestamp - id(valve_training_start_time);
-                  float training_minutes = training_duration / 60.0f;
+                  auto now = id(time_comp).now();
+                  if (!now.is_valid()) now = id(sntp_time).now();
                   
-                  // Calculate flow rate based on known bucket volume
-                  if (training_minutes > 0.25f) {  // Minimum 15 seconds for valid training
-                    float vol = id(bucket_volume_liters);
-                    if (vol <= 0.0f) vol = 10.0f;
-                    id(valve_liters_per_minute) = vol / training_minutes;
-                    ESP_LOGI("irrigation", "Training complete: %.1f min for %.1f L → %.2f L/min",
-                             training_minutes, vol, id(valve_liters_per_minute));
+                  if (!now.is_valid()) {
+                    ESP_LOGE("irrigation", "CALIBRATION ERROR: System time not available! Cannot calculate flow rate.");
+                    id(valve_training_start_time) = 0;
+                    id(valve_training_mode) = false;
                   } else {
-                    ESP_LOGW("irrigation", "Training too short (%.2fs). Keep previous calibration.", training_minutes * 60.0f);
+                    int training_duration = now.timestamp - id(valve_training_start_time);
+                    float training_minutes = training_duration / 60.0f;
+                    
+                    // Validate training start time was captured
+                    if (id(valve_training_start_time) == 0) {
+                      ESP_LOGE("irrigation", "CALIBRATION ERROR: Start time was never captured!");
+                    } else {
+                      ESP_LOGI("irrigation", "DEBUG: start_time=%u, end_time=%u, duration=%d sec, minutes=%.2f",
+                               id(valve_training_start_time), now.timestamp, training_duration, training_minutes);
+                    }
+                    
+                    // Calculate flow rate based on known bucket volume
+                    if (training_minutes >= 0.25f) {  // Minimum 15 seconds for valid training
+                      float vol = id(bucket_volume_liters);
+                      if (vol <= 0.0f) vol = 10.0f;
+                      id(valve_liters_per_minute) = vol / training_minutes;
+                      ESP_LOGI("irrigation", "✓ CALIBRATION SUCCESS: %.1f min for %.1f L → %.2f L/min",
+                               training_minutes, vol, id(valve_liters_per_minute));
+                    } else {
+                      ESP_LOGW("irrigation", "✗ Training too short (%.2f sec). Keeping previous flow=%.1f L/min", 
+                               training_minutes * 60.0f, id(valve_liters_per_minute));
+                    }
+                    
+                    id(valve_training_start_time) = 0;
+                    id(valve_training_mode) = false;
                   }
-                  
-                  id(valve_training_start_time) = 0;
-                  id(valve_training_mode) = false;
               - lvgl.label.update:
                   id: status_label
                   text: !lambda |-
