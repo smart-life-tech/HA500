@@ -4817,6 +4817,7 @@ lvgl:
                   x: 340
                   y: 4
               - label:
+                  id: flow_rate_display
                   text: !lambda |-
                     static char fl_text[20];
                     snprintf(fl_text, sizeof(fl_text), "%.1f L/m", id(valve_liters_per_minute));
@@ -4982,7 +4983,7 @@ lvgl:
                   width: 100
                   height: 75
                   bg_color: black_color
-                  bg_opa: 0%
+                  bg_opa: 20%
                   border_width: 0
                   checkable: false
                   widgets:
@@ -6533,6 +6534,23 @@ switch:
               - lvgl.label.update:
                   id: start_cal_btn_label
                   text: "Calibrate"
+              - lvgl.label.update:
+                  id: flow_rate_display
+                  text: !lambda |-
+                    static char fl_text[20];
+                    snprintf(fl_text, sizeof(fl_text), "%.1f L/m", id(valve_liters_per_minute));
+                    return fl_text;
+              - lvgl.label.update:
+                  id: bucket_time_value_label
+                  text: !lambda |-
+                    static char bucket_time_value[20];
+                    float flow = id(valve_liters_per_minute);
+                    if (flow <= 0.0f) {
+                      snprintf(bucket_time_value, sizeof(bucket_time_value), "---");
+                    } else {
+                      snprintf(bucket_time_value, sizeof(bucket_time_value), "%.1f min", id(bucket_volume_liters) / flow);
+                    }
+                    return bucket_time_value;
               - delay: 3s
               - lvgl.label.update:
                   id: status_label
