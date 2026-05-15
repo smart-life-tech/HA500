@@ -1543,7 +1543,7 @@ color:
     green: 60%
     blue: 0%
   - id: red_color
-    red: 80%
+    red: 100%
     green: 0%
     blue: 0%
   - id: orange_color
@@ -4988,8 +4988,8 @@ lvgl:
                   widgets:
                     - label:
                         text: "Bucket time"
-                        text_font: roboto24
-                        text_color: black_color
+                        text_font: roboto
+                        text_color: red_color
                         align: center
                         y: -10
                     - label:
