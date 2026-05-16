@@ -1,0 +1,124 @@
+esphome:
+  name: esp32_relay_x8
+  comment: "ESP32 Relay X8 board configuration for 8 direct GPIO relays"
+
+esp32:
+  board: esp32dev
+
+wifi:
+  ssid: "YOUR_WIFI_SSID"
+  password: "YOUR_WIFI_PASSWORD"
+
+  # Optional manual IP if needed
+  # manual_ip:
+  #   static_ip: 192.168.1.100
+  #   gateway: 192.168.1.1
+  #   subnet: 255.255.255.0
+
+logger:
+
+api:
+
+ota:
+  password: "YOUR_OTA_PASSWORD"
+
+captive_portal:
+
+# Direct relay GPIO outputs, HIGH active
+output:
+  - platform: gpio
+    id: relay1_output
+    pin:
+      number: GPIO32
+      inverted: false
+  - platform: gpio
+    id: relay2_output
+    pin:
+      number: GPIO33
+      inverted: false
+  - platform: gpio
+    id: relay3_output
+    pin:
+      number: GPIO25
+      inverted: false
+  - platform: gpio
+    id: relay4_output
+    pin:
+      number: GPIO26
+      inverted: false
+  - platform: gpio
+    id: relay5_output
+    pin:
+      number: GPIO27
+      inverted: false
+  - platform: gpio
+    id: relay6_output
+    pin:
+      number: GPIO14
+      inverted: false
+  - platform: gpio
+    id: relay7_output
+    pin:
+      number: GPIO12
+      inverted: false
+  - platform: gpio
+    id: relay8_output
+    pin:
+      number: GPIO13
+      inverted: false
+
+switch:
+  - platform: gpio
+    name: "Relay 1"
+    output: relay1_output
+  - platform: gpio
+    name: "Relay 2"
+    output: relay2_output
+  - platform: gpio
+    name: "Relay 3"
+    output: relay3_output
+  - platform: gpio
+    name: "Relay 4"
+    output: relay4_output
+  - platform: gpio
+    name: "Relay 5"
+    output: relay5_output
+  - platform: gpio
+    name: "Relay 6"
+    output: relay6_output
+  - platform: gpio
+    name: "Relay 7"
+    output: relay7_output
+  - platform: gpio
+    name: "Relay 8"
+    output: relay8_output
+  - platform: template
+    name: "All Relays ON"
+    optimistic: true
+    turn_on_action:
+      - switch.turn_on: relay1_output
+      - switch.turn_on: relay2_output
+      - switch.turn_on: relay3_output
+      - switch.turn_on: relay4_output
+      - switch.turn_on: relay5_output
+      - switch.turn_on: relay6_output
+      - switch.turn_on: relay7_output
+      - switch.turn_on: relay8_output
+    turn_off_action: []
+  - platform: template
+    name: "All Relays OFF"
+    optimistic: true
+    turn_on_action:
+      - switch.turn_off: relay1_output
+      - switch.turn_off: relay2_output
+      - switch.turn_off: relay3_output
+      - switch.turn_off: relay4_output
+      - switch.turn_off: relay5_output
+      - switch.turn_off: relay6_output
+      - switch.turn_off: relay7_output
+      - switch.turn_off: relay8_output
+    turn_off_action: []
+
+binary_sensor:
+  - platform: status
+    name: "ESP32 Relay X8 Status"
