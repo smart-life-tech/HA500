@@ -4,9 +4,7 @@ esphome:
 
 esp32:
   board: esp32dev
-ap:
-    ssid: "PhiJo Smart Relay Fallback"
-    password: !secret wifi_fallback_password
+
 
 wifi:
   # ssid: "YOUR_WIFI_SSID"
@@ -17,7 +15,9 @@ wifi:
   #   static_ip: 192.168.1.100
   #   gateway: 192.168.1.1
   #   subnet: 255.255.255.0
-
+  ap:
+    ssid: "PhiJo Smart Relay Fallback"
+    password: !secret wifi_fallback_password
 logger:
 
 api:
