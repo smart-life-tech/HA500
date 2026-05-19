@@ -694,12 +694,16 @@ time:
         then:
           - lambda: |-
               if (!id(auto_irrigation_enabled)) return;
+              if (id(irrigation_script_running)) {
+                ESP_LOGD("irrigation", "Irrigation script already running, skipping on_time check");
+                return;
+              }
 
               auto now = id(time_comp).now();
               int current_minutes = now.hour * 60 + now.minute;
               bool should_start = false;
 
-              // Recalculate daily runtime first
+              // Recalculate daily runtime first (but only if not already running)
               id(calculate_irrigation_needs).execute();
 
               // Check center block timing
@@ -1739,6 +1743,10 @@ globals:
   - id: auto_irrigation_enabled
     type: bool
     restore_value: false
+    initial_value: "false"
+  - id: irrigation_script_running
+    type: bool
+    restore_value: no
     initial_value: "false"
   # Watering system globals
   - id: field_area_m2
@@ -7185,6 +7193,9 @@ script:
             }
   - id: run_scheduled_irrigation
     then:
+      - lambda: |-
+          id(irrigation_script_running) = true;
+          ESP_LOGI("irrigation", "Irrigation script started - guard flag set");
       - if:
           condition:
             lambda: "return id(auto_irrigation_enabled) && !id(sw2).state;"
@@ -7243,6 +7254,7 @@ script:
 
                 if (!should_run) {
                   ESP_LOGW("irrigation", "Current time not in any irrigation block");
+                  id(irrigation_script_running) = false;
                   return;
                 }
 
@@ -7278,6 +7290,9 @@ script:
             # Turn off both pump and valve
             - switch.turn_off: sw2
             - switch.turn_off: sw3
+      - lambda: |-
+          id(irrigation_script_running) = false;
+          ESP_LOGI("irrigation", "Irrigation script completed - guard flag cleared");
 
   - id: time_display_update
     then:
