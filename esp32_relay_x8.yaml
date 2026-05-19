@@ -98,27 +98,27 @@ switch:
     name: "All Relays ON"
     optimistic: true
     turn_on_action:
-      - switch.turn_on: relay1_output
-      - switch.turn_on: relay2_output
-      - switch.turn_on: relay3_output
-      - switch.turn_on: relay4_output
-      - switch.turn_on: relay5_output
-      - switch.turn_on: relay6_output
-      - switch.turn_on: relay7_output
-      - switch.turn_on: relay8_output
+      - output.turn_on: relay1_output
+      - output.turn_on: relay2_output
+      - output.turn_on: relay3_output
+      - output.turn_on: relay4_output
+      - output.turn_on: relay5_output
+      - output.turn_on: relay6_output
+      - output.turn_on: relay7_output
+      - output.turn_on: relay8_output
     turn_off_action: []
   - platform: template
     name: "All Relays OFF"
     optimistic: true
     turn_on_action:
-      - switch.turn_off: relay1_output
-      - switch.turn_off: relay2_output
-      - switch.turn_off: relay3_output
-      - switch.turn_off: relay4_output
-      - switch.turn_off: relay5_output
-      - switch.turn_off: relay6_output
-      - switch.turn_off: relay7_output
-      - switch.turn_off: relay8_output
+      - output.turn_off: relay1_output
+      - output.turn_off: relay2_output
+      - output.turn_off: relay3_output
+      - output.turn_off: relay4_output
+      - output.turn_off: relay5_output
+      - output.turn_off: relay6_output
+      - output.turn_off: relay7_output
+      - output.turn_off: relay8_output
     turn_off_action: []
 
 binary_sensor:
