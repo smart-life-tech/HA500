@@ -40,7 +40,7 @@ switch:
     pin:
       number: GPIO32
       inverted: false
-    restore_mode: RESTORE_LAST_STATE
+    restore_mode: RESTORE_DEFAULT_OFF
   - platform: gpio
     id: relay2_switch
     internal: true
@@ -48,7 +48,7 @@ switch:
     pin:
       number: GPIO33
       inverted: false
-    restore_mode: RESTORE_LAST_STATE
+    restore_mode: RESTORE_DEFAULT_OFF
   - platform: gpio
     id: relay3_switch
     internal: true
@@ -56,7 +56,7 @@ switch:
     pin:
       number: GPIO25
       inverted: false
-    restore_mode: RESTORE_LAST_STATE
+    restore_mode: RESTORE_DEFAULT_OFF
   - platform: gpio
     id: relay4_switch
     internal: true
@@ -64,7 +64,7 @@ switch:
     pin:
       number: GPIO26
       inverted: false
-    restore_mode: RESTORE_LAST_STATE
+    restore_mode: RESTORE_DEFAULT_OFF
   - platform: gpio
     id: relay5_switch
     internal: true
@@ -72,7 +72,7 @@ switch:
     pin:
       number: GPIO27
       inverted: false
-    restore_mode: RESTORE_LAST_STATE
+    restore_mode: RESTORE_DEFAULT_OFF
   - platform: gpio
     id: relay6_switch
     internal: true
@@ -80,7 +80,7 @@ switch:
     pin:
       number: GPIO14
       inverted: false
-    restore_mode: RESTORE_LAST_STATE
+    restore_mode: RESTORE_DEFAULT_OFF
   - platform: gpio
     id: relay7_switch
     internal: true
@@ -88,7 +88,7 @@ switch:
     pin:
       number: GPIO12
       inverted: false
-    restore_mode: RESTORE_LAST_STATE
+    restore_mode: RESTORE_DEFAULT_OFF
   - platform: gpio
     id: relay8_switch
     internal: true
@@ -96,7 +96,7 @@ switch:
     pin:
       number: GPIO13
       inverted: false
-    restore_mode: RESTORE_LAST_STATE
+    restore_mode: RESTORE_DEFAULT_OFF
   - platform: template
     name: "All Relays"
     optimistic: false
