@@ -4991,14 +4991,14 @@ lvgl:
                   width: 100
                   height: 75
                   bg_color: black_color
-                  bg_opa: 20%
+                  bg_opa: 30%
                   border_width: 0
                   checkable: false
                   widgets:
                     - label:
                         text: "Bucket time"
                         text_font: roboto
-                        text_color: red_color
+                        text_color: black_color
                         align: center
                         y: -10
                     - label:
