@@ -36,70 +36,88 @@ output:
     pin:
       number: GPIO32
       inverted: false
+    restore_mode: RESTORE_LAST_STATE
   - platform: gpio
     id: relay2_output
     pin:
       number: GPIO33
       inverted: false
+    restore_mode: RESTORE_LAST_STATE
   - platform: gpio
     id: relay3_output
     pin:
       number: GPIO25
       inverted: false
+    restore_mode: RESTORE_LAST_STATE
   - platform: gpio
     id: relay4_output
     pin:
       number: GPIO26
       inverted: false
+    restore_mode: RESTORE_LAST_STATE
   - platform: gpio
     id: relay5_output
     pin:
       number: GPIO27
       inverted: false
+    restore_mode: RESTORE_LAST_STATE
   - platform: gpio
     id: relay6_output
     pin:
       number: GPIO14
       inverted: false
+    restore_mode: RESTORE_LAST_STATE
   - platform: gpio
     id: relay7_output
     pin:
       number: GPIO12
       inverted: false
+    restore_mode: RESTORE_LAST_STATE
   - platform: gpio
     id: relay8_output
     pin:
       number: GPIO13
       inverted: false
+    restore_mode: RESTORE_LAST_STATE
 
 switch:
   - platform: output
+    internal: false
     name: "Relay 1"
     output: relay1_output
   - platform: output
+    internal: false
     name: "Relay 2"
     output: relay2_output
   - platform: output
+    internal: false
     name: "Relay 3"
     output: relay3_output
   - platform: output
+    internal: false
     name: "Relay 4"
     output: relay4_output
   - platform: output
+    internal: false
     name: "Relay 5"
     output: relay5_output
   - platform: output
+    internal: false
     name: "Relay 6"
     output: relay6_output
   - platform: output
+    internal: false
     name: "Relay 7"
     output: relay7_output
   - platform: output
+    internal: false
     name: "Relay 8"
     output: relay8_output
   - platform: template
-    name: "All Relays ON"
-    optimistic: true
+    name: "All Relays"
+    optimistic: false
+    lambda: |-
+      return id(relay1_output).state && id(relay2_output).state && id(relay3_output).state && id(relay4_output).state && id(relay5_output).state && id(relay6_output).state && id(relay7_output).state && id(relay8_output).state;
     turn_on_action:
       - output.turn_on: relay1_output
       - output.turn_on: relay2_output
@@ -109,11 +127,7 @@ switch:
       - output.turn_on: relay6_output
       - output.turn_on: relay7_output
       - output.turn_on: relay8_output
-    turn_off_action: []
-  - platform: template
-    name: "All Relays OFF"
-    optimistic: true
-    turn_on_action:
+    turn_off_action:
       - output.turn_off: relay1_output
       - output.turn_off: relay2_output
       - output.turn_off: relay3_output
@@ -122,7 +136,6 @@ switch:
       - output.turn_off: relay6_output
       - output.turn_off: relay7_output
       - output.turn_off: relay8_output
-    turn_off_action: []
 
 binary_sensor:
   - platform: status
