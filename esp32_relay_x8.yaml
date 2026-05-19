@@ -35,7 +35,7 @@ captive_portal:
 switch:
   - platform: gpio
     id: relay1_switch
-    internal: true
+    internal: false
     name: "Relay 1"
     pin:
       number: GPIO32
@@ -43,7 +43,7 @@ switch:
     restore_mode: RESTORE_DEFAULT_OFF
   - platform: gpio
     id: relay2_switch
-    internal: true
+    internal: false
     name: "Relay 2"
     pin:
       number: GPIO33
@@ -51,7 +51,7 @@ switch:
     restore_mode: RESTORE_DEFAULT_OFF
   - platform: gpio
     id: relay3_switch
-    internal: true
+    internal: false
     name: "Relay 3"
     pin:
       number: GPIO25
@@ -59,7 +59,7 @@ switch:
     restore_mode: RESTORE_DEFAULT_OFF
   - platform: gpio
     id: relay4_switch
-    internal: true
+    internal: false
     name: "Relay 4"
     pin:
       number: GPIO26
@@ -67,7 +67,7 @@ switch:
     restore_mode: RESTORE_DEFAULT_OFF
   - platform: gpio
     id: relay5_switch
-    internal: true
+    internal: false
     name: "Relay 5"
     pin:
       number: GPIO27
@@ -75,7 +75,7 @@ switch:
     restore_mode: RESTORE_DEFAULT_OFF
   - platform: gpio
     id: relay6_switch
-    internal: true
+    internal: false
     name: "Relay 6"
     pin:
       number: GPIO14
@@ -83,7 +83,7 @@ switch:
     restore_mode: RESTORE_DEFAULT_OFF
   - platform: gpio
     id: relay7_switch
-    internal: true
+    internal: false
     name: "Relay 7"
     pin:
       number: GPIO12
@@ -91,7 +91,7 @@ switch:
     restore_mode: RESTORE_DEFAULT_OFF
   - platform: gpio
     id: relay8_switch
-    internal: true
+    internal: false
     name: "Relay 8"
     pin:
       number: GPIO13
