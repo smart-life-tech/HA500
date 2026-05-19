@@ -1,9 +1,11 @@
 esphome:
-  name: esp32_relay_x8
+  name: esp32-relay-x8
   comment: "ESP32 Relay X8 board configuration for 8 direct GPIO relays"
 
 esp32:
   board: esp32dev
+  framework:
+    type: arduino
 
 
 wifi:
@@ -29,113 +31,95 @@ ota:
 
 captive_portal:
 
-# Direct relay GPIO outputs, HIGH active
-output:
+# Direct relay GPIO switches, HIGH active
+switch:
   - platform: gpio
-    id: relay1_output
+    id: relay1_switch
+    internal: true
+    name: "Relay 1"
     pin:
       number: GPIO32
       inverted: false
     restore_mode: RESTORE_LAST_STATE
   - platform: gpio
-    id: relay2_output
+    id: relay2_switch
+    internal: true
+    name: "Relay 2"
     pin:
       number: GPIO33
       inverted: false
     restore_mode: RESTORE_LAST_STATE
   - platform: gpio
-    id: relay3_output
+    id: relay3_switch
+    internal: true
+    name: "Relay 3"
     pin:
       number: GPIO25
       inverted: false
     restore_mode: RESTORE_LAST_STATE
   - platform: gpio
-    id: relay4_output
+    id: relay4_switch
+    internal: true
+    name: "Relay 4"
     pin:
       number: GPIO26
       inverted: false
     restore_mode: RESTORE_LAST_STATE
   - platform: gpio
-    id: relay5_output
+    id: relay5_switch
+    internal: true
+    name: "Relay 5"
     pin:
       number: GPIO27
       inverted: false
     restore_mode: RESTORE_LAST_STATE
   - platform: gpio
-    id: relay6_output
+    id: relay6_switch
+    internal: true
+    name: "Relay 6"
     pin:
       number: GPIO14
       inverted: false
     restore_mode: RESTORE_LAST_STATE
   - platform: gpio
-    id: relay7_output
+    id: relay7_switch
+    internal: true
+    name: "Relay 7"
     pin:
       number: GPIO12
       inverted: false
     restore_mode: RESTORE_LAST_STATE
   - platform: gpio
-    id: relay8_output
+    id: relay8_switch
+    internal: true
+    name: "Relay 8"
     pin:
       number: GPIO13
       inverted: false
     restore_mode: RESTORE_LAST_STATE
-
-switch:
-  - platform: output
-    internal: false
-    name: "Relay 1"
-    output: relay1_output
-  - platform: output
-    internal: false
-    name: "Relay 2"
-    output: relay2_output
-  - platform: output
-    internal: false
-    name: "Relay 3"
-    output: relay3_output
-  - platform: output
-    internal: false
-    name: "Relay 4"
-    output: relay4_output
-  - platform: output
-    internal: false
-    name: "Relay 5"
-    output: relay5_output
-  - platform: output
-    internal: false
-    name: "Relay 6"
-    output: relay6_output
-  - platform: output
-    internal: false
-    name: "Relay 7"
-    output: relay7_output
-  - platform: output
-    internal: false
-    name: "Relay 8"
-    output: relay8_output
   - platform: template
     name: "All Relays"
     optimistic: false
     lambda: |-
-      return id(relay1_output).state && id(relay2_output).state && id(relay3_output).state && id(relay4_output).state && id(relay5_output).state && id(relay6_output).state && id(relay7_output).state && id(relay8_output).state;
+      return id(relay1_switch).state && id(relay2_switch).state && id(relay3_switch).state && id(relay4_switch).state && id(relay5_switch).state && id(relay6_switch).state && id(relay7_switch).state && id(relay8_switch).state;
     turn_on_action:
-      - output.turn_on: relay1_output
-      - output.turn_on: relay2_output
-      - output.turn_on: relay3_output
-      - output.turn_on: relay4_output
-      - output.turn_on: relay5_output
-      - output.turn_on: relay6_output
-      - output.turn_on: relay7_output
-      - output.turn_on: relay8_output
+      - switch.turn_on: relay1_switch
+      - switch.turn_on: relay2_switch
+      - switch.turn_on: relay3_switch
+      - switch.turn_on: relay4_switch
+      - switch.turn_on: relay5_switch
+      - switch.turn_on: relay6_switch
+      - switch.turn_on: relay7_switch
+      - switch.turn_on: relay8_switch
     turn_off_action:
-      - output.turn_off: relay1_output
-      - output.turn_off: relay2_output
-      - output.turn_off: relay3_output
-      - output.turn_off: relay4_output
-      - output.turn_off: relay5_output
-      - output.turn_off: relay6_output
-      - output.turn_off: relay7_output
-      - output.turn_off: relay8_output
+      - switch.turn_off: relay1_switch
+      - switch.turn_off: relay2_switch
+      - switch.turn_off: relay3_switch
+      - switch.turn_off: relay4_switch
+      - switch.turn_off: relay5_switch
+      - switch.turn_off: relay6_switch
+      - switch.turn_off: relay7_switch
+      - switch.turn_off: relay8_switch
 
 binary_sensor:
   - platform: status
