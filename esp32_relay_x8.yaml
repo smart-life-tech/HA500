@@ -4,10 +4,13 @@ esphome:
 
 esp32:
   board: esp32dev
+ap:
+    ssid: "PhiJo Smart Relay Fallback"
+    password: !secret wifi_fallback_password
 
 wifi:
-  ssid: "YOUR_WIFI_SSID"
-  password: "YOUR_WIFI_PASSWORD"
+  # ssid: "YOUR_WIFI_SSID"
+  # password: "YOUR_WIFI_PASSWORD"
 
   # Optional manual IP if needed
   # manual_ip:
@@ -124,3 +127,11 @@ switch:
 binary_sensor:
   - platform: status
     name: "ESP32 Relay X8 Status"
+
+web_server:
+  port: 80
+  version: 2
+  include_internal: false
+  local: true
+
+ 
