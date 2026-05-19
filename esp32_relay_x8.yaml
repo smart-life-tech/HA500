@@ -70,28 +70,28 @@ output:
       inverted: false
 
 switch:
-  - platform: gpio
+  - platform: output
     name: "Relay 1"
     output: relay1_output
-  - platform: gpio
+  - platform: output
     name: "Relay 2"
     output: relay2_output
-  - platform: gpio
+  - platform: output
     name: "Relay 3"
     output: relay3_output
-  - platform: gpio
+  - platform: output
     name: "Relay 4"
     output: relay4_output
-  - platform: gpio
+  - platform: output
     name: "Relay 5"
     output: relay5_output
-  - platform: gpio
+  - platform: output
     name: "Relay 6"
     output: relay6_output
-  - platform: gpio
+  - platform: output
     name: "Relay 7"
     output: relay7_output
-  - platform: gpio
+  - platform: output
     name: "Relay 8"
     output: relay8_output
   - platform: template
