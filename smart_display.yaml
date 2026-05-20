@@ -4,7 +4,7 @@ substitutions:
   friendly_name: "Phijo Smart"
   device_description: " Smart Controller"
   project_name: "Guition.ESP32_S3_4848S040"
-  project_version: "5.20.26.1"
+  project_version: "5.20.26.2"
   wifi_ssid: ""
   wifi_password: ""
 
@@ -3245,6 +3245,8 @@ lvgl:
                             static char text[10];
                             snprintf(text, sizeof(text), "%02d:00", id(center_pump_time_hour));
                             return text;
+                      - lvgl.label.update:
+                          id: runtime_info_display
               - label:
                   id: center_time_display
                   text: !lambda |-
@@ -3274,6 +3276,8 @@ lvgl:
                             static char text[10];
                             snprintf(text, sizeof(text), "%02d:00", id(center_pump_time_hour));
                             return text;
+                      - lvgl.label.update:
+                          id: runtime_info_display
 
               # Runtime Blocks
               - label:
