@@ -2755,7 +2755,7 @@ lvgl:
             height: 60
         # Add irrigation status display
         - obj:
-            width: 340
+            width: 400
             height: 100
             bg_color: 0x000000
             bg_opa: 5%
