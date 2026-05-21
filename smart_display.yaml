@@ -3238,6 +3238,8 @@ lvgl:
                   on_click:
                     then:
                       - number.decrement: center_time_hour_input
+                      - lambda: |-
+                          ESP_LOGI("pump_settings", "Center hour minus clicked: %d", id(center_pump_time_hour));
                       - delay: 50ms
                       - lvgl.label.update:
                           id: center_time_display
@@ -3247,6 +3249,20 @@ lvgl:
                             return text;
                       - lvgl.label.update:
                           id: runtime_info_display
+                          text: !lambda |-
+                            static char text[80];
+                            int blocks = id(pump_runtime_blocks);
+                            int center_runtime = id(calculated_daily_runtime) / blocks;
+                            int free_runtime = (blocks > 1) ? id(calculated_daily_runtime) / blocks : 0;
+                            if (blocks == 1) {
+                              snprintf(text, sizeof(text), "1 Run: All %d min at %02d:00", 
+                                       id(calculated_daily_runtime), id(center_pump_time_hour));
+                            } else {
+                              snprintf(text, sizeof(text), "%d Runs: Center %d@%02d:00, Free %d min", 
+                                       blocks, center_runtime, id(center_pump_time_hour), free_runtime);
+                            }
+                            ESP_LOGD("pump_settings", "Runtime info updated: %s", text);
+                            return text;
               - label:
                   id: center_time_display
                   text: !lambda |-
@@ -3269,6 +3285,8 @@ lvgl:
                   on_click:
                     then:
                       - number.increment: center_time_hour_input
+                      - lambda: |-
+                          ESP_LOGI("pump_settings", "Center hour plus clicked: %d", id(center_pump_time_hour));
                       - delay: 50ms
                       - lvgl.label.update:
                           id: center_time_display
@@ -3278,6 +3296,20 @@ lvgl:
                             return text;
                       - lvgl.label.update:
                           id: runtime_info_display
+                          text: !lambda |-
+                            static char text[80];
+                            int blocks = id(pump_runtime_blocks);
+                            int center_runtime = id(calculated_daily_runtime) / blocks;
+                            int free_runtime = (blocks > 1) ? id(calculated_daily_runtime) / blocks : 0;
+                            if (blocks == 1) {
+                              snprintf(text, sizeof(text), "1 Run: All %d min at %02d:00", 
+                                       id(calculated_daily_runtime), id(center_pump_time_hour));
+                            } else {
+                              snprintf(text, sizeof(text), "%d Runs: Center %d@%02d:00, Free %d min", 
+                                       blocks, center_runtime, id(center_pump_time_hour), free_runtime);
+                            }
+                            ESP_LOGD("pump_settings", "Runtime info updated: %s", text);
+                            return text;
 
               # Runtime Blocks
               - label:
