@@ -160,6 +160,21 @@ esphome:
             snprintf(text, sizeof(text), "%02d:%02d", id(free_block4_start_hour), id(free_block4_start_minute));
             return text;
       - lvgl.label.update:
+          id: runtime_info_display
+          text: !lambda |-
+            static char text[80];
+            int blocks = id(pump_runtime_blocks);
+            int center_runtime = id(calculated_daily_runtime) / blocks;
+            int free_runtime = (blocks > 1) ? id(calculated_daily_runtime) / blocks : 0;
+            if (blocks == 1) {
+              snprintf(text, sizeof(text), "1 Run: All %d min at %02d:00", 
+                       id(calculated_daily_runtime), id(center_pump_time_hour));
+            } else {
+              snprintf(text, sizeof(text), "%d Runs: Center %d@%02d:00, Free %d min", 
+                       blocks, center_runtime, id(center_pump_time_hour), free_runtime);
+            }
+            return text;
+      - lvgl.label.update:
           id: pool_length_number
           text: !lambda |-
             static char buf[20];
@@ -951,10 +966,14 @@ number:
     max_value: 18
     step: 1
     optimistic: true
-    initial_value: 14
-    on_value:
+    lambda: |-
+      return id(center_pump_time_hour);
+    set_action:
       then:
-        - lambda: "id(center_pump_time_hour) = (int)x;"
+        - globals.set:
+            id: center_pump_time_hour
+            value: !lambda "return (int)x;"
+        - component.update: center_time_hour_input
 
   - platform: template
     id: reference_temp_input
@@ -987,10 +1006,13 @@ number:
     max_value: 4
     step: 1
     optimistic: true
-    initial_value: 1
-    on_value:
+    lambda: |-
+      return id(pump_runtime_blocks);
+    set_action:
       then:
-        - lambda: "id(pump_runtime_blocks) = (int)x;"
+        - globals.set:
+            id: pump_runtime_blocks
+            value: !lambda "return (int)x;"
         - lambda: |-
             if (x >=2) {
              lv_obj_clear_flag(id(free_block2_settings), LV_OBJ_FLAG_HIDDEN);
@@ -1015,10 +1037,14 @@ number:
     max_value: 23
     step: 1
     optimistic: true
-    initial_value: 8
-    on_value:
+    lambda: |-
+      return id(free_block2_start_hour);
+    set_action:
       then:
-        - lambda: "id(free_block2_start_hour) = (int)x;"
+        - globals.set:
+            id: free_block2_start_hour
+            value: !lambda "return (int)x;"
+        - component.update: free_block2_hour_input
 
   - platform: template
     id: free_block2_minute_input
@@ -1026,10 +1052,14 @@ number:
     max_value: 59
     step: 1
     optimistic: true
-    initial_value: 0
-    on_value:
+    lambda: |-
+      return id(free_block2_start_minute);
+    set_action:
       then:
-        - lambda: "id(free_block2_start_minute) = (int)x;"
+        - globals.set:
+            id: free_block2_start_minute
+            value: !lambda "return (int)x;"
+        - component.update: free_block2_minute_input
 
   - platform: template
     id: free_block3_hour_input
@@ -1037,10 +1067,14 @@ number:
     max_value: 23
     step: 1
     optimistic: true
-    initial_value: 18
-    on_value:
+    lambda: |-
+      return id(free_block3_start_hour);
+    set_action:
       then:
-        - lambda: "id(free_block3_start_hour) = (int)x;"
+        - globals.set:
+            id: free_block3_start_hour
+            value: !lambda "return (int)x;"
+        - component.update: free_block3_hour_input
 
   - platform: template
     id: free_block3_minute_input
@@ -1048,10 +1082,14 @@ number:
     max_value: 59
     step: 1
     optimistic: true
-    initial_value: 0
-    on_value:
+    lambda: |-
+      return id(free_block3_start_minute);
+    set_action:
       then:
-        - lambda: "id(free_block3_start_minute) = (int)x;"
+        - globals.set:
+            id: free_block3_start_minute
+            value: !lambda "return (int)x;"
+        - component.update: free_block3_minute_input
 
   - platform: template
     id: free_block4_hour_input
@@ -1059,10 +1097,14 @@ number:
     max_value: 23
     step: 1
     optimistic: true
-    initial_value: 21
-    on_value:
+    lambda: |-
+      return id(free_block4_start_hour);
+    set_action:
       then:
-        - lambda: "id(free_block4_start_hour) = (int)x;"
+        - globals.set:
+            id: free_block4_start_hour
+            value: !lambda "return (int)x;"
+        - component.update: free_block4_hour_input
 
   - platform: template
     id: free_block4_minute_input
@@ -1070,10 +1112,14 @@ number:
     max_value: 59
     step: 1
     optimistic: true
-    initial_value: 0
-    on_value:
+    lambda: |-
+      return id(free_block4_start_minute);
+    set_action:
       then:
-        - lambda: "id(free_block4_start_minute) = (int)x;"
+        - globals.set:
+            id: free_block4_start_minute
+            value: !lambda "return (int)x;"
+        - component.update: free_block4_minute_input
 
   - platform: template
     id: daily_rainfall_input
@@ -1761,7 +1807,7 @@ globals:
 
   - id: valve_training_mode
     type: bool
-    #restore_value: yes
+    restore_value: true
     initial_value: "false"
 
   - id: valve_training_start_time
