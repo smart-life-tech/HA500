@@ -4,7 +4,7 @@ substitutions:
   friendly_name: "Phijo Smart"
   device_description: " Smart Controller"
   project_name: "Guition.ESP32_S3_4848S040"
-  project_version: "5.21.26.2"
+  project_version: "5.21.26.3"
   wifi_ssid: ""
   wifi_password: ""
 
@@ -3384,7 +3384,7 @@ lvgl:
               # Runtime Info Display
               - label:
                   id: runtime_info_display
-                  hidden: true
+                  #hidden: true
                   text: !lambda |-
                     static char text[80];
                     int blocks = id(pump_runtime_blocks);
