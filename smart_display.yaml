@@ -3392,11 +3392,11 @@ lvgl:
                     int free_runtime = (blocks > 1) ? id(calculated_daily_runtime) / blocks : 0;
 
                     if (blocks == 1) {
-                      snprintf(text, sizeof(text), "1 Run: All %d min centered at %02d:00", 
+                      snprintf(text, sizeof(text), "1 Run: All %d min at %02d:00", 
                                id(calculated_daily_runtime), id(center_pump_time_hour));
                     } else {
-                      snprintf(text, sizeof(text), "%d Runs: Center %d min, Free blocks %d min each", 
-                               blocks, center_runtime, free_runtime);
+                      snprintf(text, sizeof(text), "%d Runs: Center %d@%02d:00, Free %d min", 
+                               blocks, center_runtime, id(center_pump_time_hour), free_runtime);
                     }
                     return text;
                   text_font: roboto
