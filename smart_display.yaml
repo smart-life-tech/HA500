@@ -965,7 +965,6 @@ number:
     min_value: 10
     max_value: 18
     step: 1
-    optimistic: true
     lambda: |-
       return id(center_pump_time_hour);
     set_action:
@@ -1005,7 +1004,6 @@ number:
     min_value: 1
     max_value: 4
     step: 1
-    optimistic: true
     lambda: |-
       return id(pump_runtime_blocks);
     set_action:
@@ -1036,7 +1034,6 @@ number:
     min_value: 0
     max_value: 23
     step: 1
-    optimistic: true
     lambda: |-
       return id(free_block2_start_hour);
     set_action:
@@ -1051,7 +1048,6 @@ number:
     min_value: 0
     max_value: 59
     step: 1
-    optimistic: true
     lambda: |-
       return id(free_block2_start_minute);
     set_action:
@@ -1066,7 +1062,6 @@ number:
     min_value: 0
     max_value: 23
     step: 1
-    optimistic: true
     lambda: |-
       return id(free_block3_start_hour);
     set_action:
@@ -1081,7 +1076,6 @@ number:
     min_value: 0
     max_value: 59
     step: 1
-    optimistic: true
     lambda: |-
       return id(free_block3_start_minute);
     set_action:
@@ -1096,7 +1090,6 @@ number:
     min_value: 0
     max_value: 23
     step: 1
-    optimistic: true
     lambda: |-
       return id(free_block4_start_hour);
     set_action:
@@ -1111,7 +1104,6 @@ number:
     min_value: 0
     max_value: 59
     step: 1
-    optimistic: true
     lambda: |-
       return id(free_block4_start_minute);
     set_action:
