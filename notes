@@ -1,0 +1,43 @@
+For the LM5155, the switching frequency is determined by the RT pin resistor. In our design, we used approximately 49.9kΩ, which according to the datasheet targets roughly 440kHz switching frequency.
+
+To verify the controller is actually switching and boosting you measured ~416kHz–430kHz, which is already very close to expected operation. That indicates the LM5155 oscillator is alive and driving the MOSFET.
+
+The real confirmation of boost operation is at the switch node / MOSFET drain / transformer primary:
+
+ In a working boost/flyback converter, the drain voltage should pulse significantly above VIN during flyback events.
+ Since you saw:
+
+   VIN ≈ 13.4V
+   drain peaks ≈ 18V
+   transformer primary oscillation at hundreds of kHz
+
+that confirms energy transfer is occurring in the primary.
+
+The problem is likely on the secondary/flyback side, because:
+
+ HV capacitor only reaches 12–22V
+ expected should be hundreds of volts
+ therefore secondary energy is either:
+
+   not rectified,
+   transformer polarity wrong,
+   secondary open,
+   diode reversed,
+   capacitor wiring incorrect,
+   or SCR discharge path loading the output.
+
+From the datasheet behavior:
+
+ If the LM5155 was not boosting, the drain would stay near battery voltage with little switching activity.
+ Seeing oscillation + elevated drain voltage + audible magnetics means the controller is operating.
+
+Next critical checks:
+
+1. Verify transformer dot orientation/polarity.
+2. Verify HV diode direction.
+3. Disconnect SCR discharge path temporarily.
+4. Measure raw AC voltage directly across secondary winding.
+5. Measure HV capacitor voltage relative to isolated HV return only.
+
+Also important:
+The measured 416kHz is far above audible range, so the “buzzing” is likely transformer core vibration or burst/protection cycling, not the actual switching frequency.
