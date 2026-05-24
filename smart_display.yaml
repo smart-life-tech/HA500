@@ -4,7 +4,7 @@ substitutions:
   friendly_name: "Phijo Smart"
   device_description: " Smart Controller"
   project_name: "Guition.ESP32_S3_4848S040"
-  project_version: "5.23.26.3"
+  project_version: "5.25.26.3"
   wifi_ssid: ""
   wifi_password: ""
 
@@ -715,6 +715,14 @@ time:
               }
 
               auto now = id(time_comp).now();
+              if (!now.is_valid()) {
+                now = id(sntp_time).now();
+              }
+              if (!now.is_valid()) {
+                ESP_LOGW("irrigation", "Time invalid during on_time check, skipping scheduled irrigation");
+                return;
+              }
+
               int current_minutes = now.hour * 60 + now.minute;
               bool should_start = false;
 
@@ -2747,7 +2755,15 @@ lvgl:
                     id(sw2_last_trigger) = id(sw2).state ? "UI button requested OFF" : "UI button requested ON";
                 - switch.toggle: sw2
                 - lambda: |-
-                    id(sw2_manual_override_time) = id(time_comp).now().timestamp;
+                    auto now = id(time_comp).now();
+                    if (!now.is_valid()) {
+                      now = id(sntp_time).now();
+                    }
+                    if (id(sw2).state) {
+                      id(sw2_manual_override_time) = now.is_valid() ? now.timestamp : 0;
+                    } else {
+                      id(sw2_manual_override_time) = 0;
+                    }
         - image:
             src: settings_icon
             x: 390
@@ -7442,14 +7458,22 @@ script:
             ESP_LOGI("automation", "check_light_schedules: script executed (10min mark)");
           }
 
+          bool using_sntp = false;
           auto now = id(time_comp).now();
+          if (!now.is_valid()) {
+            now = id(sntp_time).now();
+            using_sntp = true;
+          }
           if (!now.is_valid()) {
             static int invalid_time_count = 0;
             if (++invalid_time_count >= 1) { // Log every 5 minutes if stuck
               invalid_time_count = 0;
-              ESP_LOGW("automation", "Time invalid - skipping automation check");
+              ESP_LOGW("automation", "Time invalid on both HA and SNTP - skipping automation check");
             }
             return;
+          }
+          if (using_sntp) {
+            ESP_LOGI("automation", "Using SNTP fallback time for pump scheduling");
           }
 
           // Log automation status every 5 minutes
