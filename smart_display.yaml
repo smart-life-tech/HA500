@@ -350,6 +350,33 @@ esphome:
       - delay: 100ms
       - script.execute: calculate_irrigation_needs
       - delay: 50ms
+      # Re-sync the water-fill page values from restored storage
+      - number.set:
+          id: valve_flow_rate_input
+          value: !lambda "return id(valve_liters_per_minute);"
+      - lvgl.label.update:
+          id: bucket_volume_display
+          text: !lambda |-
+            static char bucket_text[20];
+            snprintf(bucket_text, sizeof(bucket_text), "%.1f L", id(bucket_volume_liters));
+            return bucket_text;
+      - lvgl.label.update:
+          id: flow_rate_display
+          text: !lambda |-
+            static char fl_text[20];
+            snprintf(fl_text, sizeof(fl_text), "%.1f L/m", id(valve_liters_per_minute));
+            return fl_text;
+      - lvgl.label.update:
+          id: bucket_time_value_label
+          text: !lambda |-
+            static char bucket_time_value[20];
+            float flow = id(valve_liters_per_minute);
+            if (flow <= 0.0f) {
+              snprintf(bucket_time_value, sizeof(bucket_time_value), "---");
+            } else {
+              snprintf(bucket_time_value, sizeof(bucket_time_value), "%.1f min", id(bucket_volume_liters) / flow);
+            }
+            return bucket_time_value;
       # Explicitly refresh UI labels with restored total_runtime_multiple value
       - lvgl.label.update:
           id: summer_max_display
@@ -1218,6 +1245,9 @@ number:
         - lambda: |-
             id(valve_liters_per_minute) = x;
             ESP_LOGI("irrigation", "Valve flow rate updated to %.1f L/min", x);
+        - globals.set:
+            id: valve_liters_per_minute
+            value: !lambda "return id(valve_liters_per_minute);"
         # - lvgl.label.update:
         #     id: flow_rate_display
         #     text: !lambda |-
@@ -5230,6 +5260,9 @@ lvgl:
                           id(bucket_volume_liters) -= 0.5f;
                           if (id(bucket_volume_liters) < 1.0f) id(bucket_volume_liters) = 1.0f;
                           ESP_LOGI("irrigation", "Bucket volume set to %.1f L", id(bucket_volume_liters));
+                      - globals.set:
+                          id: bucket_volume_liters
+                          value: !lambda "return id(bucket_volume_liters);"
                       - lvgl.label.update:
                           id: bucket_volume_display
                           text: !lambda |-
@@ -5265,6 +5298,9 @@ lvgl:
                           id(bucket_volume_liters) += 0.5f;
                           if (id(bucket_volume_liters) > 50.0f) id(bucket_volume_liters) = 50.0f;
                           ESP_LOGI("irrigation", "Bucket volume set to %.1f L", id(bucket_volume_liters));
+                      - globals.set:
+                          id: bucket_volume_liters
+                          value: !lambda "return id(bucket_volume_liters);"
                       - lvgl.label.update:
                           id: bucket_volume_display
                           text: !lambda |-
@@ -6619,6 +6655,12 @@ switch:
                     id(valve_training_start_time) = 0;
                     id(valve_training_mode) = false;
                   }
+              - globals.set:
+                  id: valve_liters_per_minute
+                  value: !lambda "return id(valve_liters_per_minute);"
+              - number.set:
+                  id: valve_flow_rate_input
+                  value: !lambda "return id(valve_liters_per_minute);"
               - lvgl.label.update:
                   id: status_label
                   text: !lambda |-
