@@ -410,7 +410,7 @@ psram:
 # Enable logging
 logger:
   # Keep the device quiet by default; only switch state changes stay visible.
-  level: WARN
+  level: INFO
   baud_rate: 115200
   logs:
     # Change any section below from ERROR to INFO or DEBUG when needed.
