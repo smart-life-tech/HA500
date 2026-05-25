@@ -1,0 +1,9 @@
+{
+    "yaml.schemas": {
+        "file:///c%3A/Users/USER/.vscode/extensions/atlassian.atlascode-3.2.1/resources/schemas/pipelines-schema.json": "bitbucket-pipelines.yml",
+        "file:///c%3A/Users/USER/.vscode/extensions/continue.continue-1.2.22-win32-x64/config-yaml-schema.json": [
+            ".continue/**/*.yaml",
+            "file:///c%3A/Users/USER/.continue/config.yaml"
+        ]
+    }
+}
