@@ -350,7 +350,8 @@ esphome:
       - delay: 100ms
       - script.execute: calculate_irrigation_needs
       - delay: 50ms
-      # Re-sync the water-fill page values from restored storage
+
+
       - number.set:
           id: valve_flow_rate_input
           value: !lambda "return id(valve_liters_per_minute);"
@@ -8376,6 +8377,70 @@ image:
     type: RGB565
 
 interval:
+  - interval: 500ms  # Update every 500ms during calibration
+    then:
+      - if:
+          condition:
+            lambda: "return id(valve_training_mode) && id(sw3).state;"
+          then:
+            - lambda: |-
+                auto now = id(time_comp).now();
+                if (!now.is_valid()) now = id(sntp_time).now();
+                
+                if (now.is_valid() && id(valve_training_start_time) > 0) {
+                  int elapsed_seconds = now.timestamp - id(valve_training_start_time);
+                  float elapsed_minutes = elapsed_seconds / 60.0f;
+                  
+                  if (elapsed_minutes > 0.01f) {  // Avoid division by zero
+                    float current_flow = id(bucket_volume_liters) / elapsed_minutes;
+                    
+                    // Temporary update (not saved until calibration completes)
+                    ESP_LOGD("irrigation", "Calibration in progress: %.1f sec (%.2f min) → %.2f L/min", 
+                             (float)elapsed_seconds, elapsed_minutes, current_flow);
+                  }
+                }
+            - lvgl.label.update:
+                id: flow_rate_display
+                text: !lambda |-
+                  auto now = id(time_comp).now();
+                  if (!now.is_valid()) now = id(sntp_time).now();
+                  
+                  static char fl_text[20];
+                  if (id(valve_training_mode) && id(valve_training_start_time) > 0 && now.is_valid()) {
+                    int elapsed = now.timestamp - id(valve_training_start_time);
+                    float minutes = elapsed / 60.0f;
+                    if (minutes > 0.01f) {
+                      float current_flow = id(bucket_volume_liters) / minutes;
+                      snprintf(fl_text, sizeof(fl_text), "%.1f L/m", current_flow);
+                      return fl_text;
+                    }
+                  }
+                  snprintf(fl_text, sizeof(fl_text), "%.1f L/m", id(valve_liters_per_minute));
+                  return fl_text;
+            - lvgl.label.update:
+                id: bucket_time_value_label
+                text: !lambda |-
+                  auto now = id(time_comp).now();
+                  if (!now.is_valid()) now = id(sntp_time).now();
+                  
+                  static char bucket_time_value[20];
+                  float flow = id(valve_liters_per_minute);
+                  
+                  // During calibration, show live elapsed time
+                  if (id(valve_training_mode) && id(valve_training_start_time) > 0 && now.is_valid()) {
+                    int elapsed = now.timestamp - id(valve_training_start_time);
+                    float minutes = elapsed / 60.0f;
+                    snprintf(bucket_time_value, sizeof(bucket_time_value), "%.1f min", minutes);
+                    return bucket_time_value;
+                  }
+                  
+                  // Normal display when not calibrating
+                  if (flow <= 0.0f) {
+                    snprintf(bucket_time_value, sizeof(bucket_time_value), "---");
+                  } else {
+                    snprintf(bucket_time_value, sizeof(bucket_time_value), "%.1f min", id(bucket_volume_liters) / flow);
+                  }
+                  return bucket_time_value;      
   - interval: 10s
     then:
       - script.execute: update_wifi_details
