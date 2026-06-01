@@ -6572,8 +6572,15 @@ switch:
               lambda: "return id(valve_training_mode);"
             then:
               - lambda: |-
-                  id(valve_training_start_time) = id(time_comp).now().timestamp;
-                  ESP_LOGI("irrigation", "Training mode: Valve opened, timer started");
+                  auto now = id(time_comp).now();
+                  if (!now.is_valid()) now = id(sntp_time).now();
+                  if (now.is_valid()) {
+                    id(valve_training_start_time) = now.timestamp;
+                    ESP_LOGI("irrigation", "Training mode: Valve opened, timer started (%u)", id(valve_training_start_time));
+                  } else {
+                    id(valve_training_start_time) = 0;
+                    ESP_LOGW("irrigation", "Training mode started but system time unavailable; calibration will not update until time is valid");
+                  }
               - lvgl.label.update:
                   id: status_label
                   text: "TRAINING: Valve ON - Timer running"
