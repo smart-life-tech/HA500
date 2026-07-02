@@ -214,6 +214,7 @@ esphome:
         # Reset selected manual override timers at boot
       - lambda: |-
           id(sw1_manual_override_time) = 0;
+          id(sw2_manual_override_time) = 0;
           id(sw3_manual_override_time) = 0;
 
           // Keep auto irrigation hard-disabled to prevent relay/pump retrigger loops.
@@ -2791,7 +2792,12 @@ lvgl:
                       now = id(sntp_time).now();
                     }
                     if (id(sw2).state) {
-                      id(sw2_manual_override_time) = now.is_valid() ? now.timestamp : 0;
+                      if (now.is_valid()) {
+                        id(sw2_manual_override_time) = now.timestamp;
+                      } else {
+                        // Keep manual override active even before clock sync completes.
+                        id(sw2_manual_override_time) = 1;
+                      }
                     } else {
                       id(sw2_manual_override_time) = 0;
                     }
@@ -7548,7 +7554,7 @@ script:
             id(sw1_manual_override_time) = 0;
             ESP_LOGI("automation", "SW1 override expired - automation re-enabled");
           }
-          if (id(sw2_manual_override_time) > 0 && 
+          if (id(sw2_manual_override_time) > 1 && 
               now.timestamp - id(sw2_manual_override_time) > 86400) {
             id(sw2_manual_override_time) = 0;
             ESP_LOGI("automation", "SW2 override expired - automation re-enabled");
