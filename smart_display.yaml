@@ -43,7 +43,12 @@ esphome:
   on_boot:
     then:
       - lambda: |-
-          ESP_LOGD("BOOT", "Displaying splash logo");
+          ESP_LOGE("BOOT", "==================== SYSTEM BOOT START ====================");
+          ESP_LOGE("BOOT", "Firmware version: %s", "${project_version}");
+          ESP_LOGE("BOOT", "Device: %s", "${name}");
+          ESP_LOGE("BOOT", "Reset reason: %s", ESP.getResetReason().c_str());
+          ESP_LOGE("BOOT", "Free heap: %u bytes", ESP.getFreeHeap());
+          ESP_LOGE("BOOT", "Displaying splash logo");
       - delay: 500ms
       - lambda: |-
           auto now = id(time_comp).now();
@@ -439,6 +444,7 @@ psram:
 # Enable logging
 logger:
   level: DEBUG
+  hardware_uart: USB_CDC
   baud_rate: 115200
   logs:
     # Change any section below from ERROR to INFO or DEBUG when needed.
