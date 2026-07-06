@@ -4,7 +4,7 @@ substitutions:
   friendly_name: "Phijo Smart"
   device_description: " Smart Controller"
   project_name: "Guition.ESP32_S3_4848S040"
-  project_version: "06.07.26.1"
+  project_version: "29.06.26.1"
   wifi_ssid: ""
   wifi_password: ""
 
@@ -438,8 +438,7 @@ psram:
 
 # Enable logging
 logger:
-  # Keep the device quiet by default; only switch state changes stay visible.
-  level: INFO
+  level: DEBUG
   baud_rate: 115200
   logs:
     # Change any section below from ERROR to INFO or DEBUG when needed.
