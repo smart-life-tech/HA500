@@ -2759,7 +2759,7 @@ lvgl:
                       id(sw1_off_time) = 0;
                       ESP_LOGI("automation", "SW1 manual OFF - timer cleared");
                     }
-                    id(status_label).set_text("SW1: " + std::string(id(sw1).state ? "ON" : "OFF"));
+                    //id(status_label).set_text("SW1: " + std::string(id(sw1).state ? "ON" : "OFF"));
 
         - image:
             src: settings_icon
@@ -2802,7 +2802,7 @@ lvgl:
                     } else {
                       id(sw2_manual_override_time) = 0;
                     }
-                    id(status_label).set_text("SW2: " + std::string(id(sw2).state ? "ON" : "OFF"));
+                    //id(status_label).set_text("SW2: " + std::string(id(sw2).state ? "ON" : "OFF"));
         - image:
             src: settings_icon
             x: 390
@@ -2842,7 +2842,7 @@ lvgl:
                 - lambda: |-
                     ESP_LOGI("switch_state", "CONTROL PAGE: SW3 after toggle state=%d", id(sw3).state ? 1 : 0);
                     id(sw3_manual_override_time) = id(time_comp).now().timestamp;
-                    id(status_label).set_text("SW3: " + std::string(id(sw3).state ? "ON" : "OFF"));
+                    //id(status_label).set_text("SW3: " + std::string(id(sw3).state ? "ON" : "OFF"));
         - image:
             src: settings_icon
             x: 390
