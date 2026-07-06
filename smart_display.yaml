@@ -8,17 +8,17 @@ substitutions:
   wifi_ssid: ""
   wifi_password: ""
 
-  # Per-section log toggles: change any value to INFO or DEBUG when needed.
-  log_main: "ERROR"
-  log_boot: "ERROR"
-  log_light_time: "ERROR"
-  log_irrigation: "ERROR"
-  log_automation: "INFO"
-  log_pump: "INFO"
-  log_weather: "ERROR"
-  log_ui: "ERROR"
-  log_touch: "ERROR"
-  log_switch_state: "INFO"
+  # Per-section log toggles: force full diagnostics for debugging.
+  log_main: "DEBUG"
+  log_boot: "DEBUG"
+  log_light_time: "DEBUG"
+  log_irrigation: "DEBUG"
+  log_automation: "DEBUG"
+  log_pump: "DEBUG"
+  log_weather: "DEBUG"
+  log_ui: "DEBUG"
+  log_touch: "DEBUG"
+  log_switch_state: "DEBUG"
 
   lightbulb: "\U000F0335"
   ceiling_light: "\U000F0769"
@@ -2746,19 +2746,20 @@ lvgl:
               then:
                 - lambda: |-
                     id(sw1_last_trigger) = id(sw1).state ? "UI button requested OFF" : "UI button requested ON";
+                    ESP_LOGI("switch_state", "CONTROL PAGE: SW1 button pressed, current=%d", id(sw1).state ? 1 : 0);
                 - switch.toggle: sw1
                 - lambda: |-
+                    ESP_LOGI("switch_state", "CONTROL PAGE: SW1 after toggle state=%d", id(sw1).state ? 1 : 0);
                     id(sw1_manual_override_time) = id(time_comp).now().timestamp;
-                    // If turning ON manually, set off time based on manual duration
                     if (id(sw1).state) {
                       auto now = id(time_comp).now();
                       id(sw1_off_time) = now.timestamp + (id(manual_duration_hours) * 3600);
-                      ESP_LOGI("automation", "SW1 manual ON - will turn off in %d hours (at %u)", 
-                               id(manual_duration_hours), id(sw1_off_time));
+                      ESP_LOGI("automation", "SW1 manual ON - will turn off in %d hours (at %u)", id(manual_duration_hours), id(sw1_off_time));
                     } else {
                       id(sw1_off_time) = 0;
                       ESP_LOGI("automation", "SW1 manual OFF - timer cleared");
                     }
+                    id(status_label).set_text("SW1: " + std::string(id(sw1).state ? "ON" : "OFF"));
 
         - image:
             src: settings_icon
@@ -2784,8 +2785,10 @@ lvgl:
               then:
                 - lambda: |-
                     id(sw2_last_trigger) = id(sw2).state ? "UI button requested OFF" : "UI button requested ON";
+                    ESP_LOGI("switch_state", "CONTROL PAGE: SW2 button pressed, current=%d", id(sw2).state ? 1 : 0);
                 - switch.toggle: sw2
                 - lambda: |-
+                    ESP_LOGI("switch_state", "CONTROL PAGE: SW2 after toggle state=%d", id(sw2).state ? 1 : 0);
                     auto now = id(time_comp).now();
                     if (!now.is_valid()) {
                       now = id(sntp_time).now();
@@ -2794,12 +2797,12 @@ lvgl:
                       if (now.is_valid()) {
                         id(sw2_manual_override_time) = now.timestamp;
                       } else {
-                        // Keep manual override active even before clock sync completes.
                         id(sw2_manual_override_time) = 1;
                       }
                     } else {
                       id(sw2_manual_override_time) = 0;
                     }
+                    id(status_label).set_text("SW2: " + std::string(id(sw2).state ? "ON" : "OFF"));
         - image:
             src: settings_icon
             x: 390
@@ -2834,9 +2837,12 @@ lvgl:
                     id(sw3_last_trigger) = id(valve_training_mode)
                       ? (id(sw3).state ? "Training valve test requested OFF" : "Training valve test requested ON")
                       : (id(sw3).state ? "UI button requested OFF" : "UI button requested ON");
+                    ESP_LOGI("switch_state", "CONTROL PAGE: SW3 button pressed, current=%d", id(sw3).state ? 1 : 0);
                 - switch.toggle: sw3
                 - lambda: |-
+                    ESP_LOGI("switch_state", "CONTROL PAGE: SW3 after toggle state=%d", id(sw3).state ? 1 : 0);
                     id(sw3_manual_override_time) = id(time_comp).now().timestamp;
+                    id(status_label).set_text("SW3: " + std::string(id(sw3).state ? "ON" : "OFF"));
         - image:
             src: settings_icon
             x: 390
