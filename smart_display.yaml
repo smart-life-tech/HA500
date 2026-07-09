@@ -438,7 +438,7 @@ psram:
 
 # Enable logging
 logger:
-  level: DEBUG
+  level: INFO
   baud_rate: 115200
   logs:
     # Change any section below from ERROR to INFO or DEBUG when needed.
