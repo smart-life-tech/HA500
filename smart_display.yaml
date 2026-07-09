@@ -42,8 +42,10 @@ esphome:
       - "-shared"
   on_boot:
     then:
+      - logger.log: "BOOT: logger active"
       - delay: 500ms
       - lambda: |-
+          ESP_LOGI("BOOT", "BOOT: logger test message");
           auto now = id(time_comp).now();
           auto sunrise_opt = id(sun_comp).sunrise(0.0);
           auto sunset_opt = id(sun_comp).sunset(0.0);
@@ -439,7 +441,7 @@ psram:
 # Enable logging
 logger:
   level: VERY_VERBOSE
-  #hardware_uart: USB_CDC
+  hardware_uart: USB_CDC
   baud_rate: 115200
   logs:
     # Change any section below from ERROR to INFO or DEBUG when needed.
@@ -461,6 +463,12 @@ logger:
     touch: ${log_touch}
     swipe: ${log_touch}
     switch_state: ${log_switch_state}
+    ota: VERY_VERBOSE
+    api: VERY_VERBOSE
+    wifi: DEBUG
+    time: DEBUG
+    lvgl: DEBUG
+    lvgl_comp: DEBUG
 
 external_components:
   source: components
