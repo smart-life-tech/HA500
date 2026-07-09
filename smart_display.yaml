@@ -46,8 +46,8 @@ esphome:
           ESP_LOGE("BOOT", "==================== SYSTEM BOOT START ====================");
           ESP_LOGE("BOOT", "Firmware version: %s", "${project_version}");
           ESP_LOGE("BOOT", "Device: %s", "${name}");
-          ESP_LOGE("BOOT", "Reset reason: %s", ESP.getResetReason().c_str());
-          ESP_LOGE("BOOT", "Free heap: %u bytes", ESP.getFreeHeap());
+          ESP_LOGE("BOOT", "Reset reason: %d", static_cast<int>(esp_reset_reason()));
+          ESP_LOGE("BOOT", "Free heap: %u bytes", static_cast<unsigned int>(esp_get_free_heap_size()));
           ESP_LOGE("BOOT", "Displaying splash logo");
       - delay: 500ms
       - lambda: |-
