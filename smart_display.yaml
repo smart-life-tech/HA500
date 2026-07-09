@@ -4,21 +4,21 @@ substitutions:
   friendly_name: "Phijo Smart"
   device_description: " Smart Controller"
   project_name: "Guition.ESP32_S3_4848S040"
-  project_version: "09.07.26.1"
+  project_version: "29.06.26.1"
   wifi_ssid: ""
   wifi_password: ""
 
-  # Per-section log toggles: force full diagnostics for debugging.
-  log_main: "DEBUG"
-  log_boot: "DEBUG"
-  log_light_time: "DEBUG"
-  log_irrigation: "DEBUG"
-  log_automation: "DEBUG"
-  log_pump: "DEBUG"
-  log_weather: "DEBUG"
-  log_ui: "DEBUG"
-  log_touch: "DEBUG"
-  log_switch_state: "DEBUG"
+  # Per-section log toggles: change any value to INFO or DEBUG when needed.
+  log_main: "ERROR"
+  log_boot: "ERROR"
+  log_light_time: "ERROR"
+  log_irrigation: "ERROR"
+  log_automation: "INFO"
+  log_pump: "INFO"
+  log_weather: "ERROR"
+  log_ui: "ERROR"
+  log_touch: "ERROR"
+  log_switch_state: "INFO"
 
   lightbulb: "\U000F0335"
   ceiling_light: "\U000F0769"
@@ -42,6 +42,8 @@ esphome:
       - "-shared"
   on_boot:
     then:
+      - lambda: |-
+          ESP_LOGD("BOOT", "Displaying splash logo");
       - delay: 500ms
       - lambda: |-
           auto now = id(time_comp).now();
@@ -214,8 +216,6 @@ esphome:
           id(sw1_manual_override_time) = 0;
           id(sw2_manual_override_time) = 0;
           id(sw3_manual_override_time) = 0;
-          id(sw2_manual_duration_minutes) = 0;
-          id(sw2_manual_duration_end_time) = 0;
 
           // Keep auto irrigation hard-disabled to prevent relay/pump retrigger loops.
           id(auto_irrigation_enabled) = false;
@@ -438,7 +438,8 @@ psram:
 
 # Enable logging
 logger:
-  level: DEBUG
+  # Keep the device quiet by default; only switch state changes stay visible.
+  level: INFO
   baud_rate: 115200
   logs:
     # Change any section below from ERROR to INFO or DEBUG when needed.
@@ -2002,17 +2003,6 @@ globals:
     restore_value: true
     initial_value: "2" # 0=duration, 1=until_time, 2=between_times, 3=manual
 
-  # SW2 manual duration override (for long-press feature)
-  - id: sw2_manual_duration_minutes
-    type: int
-    restore_value: no
-    initial_value: "300" # Default 300 minutes (5 hours)
-
-  - id: sw2_manual_duration_end_time
-    type: int
-    restore_value: no
-    initial_value: "0"
-
 button:
   - platform: template
     name: "Start Valve Training"
@@ -2757,20 +2747,19 @@ lvgl:
               then:
                 - lambda: |-
                     id(sw1_last_trigger) = id(sw1).state ? "UI button requested OFF" : "UI button requested ON";
-                    ESP_LOGI("switch_state", "CONTROL PAGE: SW1 button pressed, current=%d", id(sw1).state ? 1 : 0);
                 - switch.toggle: sw1
                 - lambda: |-
-                    ESP_LOGI("switch_state", "CONTROL PAGE: SW1 after toggle state=%d", id(sw1).state ? 1 : 0);
                     id(sw1_manual_override_time) = id(time_comp).now().timestamp;
+                    // If turning ON manually, set off time based on manual duration
                     if (id(sw1).state) {
                       auto now = id(time_comp).now();
                       id(sw1_off_time) = now.timestamp + (id(manual_duration_hours) * 3600);
-                      ESP_LOGI("automation", "SW1 manual ON - will turn off in %d hours (at %u)", id(manual_duration_hours), id(sw1_off_time));
+                      ESP_LOGI("automation", "SW1 manual ON - will turn off in %d hours (at %u)", 
+                               id(manual_duration_hours), id(sw1_off_time));
                     } else {
                       id(sw1_off_time) = 0;
                       ESP_LOGI("automation", "SW1 manual OFF - timer cleared");
                     }
-                    //id(status_label).set_text("SW1: " + std::string(id(sw1).state ? "ON" : "OFF"));
 
         - image:
             src: settings_icon
@@ -2796,10 +2785,8 @@ lvgl:
               then:
                 - lambda: |-
                     id(sw2_last_trigger) = id(sw2).state ? "UI button requested OFF" : "UI button requested ON";
-                    ESP_LOGI("switch_state", "CONTROL PAGE: SW2 button pressed, current=%d", id(sw2).state ? 1 : 0);
                 - switch.toggle: sw2
                 - lambda: |-
-                    ESP_LOGI("switch_state", "CONTROL PAGE: SW2 after toggle state=%d", id(sw2).state ? 1 : 0);
                     auto now = id(time_comp).now();
                     if (!now.is_valid()) {
                       now = id(sntp_time).now();
@@ -2808,6 +2795,7 @@ lvgl:
                       if (now.is_valid()) {
                         id(sw2_manual_override_time) = now.timestamp;
                       } else {
+                        // Keep manual override active even before clock sync completes.
                         id(sw2_manual_override_time) = 1;
                       }
                     } else {
@@ -2819,13 +2807,6 @@ lvgl:
             y: 140
             width: 60
             height: 60
-            clickable: true
-            on_click:
-              then:
-                - lambda: |-
-                    ESP_LOGI("ui", "SW2 settings icon clicked - showing pump duration popup");
-                    id(sw2_manual_duration_minutes) = 300; // Reset to default
-                - lvgl.widget.show: pump_duration_popup
         # Update Switch 3 - Watering Valve
         - button:
             id: sw3_button
@@ -2854,12 +2835,9 @@ lvgl:
                     id(sw3_last_trigger) = id(valve_training_mode)
                       ? (id(sw3).state ? "Training valve test requested OFF" : "Training valve test requested ON")
                       : (id(sw3).state ? "UI button requested OFF" : "UI button requested ON");
-                    ESP_LOGI("switch_state", "CONTROL PAGE: SW3 button pressed, current=%d", id(sw3).state ? 1 : 0);
                 - switch.toggle: sw3
                 - lambda: |-
-                    ESP_LOGI("switch_state", "CONTROL PAGE: SW3 after toggle state=%d", id(sw3).state ? 1 : 0);
                     id(sw3_manual_override_time) = id(time_comp).now().timestamp;
-                    //id(status_label).set_text("SW3: " + std::string(id(sw3).state ? "ON" : "OFF"));
         - image:
             src: settings_icon
             x: 390
@@ -2914,266 +2892,6 @@ lvgl:
                   x: 0
                   y: 10
                   border_width: 0
-
-        # ===== PUMP DURATION PICKER POPUP =====
-        - obj:
-            id: pump_duration_popup
-            x: 60
-            y: 100
-            width: 360
-            height: 280
-            bg_color: 0x1E3A8A
-            bg_opa: 95%
-            radius: 20
-            border_width: 3
-            border_color: 0x4A90E2
-            scrollable: false
-            hidden: true
-            clickable: true
-            widgets:
-              # Popup title
-              - label:
-                  text: "Pump Duration"
-                  text_font: roboto24
-                  text_color: 0xFFFFFF
-                  align: center
-                  x: 0
-                  y: 10
-                  width: 360
-
-              # Duration display box
-              - obj:
-                  x: 80
-                  y: 50
-                  width: 200
-                  height: 60
-                  bg_color: 0x000000
-                  bg_opa: 80%
-                  radius: 10
-                  border_width: 2
-                  border_color: 0x4A90E2
-                  scrollable: false
-                  widgets:
-                    - label:
-                        id: pump_duration_display
-                        text: !lambda |-
-                          static char text[40];
-                          int hours = id(sw2_manual_duration_minutes) / 60;
-                          int minutes = id(sw2_manual_duration_minutes) % 60;
-                          if (hours > 0) {
-                            snprintf(text, sizeof(text), "%dh %02dm", hours, minutes);
-                          } else {
-                            snprintf(text, sizeof(text), "%d min", minutes);
-                          }
-                          return text;
-                        text_font: roboto24
-                        text_color: 0x00FF00
-                        align: center
-                        x: 0
-                        y: 15
-
-              # Decrease button (5 min step)
-              - button:
-                  x: 30
-                  y: 130
-                  width: 50
-                  height: 50
-                  radius: 10
-                  bg_color: 0xFF0000
-                  widgets:
-                    - label:
-                        text: "−"
-                        text_font: roboto24
-                        align: center
-                  on_click:
-                    then:
-                      - lambda: |-
-                          if (id(sw2_manual_duration_minutes) > 5) {
-                            id(sw2_manual_duration_minutes) -= 5;
-                          } else {
-                            id(sw2_manual_duration_minutes) = 5;
-                          }
-                      - lvgl.label.update:
-                          id: pump_duration_display
-
-              # Increase button (5 min step)
-              - button:
-                  x: 280
-                  y: 130
-                  width: 50
-                  height: 50
-                  radius: 10
-                  bg_color: 0x00FF00
-                  widgets:
-                    - label:
-                        text: "+"
-                        text_font: roboto24
-                        align: center
-                  on_click:
-                    then:
-                      - lambda: |-
-                          id(sw2_manual_duration_minutes) += 5;
-                          // Cap at 24 hours (1440 minutes)
-                          if (id(sw2_manual_duration_minutes) > 1440) {
-                            id(sw2_manual_duration_minutes) = 1440;
-                          }
-                      - lvgl.label.update:
-                          id: pump_duration_display
-
-              # Quick preset buttons (15, 30, 60 min)
-              - button:
-                  x: 30
-                  y: 195
-                  width: 45
-                  height: 35
-                  radius: 5
-                  bg_color: 0x0080FF
-                  widgets:
-                    - label:
-                        text: "15m"
-                        text_font: roboto
-                        align: center
-                  on_click:
-                    then:
-                      - lambda: |-
-                          id(sw2_manual_duration_minutes) = 15;
-                      - lvgl.label.update:
-                          id: pump_duration_display
-
-              - button:
-                  x: 85
-                  y: 195
-                  width: 45
-                  height: 35
-                  radius: 5
-                  bg_color: 0x0080FF
-                  widgets:
-                    - label:
-                        text: "30m"
-                        text_font: roboto
-                        align: center
-                  on_click:
-                    then:
-                      - lambda: |-
-                          id(sw2_manual_duration_minutes) = 30;
-                      - lvgl.label.update:
-                          id: pump_duration_display
-
-              - button:
-                  x: 140
-                  y: 195
-                  width: 45
-                  height: 35
-                  radius: 5
-                  bg_color: 0x0080FF
-                  widgets:
-                    - label:
-                        text: "60m"
-                        text_font: roboto
-                        align: center
-                  on_click:
-                    then:
-                      - lambda: |-
-                          id(sw2_manual_duration_minutes) = 60;
-                      - lvgl.label.update:
-                          id: pump_duration_display
-
-              - button:
-                  x: 195
-                  y: 195
-                  width: 45
-                  height: 35
-                  radius: 5
-                  bg_color: 0x0080FF
-                  widgets:
-                    - label:
-                        text: "5h"
-                        text_font: roboto
-                        align: center
-                  on_click:
-                    then:
-                      - lambda: |-
-                          id(sw2_manual_duration_minutes) = 300;
-                      - lvgl.label.update:
-                          id: pump_duration_display
-
-              - button:
-                  x: 250
-                  y: 195
-                  width: 80
-                  height: 35
-                  radius: 5
-                  bg_color: 0x0080FF
-                  widgets:
-                    - label:
-                        text: "Custom"
-                        text_font: roboto
-                        align: center
-                  on_click:
-                    then:
-                      - lambda: |-
-                          // Just leave it for manual adjustment
-                          ESP_LOGI("ui", "Custom duration mode");
-
-              # Save/Done button
-              - button:
-                  x: 50
-                  y: 240
-                  width: 110
-                  height: 30
-                  radius: 8
-                  bg_color: 0x00AA00
-                  widgets:
-                    - label:
-                        text: "SET & ON"
-                        text_font: roboto
-                        align: center
-                        text_color: 0xFFFFFF
-                  on_click:
-                    then:
-                      - lambda: |-
-                          auto now = id(time_comp).now();
-                          if (!now.is_valid()) {
-                            now = id(sntp_time).now();
-                          }
-                          if (now.is_valid()) {
-                            // Set the manual duration end time
-                            id(sw2_manual_duration_end_time) = now.timestamp + (id(sw2_manual_duration_minutes) * 60);
-                            // Also set the override timestamp to trigger manual mode
-                            id(sw2_manual_override_time) = now.timestamp;
-                            ESP_LOGI("pump_debug", "SW2 manual duration set: %d min, end_time=%u", 
-                                     id(sw2_manual_duration_minutes), id(sw2_manual_duration_end_time));
-                          } else {
-                            ESP_LOGW("pump_debug", "Cannot set manual duration - system time not available");
-                          }
-                      - switch.turn_on: sw2
-                      - lvgl.widget.hide: pump_duration_popup
-                      - lambda: |-
-                          // Return to controls page
-                          id(lvgl_comp).show_page(1, LV_SCR_LOAD_ANIM_FADE_ON, 300);
-
-              # Cancel button
-              - button:
-                  x: 170
-                  y: 240
-                  width: 110
-                  height: 30
-                  radius: 8
-                  bg_color: 0xAA0000
-                  widgets:
-                    - label:
-                        text: "Cancel"
-                        text_font: roboto
-                        align: center
-                        text_color: 0xFFFFFF
-                  on_click:
-                    then:
-                      - lvgl.widget.hide: pump_duration_popup
-                      - lambda: |-
-                          // Return to controls page without making changes
-                          id(lvgl_comp).show_page(1, LV_SCR_LOAD_ANIM_FADE_ON, 300);
-
-        # ===== END PUMP DURATION PICKER =====
 
         # Navigation buttons
         - button:
@@ -8221,29 +7939,6 @@ script:
           bool irrigation_assist_active = id(sw3).state && id(sw3_off_time) > 0 && !id(sw3_winter_mode);
           ESP_LOGI("pump_debug", "SW2 automation check: manual_override=%d seasonal_enabled=%d irrigation_assist=%d",
                    id(sw2_manual_override_time), id(seasonal_pump_enabled), irrigation_assist_active ? 1 : 0);
-
-          // ===== HANDLE MANUAL DURATION OVERRIDE =====
-          if (id(sw2_manual_duration_end_time) > 0 && now.is_valid()) {
-            if (now.timestamp < id(sw2_manual_duration_end_time)) {
-              // Manual duration still active - keep pump ON
-              if (!id(sw2).state) {
-                id(sw2_last_trigger) = "Manual duration override active";
-                id(sw2).turn_on();
-                int time_left = id(sw2_manual_duration_end_time) - now.timestamp;
-                int hours_left = time_left / 3600;
-                int mins_left = (time_left % 3600) / 60;
-                ESP_LOGI("automation", "SW2 PUMP turned ON - manual duration active (%dh %02dm remaining)", hours_left, mins_left);
-              }
-              // Pump is already on, just let it run until the timer expires
-              return; // Skip normal automation logic while manual duration is active
-            } else {
-              // Manual duration has expired
-              id(sw2_manual_duration_end_time) = 0;
-              id(sw2_manual_duration_minutes) = 0;
-              ESP_LOGI("automation", "SW2 manual duration expired - returning to normal automation");
-              // Fall through to normal automation logic
-            }
-          }
 
           if (id(sw2_manual_override_time) == 0 && id(seasonal_pump_enabled) && !irrigation_assist_active) {
             // Calculate if pump should be running based on runtime blocks
