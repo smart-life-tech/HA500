@@ -445,7 +445,6 @@ logger:
     # Change any section below from ERROR to INFO or DEBUG when needed.
     main: ${log_main}
     BOOT: ${log_boot}
-    "BOOT RUNTIME": ${log_boot}
     light_time: ${log_light_time}
     irrigation: ${log_irrigation}
     irrigation_calc: ${log_irrigation}
