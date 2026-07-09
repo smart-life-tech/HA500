@@ -1,24 +1,33 @@
 # known values as variables in code 'MIDDLE_LEFT', valid options are 'TOP_LEFT', 'TOP_MID', 'TOP_RIGHT', 'LEFT_MID', 'CENTER', 'RIGHT_MID', 'BOTTOM_LEFT', 'BOTTOM_MID', 'BOTTOM_RIGHT'.
 substitutions:
-  device_number: "1"   # change to 2, 3, 4... on each device
-  name: "phijo-smart-device-${device_number}"
-  friendly_name: "Phijo Smart ${device_number}"
+  name: "phijo-smart-device"
+  friendly_name: "Phijo Smart"
   device_description: " Smart Controller"
   project_name: "Guition.ESP32_S3_4848S040"
-  project_version: "1.0.2"
+  project_version: "09.07.26.1"
   wifi_ssid: ""
   wifi_password: ""
+
+  # Per-section log toggles: force full diagnostics for debugging.
+  log_main: "DEBUG"
+  log_boot: "DEBUG"
+  log_light_time: "DEBUG"
+  log_irrigation: "DEBUG"
+  log_automation: "DEBUG"
+  log_pump: "DEBUG"
+  log_weather: "DEBUG"
+  log_ui: "DEBUG"
+  log_touch: "DEBUG"
+  log_switch_state: "DEBUG"
+
   lightbulb: "\U000F0335"
   ceiling_light: "\U000F0769"
-  lamp: "\U000F06B5"
   floor_lamp: "\U000F08DD"
-  string_lights: "\U000F12BA"
   settings_icon: "\U000F0493"
   home_icon: "\U000F02DC"
   sun_icon: "\U000F0599"
   moon_icon: "\U000F0F64"
   rain_icon: "\U000F0596"
-  thermometer_icon: "\U000F050F"
 
 esphome:
   name: "${name}"
@@ -28,23 +37,19 @@ esphome:
     version: "${project_version}"
   platformio_options:
     board_build.flash_mode: dio
-    build_unflags: "-f"
-    build_flags:
+    build_unflags:
+      - "-f"
       - "-shared"
-      #- "-DCONFIG_ESP_MAIN_TASK_STACK_SIZE=8192"
   on_boot:
-    priority: -100.0
     then:
-      - delay: 6s # Wait for LVGL to be ready
-      - lambda: |-
-          id(lvgl_comp).show_page(8, LV_SCR_LOAD_ANIM_FADE_ON, 400);
-          ESP_LOGD("BOOT", "Displaying splash logo");
+      - logger.log: "BOOT: logger active"
       - delay: 500ms
       - lambda: |-
+          ESP_LOGI("BOOT", "BOOT: logger test message");
           auto now = id(time_comp).now();
           auto sunrise_opt = id(sun_comp).sunrise(0.0);
           auto sunset_opt = id(sun_comp).sunset(0.0);
-          ESP_LOGI("light_time", "BOOT: time_valid=%d sunrise_available=%d sunset_available=%d lat=%.4f lon=%.4f",
+          ESP_LOGI("light_time", "BOOT: time_valid=%d sunrise_ok=%d sunset_ok=%d lat=%.4f lon=%.4f",
                    now.is_valid() ? 1 : 0,
                    sunrise_opt.has_value() ? 1 : 0,
                    sunset_opt.has_value() ? 1 : 0,
@@ -63,13 +68,10 @@ esphome:
           }
       - delay: 5s
       - lambda: |-
-          id(lvgl_comp).show_page(0, LV_SCR_LOAD_ANIM_FADE_ON, 400);
           ESP_LOGD("BOOT", "Hiding splash logo and showing main page");
       - delay: 2s
-      # Push global into number on startup
       - lambda: |-
           //id(total_runtime).publish_state(id(total_runtime_multiple));
-          ESP_LOGD("BOOT RUNTIME", ": %.2f minutes", id(global_cycles_count));
           // Jump to your first page (id 0 or whatever main is)
           id(lvgl_comp).show_page(0, LV_SCR_LOAD_ANIM_FADE_ON, 400);
           ESP_LOGD("BOOT", "Showing main page");
@@ -158,6 +160,21 @@ esphome:
             snprintf(text, sizeof(text), "%02d:%02d", id(free_block4_start_hour), id(free_block4_start_minute));
             return text;
       - lvgl.label.update:
+          id: runtime_info_display
+          text: !lambda |-
+            static char text[80];
+            int blocks = id(pump_runtime_blocks);
+            int center_runtime = id(calculated_daily_runtime) / blocks;
+            int free_runtime = (blocks > 1) ? id(calculated_daily_runtime) / blocks : 0;
+            if (blocks == 1) {
+              snprintf(text, sizeof(text), "1 Run: All %d min at %02d:00", 
+                       id(calculated_daily_runtime), id(center_pump_time_hour));
+            } else {
+              snprintf(text, sizeof(text), "%d Runs: Center %d@%02d:00, Free %d min", 
+                       blocks, center_runtime, id(center_pump_time_hour), free_runtime);
+            }
+            return text;
+      - lvgl.label.update:
           id: pool_length_number
           text: !lambda |-
             static char buf[20];
@@ -194,11 +211,18 @@ esphome:
             static char buf[20];
             sprintf(buf, "%d", id(pump_runtime_blocks));
             return buf;
-      # Reset manual override timers to enable automation
+        # Reset selected manual override timers at boot
       - lambda: |-
           id(sw1_manual_override_time) = 0;
           id(sw2_manual_override_time) = 0;
           id(sw3_manual_override_time) = 0;
+          id(sw2_manual_duration_minutes) = 0;
+          id(sw2_manual_duration_end_time) = 0;
+
+          // Keep auto irrigation hard-disabled to prevent relay/pump retrigger loops.
+          id(auto_irrigation_enabled) = false;
+          id(irrigation_duration_remaining) = 0;
+          id(sw3_off_time) = 0;
           
           // Force correct runtime defaults if they got corrupted
           if (id(winter_min_runtime) < 0.5f || id(winter_min_runtime) > 8.0f) {
@@ -228,6 +252,8 @@ esphome:
                    id(center_pump_time_hour), id(pump_runtime_blocks));
           ESP_LOGI("BOOT", "total_runtime_multiple=%.2fh calculated_daily_runtime=%d min",
                    id(total_runtime_multiple), id(calculated_daily_runtime));
+          ESP_LOGI("BOOT", "sw2_manual_override_time=%d (manual pump lockout %s)",
+                   id(sw2_manual_override_time), id(sw2_manual_override_time) > 0 ? "RESTORED" : "NONE");
           
           ESP_LOGI("BOOT", "=== LIGHT SETTINGS LOADED ===");
           ESP_LOGI("BOOT", "automation_mode=%d sunset_duration=%.1fh sunrise_duration=%.1fh manual_duration=%.1fh",
@@ -327,6 +353,34 @@ esphome:
       - delay: 100ms
       - script.execute: calculate_irrigation_needs
       - delay: 50ms
+
+
+      - number.set:
+          id: valve_flow_rate_input
+          value: !lambda "return id(valve_liters_per_minute);"
+      - lvgl.label.update:
+          id: bucket_volume_display
+          text: !lambda |-
+            static char bucket_text[20];
+            snprintf(bucket_text, sizeof(bucket_text), "%.1f L", id(bucket_volume_liters));
+            return bucket_text;
+      - lvgl.label.update:
+          id: flow_rate_display
+          text: !lambda |-
+            static char fl_text[20];
+            snprintf(fl_text, sizeof(fl_text), "%.1f L/m", id(valve_liters_per_minute));
+            return fl_text;
+      - lvgl.label.update:
+          id: bucket_time_value_label
+          text: !lambda |-
+            static char bucket_time_value[20];
+            float flow = id(valve_liters_per_minute);
+            if (flow <= 0.0f) {
+              snprintf(bucket_time_value, sizeof(bucket_time_value), "---");
+            } else {
+              snprintf(bucket_time_value, sizeof(bucket_time_value), "%.1f min", id(bucket_volume_liters) / flow);
+            }
+            return bucket_time_value;
       # Explicitly refresh UI labels with restored total_runtime_multiple value
       - lvgl.label.update:
           id: summer_max_display
@@ -386,8 +440,34 @@ psram:
 
 # Enable logging
 logger:
-  level: DEBUG
+  level: VERY_VERBOSE
   baud_rate: 115200
+  logs:
+    # Change any section below from ERROR to INFO or DEBUG when needed.
+    main: ${log_main}
+    BOOT: ${log_boot}
+    light_time: ${log_light_time}
+    irrigation: ${log_irrigation}
+    irrigation_calc: ${log_irrigation}
+    automation: ${log_automation}
+    pump_debug: ${log_pump}
+    pump_time: ${log_pump}
+    pump: ${log_pump}
+    pool_pump: ${log_pump}
+    weather: ${log_weather}
+    geo: ${log_weather}
+    ip_debug: ${log_weather}
+    ui: ${log_ui}
+    location_setup: ${log_ui}
+    touch: ${log_touch}
+    swipe: ${log_touch}
+    switch_state: ${log_switch_state}
+    ota: VERY_VERBOSE
+    api: VERY_VERBOSE
+    wifi: DEBUG
+    time: DEBUG
+    lvgl: DEBUG
+    lvgl_comp: DEBUG
 
 external_components:
   source: components
@@ -664,12 +744,24 @@ time:
         then:
           - lambda: |-
               if (!id(auto_irrigation_enabled)) return;
+              if (id(irrigation_script_running)) {
+                ESP_LOGD("irrigation", "Irrigation script already running, skipping on_time check");
+                return;
+              }
 
               auto now = id(time_comp).now();
+              if (!now.is_valid()) {
+                now = id(sntp_time).now();
+              }
+              if (!now.is_valid()) {
+                ESP_LOGW("irrigation", "Time invalid during on_time check, skipping scheduled irrigation");
+                return;
+              }
+
               int current_minutes = now.hour * 60 + now.minute;
               bool should_start = false;
 
-              // Recalculate daily runtime first
+              // Recalculate daily runtime first (but only if not already running)
               id(calculate_irrigation_needs).execute();
 
               // Check center block timing
@@ -916,11 +1008,14 @@ number:
     min_value: 10
     max_value: 18
     step: 1
-    optimistic: true
-    initial_value: 14
-    on_value:
+    lambda: |-
+      return id(center_pump_time_hour);
+    set_action:
       then:
-        - lambda: "id(center_pump_time_hour) = (int)x;"
+        - globals.set:
+            id: center_pump_time_hour
+            value: !lambda "return (int)x;"
+        - component.update: center_time_hour_input
 
   - platform: template
     id: reference_temp_input
@@ -952,11 +1047,13 @@ number:
     min_value: 1
     max_value: 4
     step: 1
-    optimistic: true
-    initial_value: 1
-    on_value:
+    lambda: |-
+      return id(pump_runtime_blocks);
+    set_action:
       then:
-        - lambda: "id(pump_runtime_blocks) = (int)x;"
+        - globals.set:
+            id: pump_runtime_blocks
+            value: !lambda "return (int)x;"
         - lambda: |-
             if (x >=2) {
              lv_obj_clear_flag(id(free_block2_settings), LV_OBJ_FLAG_HIDDEN);
@@ -980,66 +1077,84 @@ number:
     min_value: 0
     max_value: 23
     step: 1
-    optimistic: true
-    initial_value: 8
-    on_value:
+    lambda: |-
+      return id(free_block2_start_hour);
+    set_action:
       then:
-        - lambda: "id(free_block2_start_hour) = (int)x;"
+        - globals.set:
+            id: free_block2_start_hour
+            value: !lambda "return (int)x;"
+        - component.update: free_block2_hour_input
 
   - platform: template
     id: free_block2_minute_input
     min_value: 0
     max_value: 59
     step: 1
-    optimistic: true
-    initial_value: 0
-    on_value:
+    lambda: |-
+      return id(free_block2_start_minute);
+    set_action:
       then:
-        - lambda: "id(free_block2_start_minute) = (int)x;"
+        - globals.set:
+            id: free_block2_start_minute
+            value: !lambda "return (int)x;"
+        - component.update: free_block2_minute_input
 
   - platform: template
     id: free_block3_hour_input
     min_value: 0
     max_value: 23
     step: 1
-    optimistic: true
-    initial_value: 18
-    on_value:
+    lambda: |-
+      return id(free_block3_start_hour);
+    set_action:
       then:
-        - lambda: "id(free_block3_start_hour) = (int)x;"
+        - globals.set:
+            id: free_block3_start_hour
+            value: !lambda "return (int)x;"
+        - component.update: free_block3_hour_input
 
   - platform: template
     id: free_block3_minute_input
     min_value: 0
     max_value: 59
     step: 1
-    optimistic: true
-    initial_value: 0
-    on_value:
+    lambda: |-
+      return id(free_block3_start_minute);
+    set_action:
       then:
-        - lambda: "id(free_block3_start_minute) = (int)x;"
+        - globals.set:
+            id: free_block3_start_minute
+            value: !lambda "return (int)x;"
+        - component.update: free_block3_minute_input
 
   - platform: template
     id: free_block4_hour_input
     min_value: 0
     max_value: 23
     step: 1
-    optimistic: true
-    initial_value: 21
-    on_value:
+    lambda: |-
+      return id(free_block4_start_hour);
+    set_action:
       then:
-        - lambda: "id(free_block4_start_hour) = (int)x;"
+        - globals.set:
+            id: free_block4_start_hour
+            value: !lambda "return (int)x;"
+        - component.update: free_block4_hour_input
 
   - platform: template
     id: free_block4_minute_input
     min_value: 0
     max_value: 59
     step: 1
-    optimistic: true
-    initial_value: 0
-    on_value:
+    lambda: |-
+      return id(free_block4_start_minute);
+    set_action:
       then:
-        - lambda: "id(free_block4_start_minute) = (int)x;"
+        - globals.set:
+            id: free_block4_start_minute
+            value: !lambda "return (int)x;"
+        - component.update: free_block4_minute_input
 
   - platform: template
     id: daily_rainfall_input
@@ -1047,7 +1162,7 @@ number:
     min_value: 0
     max_value: 100
     step: 0.5
-    ##restore_value: yes
+    restore_value: true
     initial_value: 0
     optimistic: true
     on_value:
@@ -1069,7 +1184,7 @@ number:
     min_value: 0
     max_value: 23
     step: 1
-    ##restore_value: yes
+    restore_value: true
     initial_value: 6
     optimistic: true
     on_value:
@@ -1089,7 +1204,7 @@ number:
     min_value: 0
     max_value: 59
     step: 15
-    ##restore_value: yes
+    restore_value: true
     initial_value: 0
     optimistic: true
     on_value:
@@ -1108,7 +1223,7 @@ number:
     min_value: 1
     max_value: 1000
     step: 1
-    ##restore_value: yes
+    restore_value: true
     initial_value: 48
     optimistic: true
     on_value:
@@ -1130,7 +1245,7 @@ number:
     min_value: 1
     max_value: 100
     step: 0.5
-    #restore_value: yes
+    restore_value: true
     initial_value: 20
     optimistic: true
     on_value:
@@ -1138,6 +1253,9 @@ number:
         - lambda: |-
             id(valve_liters_per_minute) = x;
             ESP_LOGI("irrigation", "Valve flow rate updated to %.1f L/min", x);
+        - globals.set:
+            id: valve_liters_per_minute
+            value: !lambda "return id(valve_liters_per_minute);"
         # - lvgl.label.update:
         #     id: flow_rate_display
         #     text: !lambda |-
@@ -1297,8 +1415,8 @@ number:
               uint32_t day_start_ts = now.timestamp - (now.hour * 3600) - (now.minute * 60) - now.second;
               uint32_t until_ts = day_start_ts + (id(sunset_until_time_hour) * 3600) + (id(sunset_until_time_minute) * 60);
               
-              // If until_time is earlier than now, it means next day
-              if (until_ts < now.timestamp) {
+              // Ensure off time is always in the future (supports 00:00 reliably)
+              if (until_ts <= now.timestamp) {
                 until_ts += 86400; // Add 24 hours
               }
               
@@ -1338,8 +1456,8 @@ number:
               uint32_t day_start_ts = now.timestamp - (now.hour * 3600) - (now.minute * 60) - now.second;
               uint32_t until_ts = day_start_ts + (id(sunset_until_time_hour) * 3600) + (id(sunset_until_time_minute) * 60);
               
-              // If until_time is earlier than now, it means next day
-              if (until_ts < now.timestamp) {
+              // Ensure off time is always in the future (supports 00:00 reliably)
+              if (until_ts <= now.timestamp) {
                 until_ts += 86400; // Add 24 hours
               }
               
@@ -1513,7 +1631,7 @@ color:
     green: 60%
     blue: 0%
   - id: red_color
-    red: 80%
+    red: 100%
     green: 0%
     blue: 0%
   - id: orange_color
@@ -1708,12 +1826,16 @@ globals:
 
   - id: auto_irrigation_enabled
     type: bool
-    restore_value: true
-    initial_value: "true"
+    restore_value: false
+    initial_value: "false"
+  - id: irrigation_script_running
+    type: bool
+    restore_value: no
+    initial_value: "false"
   # Watering system globals
   - id: field_area_m2
     type: float
-    #restore_value: yes
+    restore_value: true
     initial_value: "48.0" # Default 48 m² field area
 
   - id: wifi_popup_visible
@@ -1723,7 +1845,7 @@ globals:
 
   - id: valve_training_mode
     type: bool
-    #restore_value: yes
+    restore_value: true
     initial_value: "false"
 
   - id: valve_training_start_time
@@ -1743,7 +1865,7 @@ globals:
 
   - id: daily_rainfall_mm
     type: float
-    restore_value: no
+    restore_value: true
     initial_value: "0.0"
 
   - id: calculated_evaporation_liters
@@ -1755,6 +1877,11 @@ globals:
     type: float
     restore_value: no
     initial_value: "0.0"
+
+  - id: weather_api_retry_until_ms
+    type: uint32_t
+    restore_value: no
+    initial_value: "0"
 
   - id: sw3_on_time
     type: int
@@ -1795,17 +1922,31 @@ globals:
     initial_value: "0"
   - id: sw2_manual_override_time
     type: int
-    #restore_value: yes
+    restore_value: true
     initial_value: "0"
   - id: sw3_manual_override_time
     type: int
     #restore_value: yes
     initial_value: "0"
 
+  # Last trigger reason for switch state-change logging
+  - id: sw1_last_trigger
+    type: std::string
+    restore_value: no
+    initial_value: '"unspecified"'
+  - id: sw2_last_trigger
+    type: std::string
+    restore_value: no
+    initial_value: '"unspecified"'
+  - id: sw3_last_trigger
+    type: std::string
+    restore_value: no
+    initial_value: '"unspecified"'
+
   # SW3 mode (winter/summer)
   - id: sw3_winter_mode
     type: bool
-    #restore_value: yes
+    restore_value: true
     initial_value: "false" # Default to summer mode
 
   # Current page tracking
@@ -1866,7 +2007,18 @@ globals:
   - id: automation_mode
     type: int
     restore_value: true
-    initial_value: "0" # 0=duration, 1=until_time, 2=between_times, 3=manual
+    initial_value: "2" # 0=duration, 1=until_time, 2=between_times, 3=manual
+
+  # SW2 manual duration override (for long-press feature)
+  - id: sw2_manual_duration_minutes
+    type: int
+    restore_value: no
+    initial_value: "300" # Default 300 minutes (5 hours)
+
+  - id: sw2_manual_duration_end_time
+    type: int
+    restore_value: no
+    initial_value: "0"
 
 button:
   - platform: template
@@ -2291,7 +2443,8 @@ lvgl:
         # Status and IP section
         - obj:
             width: 460
-            scrollable: false # Add this
+            scrollable: false 
+            hidden: true 
             height: 85
             bg_color: 0x000000
             bg_opa: 0%
@@ -2302,7 +2455,7 @@ lvgl:
             widgets:
               - label:
                   id: status_label
-                  hidden: false
+                  hidden: true
                   text: "Ready"
                   text_color: 0xFFFFFF
                   text_font: roboto
@@ -2317,15 +2470,15 @@ lvgl:
                   text_color: ha_blue
                   text_font: roboto
                   x: 0
-                  y: 30
+                  y: 12
               - label:
                   id: firmware_version_label
                   align: center
-                  text: "FW: ${project_version}"
+                  text: "Firmware v${project_version}"
                   text_color: 0xFFFFFF
                   text_font: roboto
                   x: 0
-                  y: 55
+                  y: 34
 
         # Navigation buttons
         - button:
@@ -2350,9 +2503,9 @@ lvgl:
             id: wifi_popup_obj
             hidden: true
             x: 50
-            y: 80
+            y: 60
             width: 380
-            height: 340
+            height: 360
             bg_color: 0x000000
             bg_opa: 100%
             radius: 15
@@ -2367,7 +2520,7 @@ lvgl:
                   text_font: roboto24
                   text_color: 0xFFFFFF
 
-                  x: 0
+                  x: 50
                   y: 10
                   width: 380
 
@@ -2383,7 +2536,7 @@ lvgl:
                   text: "Checking..."
                   text_font: roboto
                   text_color: 0xFFFFFF
-                  x: 80
+                  x: 100
                   y: 50
 
               # SSID
@@ -2398,7 +2551,7 @@ lvgl:
                   text: "N/A"
                   text_font: roboto
                   text_color: 0xFFFFFF
-                  x: 80
+                  x: 100
                   y: 75
 
               # BSSID
@@ -2413,9 +2566,9 @@ lvgl:
                   text: "N/A"
                   text_font: roboto
                   text_color: 0xFFFFFF
-                  x: 80
+                  x: 100
                   y: 100
-                  width: 280
+                  width: 2100
 
               # RSSI
               - label:
@@ -2429,7 +2582,7 @@ lvgl:
                   text: "N/A"
                   text_font: roboto
                   text_color: 0xFFFFFF
-                  x: 80
+                  x: 100
                   y: 125
 
               # IP Address
@@ -2444,7 +2597,7 @@ lvgl:
                   text: "N/A"
                   text_font: roboto
                   text_color: 0xFFFFFF
-                  x: 80
+                  x: 100
                   y: 150
 
               # Gateway
@@ -2459,7 +2612,7 @@ lvgl:
                   text: "N/A"
                   text_font: roboto
                   text_color: 0xFFFFFF
-                  x: 80
+                  x: 100
                   y: 175
 
               # Subnet
@@ -2474,7 +2627,7 @@ lvgl:
                   text: "N/A"
                   text_font: roboto
                   text_color: 0xFFFFFF
-                  x: 80
+                  x: 100
                   y: 200
 
               # DNS
@@ -2489,7 +2642,7 @@ lvgl:
                   text: "N/A"
                   text_font: roboto
                   text_color: 0xFFFFFF
-                  x: 80
+                  x: 100
                   y: 225
 
               # MAC Address
@@ -2504,14 +2657,30 @@ lvgl:
                   text: "N/A"
                   text_font: roboto
                   text_color: 0xFFFFFF
-                  x: 80
+                  x: 100
                   y: 250
+                  width: 280
+
+              # Firmware version
+              - label:
+                  text: "FW:"
+                  text_font: roboto
+                  text_color: 0xCCCCCC
+                  x: 10
+                  y: 275
+              - label:
+                  id: wifi_firmware_text
+                  text: "v${project_version}"
+                  text_font: roboto
+                  text_color: 0xFFFFFF
+                  x: 100
+                  y: 275
                   width: 280
 
               # Refresh button
               - button:
                   x: 10
-                  y: 280
+                  y: 305
                   width: 100
                   height: 30
                   widgets:
@@ -2519,6 +2688,45 @@ lvgl:
                         text: "Refresh"
                         text_font: roboto
                         align: center
+
+        # Relay status indicators - bottom right corner
+        # Light=yellow, Pump=green, Valve=blue when ON; blank circle when OFF
+        - obj:
+            id: relay_light_indicator
+            x: 378
+            y: 442
+            width: 28
+            height: 28
+            radius: 14
+            border_width: 2
+            border_color: 0x444444
+            bg_color: 0x000000
+            bg_opa: 0%
+            scrollable: false
+        - obj:
+            id: relay_pump_indicator
+            x: 410
+            y: 442
+            width: 28
+            height: 28
+            radius: 14
+            border_width: 2
+            border_color: 0x444444
+            bg_color: 0x000000
+            bg_opa: 0%
+            scrollable: false
+        - obj:
+            id: relay_valve_indicator
+            x: 442
+            y: 442
+            width: 28
+            height: 28
+            radius: 14
+            border_width: 2
+            border_color: 0x444444
+            bg_color: 0x000000
+            bg_opa: 0%
+            scrollable: false
 
     # Controls Page - Light Control Buttons
     - id: controls_page
@@ -2554,19 +2762,22 @@ lvgl:
                   align: center
             on_click:
               then:
+                - lambda: |-
+                    id(sw1_last_trigger) = id(sw1).state ? "UI button requested OFF" : "UI button requested ON";
+                    ESP_LOGI("switch_state", "CONTROL PAGE: SW1 button pressed, current=%d", id(sw1).state ? 1 : 0);
                 - switch.toggle: sw1
                 - lambda: |-
+                    ESP_LOGI("switch_state", "CONTROL PAGE: SW1 after toggle state=%d", id(sw1).state ? 1 : 0);
                     id(sw1_manual_override_time) = id(time_comp).now().timestamp;
-                    // If turning ON manually, set off time based on manual duration
                     if (id(sw1).state) {
                       auto now = id(time_comp).now();
                       id(sw1_off_time) = now.timestamp + (id(manual_duration_hours) * 3600);
-                      ESP_LOGI("automation", "SW1 manual ON - will turn off in %d hours (at %u)", 
-                               id(manual_duration_hours), id(sw1_off_time));
+                      ESP_LOGI("automation", "SW1 manual ON - will turn off in %d hours (at %u)", id(manual_duration_hours), id(sw1_off_time));
                     } else {
                       id(sw1_off_time) = 0;
                       ESP_LOGI("automation", "SW1 manual OFF - timer cleared");
                     }
+                    //id(status_label).set_text("SW1: " + std::string(id(sw1).state ? "ON" : "OFF"));
 
         - image:
             src: settings_icon
@@ -2590,15 +2801,38 @@ lvgl:
                   align: center
             on_click:
               then:
+                - lambda: |-
+                    id(sw2_last_trigger) = id(sw2).state ? "UI button requested OFF" : "UI button requested ON";
+                    ESP_LOGI("switch_state", "CONTROL PAGE: SW2 button pressed, current=%d", id(sw2).state ? 1 : 0);
                 - switch.toggle: sw2
                 - lambda: |-
-                    id(sw2_manual_override_time) = id(time_comp).now().timestamp;
+                    ESP_LOGI("switch_state", "CONTROL PAGE: SW2 after toggle state=%d", id(sw2).state ? 1 : 0);
+                    auto now = id(time_comp).now();
+                    if (!now.is_valid()) {
+                      now = id(sntp_time).now();
+                    }
+                    if (id(sw2).state) {
+                      if (now.is_valid()) {
+                        id(sw2_manual_override_time) = now.timestamp;
+                      } else {
+                        id(sw2_manual_override_time) = 1;
+                      }
+                    } else {
+                      id(sw2_manual_override_time) = 0;
+                    }
         - image:
             src: settings_icon
             x: 390
             y: 140
             width: 60
             height: 60
+            clickable: true
+            on_click:
+              then:
+                - lambda: |-
+                    ESP_LOGI("ui", "SW2 settings icon clicked - showing pump duration popup");
+                    id(sw2_manual_duration_minutes) = 300; // Reset to default
+                - lvgl.widget.show: pump_duration_popup
         # Update Switch 3 - Watering Valve
         - button:
             id: sw3_button
@@ -2623,9 +2857,16 @@ lvgl:
                   align: center
             on_click:
               then:
+                - lambda: |-
+                    id(sw3_last_trigger) = id(valve_training_mode)
+                      ? (id(sw3).state ? "Training valve test requested OFF" : "Training valve test requested ON")
+                      : (id(sw3).state ? "UI button requested OFF" : "UI button requested ON");
+                    ESP_LOGI("switch_state", "CONTROL PAGE: SW3 button pressed, current=%d", id(sw3).state ? 1 : 0);
                 - switch.toggle: sw3
                 - lambda: |-
+                    ESP_LOGI("switch_state", "CONTROL PAGE: SW3 after toggle state=%d", id(sw3).state ? 1 : 0);
                     id(sw3_manual_override_time) = id(time_comp).now().timestamp;
+                    //id(status_label).set_text("SW3: " + std::string(id(sw3).state ? "ON" : "OFF"));
         - image:
             src: settings_icon
             x: 390
@@ -2634,8 +2875,8 @@ lvgl:
             height: 60
         # Add irrigation status display
         - obj:
-            width: 340
-            height: 80
+            width: 400
+            height: 100
             bg_color: 0x000000
             bg_opa: 5%
             radius: 40
@@ -2643,18 +2884,26 @@ lvgl:
             y: 315
             widgets:
               - label:
+                  text: "Pool Pump (SW2)"
+                  text_font: roboto24
+                  text_color: black_color 
+                  align: center
+                  x: 0
+                  y: -30
+                  border_width: 0
+              - label:
                   id: irrigation_summary_line1
                   text: !lambda |-
                     static char line1_text[60];
                     snprintf(line1_text, sizeof(line1_text), 
-                            "Field: %.1f m^3 | Flow: %.1f L/min", 
-                            id(pool_volume), id(pump_flow_rate));
+                            "Size : %.1f m^3 | Flow: %.1f L/min", 
+                            id(pool_volume).state, id(pump_flow_rate));
                     return line1_text;
-                  text_font: roboto
+                  text_font: roboto24
                   text_color: black_color
                   align: center
                   x: 0
-                  y: -15
+                  y: 15
                   border_width: 0
 
               - label:
@@ -2672,6 +2921,266 @@ lvgl:
                   x: 0
                   y: 10
                   border_width: 0
+
+        # ===== PUMP DURATION PICKER POPUP =====
+        - obj:
+            id: pump_duration_popup
+            x: 60
+            y: 100
+            width: 360
+            height: 280
+            bg_color: 0x1E3A8A
+            bg_opa: 95%
+            radius: 20
+            border_width: 3
+            border_color: 0x4A90E2
+            scrollable: false
+            hidden: true
+            clickable: true
+            widgets:
+              # Popup title
+              - label:
+                  text: "Pump Duration"
+                  text_font: roboto24
+                  text_color: 0xFFFFFF
+                  align: center
+                  x: 0
+                  y: 10
+                  width: 360
+
+              # Duration display box
+              - obj:
+                  x: 80
+                  y: 50
+                  width: 200
+                  height: 60
+                  bg_color: 0x000000
+                  bg_opa: 80%
+                  radius: 10
+                  border_width: 2
+                  border_color: 0x4A90E2
+                  scrollable: false
+                  widgets:
+                    - label:
+                        id: pump_duration_display
+                        text: !lambda |-
+                          static char text[40];
+                          int hours = id(sw2_manual_duration_minutes) / 60;
+                          int minutes = id(sw2_manual_duration_minutes) % 60;
+                          if (hours > 0) {
+                            snprintf(text, sizeof(text), "%dh %02dm", hours, minutes);
+                          } else {
+                            snprintf(text, sizeof(text), "%d min", minutes);
+                          }
+                          return text;
+                        text_font: roboto24
+                        text_color: 0x00FF00
+                        align: center
+                        x: 0
+                        y: 15
+
+              # Decrease button (5 min step)
+              - button:
+                  x: 30
+                  y: 130
+                  width: 50
+                  height: 50
+                  radius: 10
+                  bg_color: 0xFF0000
+                  widgets:
+                    - label:
+                        text: "−"
+                        text_font: roboto24
+                        align: center
+                  on_click:
+                    then:
+                      - lambda: |-
+                          if (id(sw2_manual_duration_minutes) > 5) {
+                            id(sw2_manual_duration_minutes) -= 5;
+                          } else {
+                            id(sw2_manual_duration_minutes) = 5;
+                          }
+                      - lvgl.label.update:
+                          id: pump_duration_display
+
+              # Increase button (5 min step)
+              - button:
+                  x: 280
+                  y: 130
+                  width: 50
+                  height: 50
+                  radius: 10
+                  bg_color: 0x00FF00
+                  widgets:
+                    - label:
+                        text: "+"
+                        text_font: roboto24
+                        align: center
+                  on_click:
+                    then:
+                      - lambda: |-
+                          id(sw2_manual_duration_minutes) += 5;
+                          // Cap at 24 hours (1440 minutes)
+                          if (id(sw2_manual_duration_minutes) > 1440) {
+                            id(sw2_manual_duration_minutes) = 1440;
+                          }
+                      - lvgl.label.update:
+                          id: pump_duration_display
+
+              # Quick preset buttons (15, 30, 60 min)
+              - button:
+                  x: 30
+                  y: 195
+                  width: 45
+                  height: 35
+                  radius: 5
+                  bg_color: 0x0080FF
+                  widgets:
+                    - label:
+                        text: "15m"
+                        text_font: roboto
+                        align: center
+                  on_click:
+                    then:
+                      - lambda: |-
+                          id(sw2_manual_duration_minutes) = 15;
+                      - lvgl.label.update:
+                          id: pump_duration_display
+
+              - button:
+                  x: 85
+                  y: 195
+                  width: 45
+                  height: 35
+                  radius: 5
+                  bg_color: 0x0080FF
+                  widgets:
+                    - label:
+                        text: "30m"
+                        text_font: roboto
+                        align: center
+                  on_click:
+                    then:
+                      - lambda: |-
+                          id(sw2_manual_duration_minutes) = 30;
+                      - lvgl.label.update:
+                          id: pump_duration_display
+
+              - button:
+                  x: 140
+                  y: 195
+                  width: 45
+                  height: 35
+                  radius: 5
+                  bg_color: 0x0080FF
+                  widgets:
+                    - label:
+                        text: "60m"
+                        text_font: roboto
+                        align: center
+                  on_click:
+                    then:
+                      - lambda: |-
+                          id(sw2_manual_duration_minutes) = 60;
+                      - lvgl.label.update:
+                          id: pump_duration_display
+
+              - button:
+                  x: 195
+                  y: 195
+                  width: 45
+                  height: 35
+                  radius: 5
+                  bg_color: 0x0080FF
+                  widgets:
+                    - label:
+                        text: "5h"
+                        text_font: roboto
+                        align: center
+                  on_click:
+                    then:
+                      - lambda: |-
+                          id(sw2_manual_duration_minutes) = 300;
+                      - lvgl.label.update:
+                          id: pump_duration_display
+
+              - button:
+                  x: 250
+                  y: 195
+                  width: 80
+                  height: 35
+                  radius: 5
+                  bg_color: 0x0080FF
+                  widgets:
+                    - label:
+                        text: "Custom"
+                        text_font: roboto
+                        align: center
+                  on_click:
+                    then:
+                      - lambda: |-
+                          // Just leave it for manual adjustment
+                          ESP_LOGI("ui", "Custom duration mode");
+
+              # Save/Done button
+              - button:
+                  x: 50
+                  y: 240
+                  width: 110
+                  height: 30
+                  radius: 8
+                  bg_color: 0x00AA00
+                  widgets:
+                    - label:
+                        text: "SET & ON"
+                        text_font: roboto
+                        align: center
+                        text_color: 0xFFFFFF
+                  on_click:
+                    then:
+                      - lambda: |-
+                          auto now = id(time_comp).now();
+                          if (!now.is_valid()) {
+                            now = id(sntp_time).now();
+                          }
+                          if (now.is_valid()) {
+                            // Set the manual duration end time
+                            id(sw2_manual_duration_end_time) = now.timestamp + (id(sw2_manual_duration_minutes) * 60);
+                            // Also set the override timestamp to trigger manual mode
+                            id(sw2_manual_override_time) = now.timestamp;
+                            ESP_LOGI("pump_debug", "SW2 manual duration set: %d min, end_time=%u", 
+                                     id(sw2_manual_duration_minutes), id(sw2_manual_duration_end_time));
+                          } else {
+                            ESP_LOGW("pump_debug", "Cannot set manual duration - system time not available");
+                          }
+                      - switch.turn_on: sw2
+                      - lvgl.widget.hide: pump_duration_popup
+                      - lambda: |-
+                          // Return to controls page
+                          id(lvgl_comp).show_page(1, LV_SCR_LOAD_ANIM_FADE_ON, 300);
+
+              # Cancel button
+              - button:
+                  x: 170
+                  y: 240
+                  width: 110
+                  height: 30
+                  radius: 8
+                  bg_color: 0xAA0000
+                  widgets:
+                    - label:
+                        text: "Cancel"
+                        text_font: roboto
+                        align: center
+                        text_color: 0xFFFFFF
+                  on_click:
+                    then:
+                      - lvgl.widget.hide: pump_duration_popup
+                      - lambda: |-
+                          // Return to controls page without making changes
+                          id(lvgl_comp).show_page(1, LV_SCR_LOAD_ANIM_FADE_ON, 300);
+
+        # ===== END PUMP DURATION PICKER =====
 
         # Navigation buttons
         - button:
@@ -2813,7 +3322,7 @@ lvgl:
                   y: -7
                   width: 100
                   radius: 10
-                  height: 35
+                  height: 40
                   styles: nav_button_style
                   bg_color: 0x00FF00
                   widgets:
@@ -3109,12 +3618,30 @@ lvgl:
                   on_click:
                     then:
                       - number.decrement: center_time_hour_input
+                      - lambda: |-
+                          ESP_LOGI("pump_settings", "Center hour minus clicked: %d", id(center_pump_time_hour));
                       - delay: 50ms
                       - lvgl.label.update:
                           id: center_time_display
                           text: !lambda |-
                             static char text[10];
                             snprintf(text, sizeof(text), "%02d:00", id(center_pump_time_hour));
+                            return text;
+                      - lvgl.label.update:
+                          id: runtime_info_display
+                          text: !lambda |-
+                            static char text[80];
+                            int blocks = id(pump_runtime_blocks);
+                            int center_runtime = id(calculated_daily_runtime) / blocks;
+                            int free_runtime = (blocks > 1) ? id(calculated_daily_runtime) / blocks : 0;
+                            if (blocks == 1) {
+                              snprintf(text, sizeof(text), "1 Run: All %d min at %02d:00", 
+                                       id(calculated_daily_runtime), id(center_pump_time_hour));
+                            } else {
+                              snprintf(text, sizeof(text), "%d Runs: Center %d@%02d:00, Free %d min", 
+                                       blocks, center_runtime, id(center_pump_time_hour), free_runtime);
+                            }
+                            ESP_LOGD("pump_settings", "Runtime info updated: %s", text);
                             return text;
               - label:
                   id: center_time_display
@@ -3138,12 +3665,30 @@ lvgl:
                   on_click:
                     then:
                       - number.increment: center_time_hour_input
+                      - lambda: |-
+                          ESP_LOGI("pump_settings", "Center hour plus clicked: %d", id(center_pump_time_hour));
                       - delay: 50ms
                       - lvgl.label.update:
                           id: center_time_display
                           text: !lambda |-
                             static char text[10];
                             snprintf(text, sizeof(text), "%02d:00", id(center_pump_time_hour));
+                            return text;
+                      - lvgl.label.update:
+                          id: runtime_info_display
+                          text: !lambda |-
+                            static char text[80];
+                            int blocks = id(pump_runtime_blocks);
+                            int center_runtime = id(calculated_daily_runtime) / blocks;
+                            int free_runtime = (blocks > 1) ? id(calculated_daily_runtime) / blocks : 0;
+                            if (blocks == 1) {
+                              snprintf(text, sizeof(text), "1 Run: All %d min at %02d:00", 
+                                       id(calculated_daily_runtime), id(center_pump_time_hour));
+                            } else {
+                              snprintf(text, sizeof(text), "%d Runs: Center %d@%02d:00, Free %d min", 
+                                       blocks, center_runtime, id(center_pump_time_hour), free_runtime);
+                            }
+                            ESP_LOGD("pump_settings", "Runtime info updated: %s", text);
                             return text;
 
               # Runtime Blocks
@@ -3259,11 +3804,11 @@ lvgl:
                     int free_runtime = (blocks > 1) ? id(calculated_daily_runtime) / blocks : 0;
 
                     if (blocks == 1) {
-                      snprintf(text, sizeof(text), "1 Run: All %d min centered at %02d:00", 
+                      snprintf(text, sizeof(text), "1 Run: All %d min at %02d:00", 
                                id(calculated_daily_runtime), id(center_pump_time_hour));
                     } else {
-                      snprintf(text, sizeof(text), "%d Runs: Center %d min, Free blocks %d min each", 
-                               blocks, center_runtime, free_runtime);
+                      snprintf(text, sizeof(text), "%d Runs: Center %d@%02d:00, Free %d min", 
+                               blocks, center_runtime, id(center_pump_time_hour), free_runtime);
                     }
                     return text;
                   text_font: roboto
@@ -3678,35 +4223,26 @@ lvgl:
                   y: 20
                   width: 150
                   height: 40
-                  checkable: true
+                  checkable: false
                   state:
-                    checked: !lambda "return id(auto_irrigation_enabled);"
+                    checked: false
                   widgets:
                     - label:
                         id: auto_irrigation_label
-                        text: !lambda |-
-                          if (id(auto_irrigation_enabled)) {
-                            return "Auto: ON";
-                          } else {
-                            return "Auto: OFF";
-                          }
+                        text: "Auto: DISABLED"
                         text_font: roboto
                         align: center
                   on_click:
                     then:
                       - lambda: |-
-                          id(auto_irrigation_enabled) = !id(auto_irrigation_enabled);
-                      - if:
-                          condition:
-                            lambda: "return id(auto_irrigation_enabled);"
-                          then:
-                            - lvgl.label.update:
-                                id: auto_irrigation_label
-                                text: "Auto: ON"
-                          else:
-                            - lvgl.label.update:
-                                id: auto_irrigation_label
-                                text: "Auto: OFF"
+                          id(auto_irrigation_enabled) = false;
+                      - lvgl.widget.update:
+                          id: auto_irrigation_toggle
+                          state:
+                            checked: false
+                      - lvgl.label.update:
+                          id: auto_irrigation_label
+                          text: "Auto: DISABLED"
 
               # Calculate button
               - button:
@@ -3898,7 +4434,7 @@ lvgl:
                   size: 150
                   text: !lambda |-
                     if (id(ip_address).has_state() && !id(ip_address).state.empty()) {
-                     return "http://${name}.local/";
+                     return "phijo-smart-device.local/";
                     }
                     return "http://192.168.4.1/";
 
@@ -4339,6 +4875,7 @@ lvgl:
                           // If already in Duration mode, deselect and turn off light
                           if (id(automation_mode) == 0) {
                             id(automation_mode) = -1; // No mode selected
+                            id(sw1_last_trigger) = "UI deselected Duration mode";
                             id(sw1).turn_off();
                             id(sw1_off_time) = 0;
                             ESP_LOGI("automation", "No automation mode selected: Light turned OFF");
@@ -4346,10 +4883,12 @@ lvgl:
                           }
                           // If leaving Manual mode, turn light off
                           if (id(automation_mode) == 3) {
+                            id(sw1_last_trigger) = "UI left Manual mode for Duration";
                             id(sw1).turn_off();
                             ESP_LOGI("automation", "Left Manual mode: Light turned OFF");
                           }
                           id(automation_mode) = 0;
+                          id(sw1_manual_override_time) = 0;  // Ensure auto scheduling is active
                       - lvgl.widget.update:
                           id: mode_duration_btn
                           state:
@@ -4397,6 +4936,7 @@ lvgl:
                           // If already in Until Time mode, deselect and turn off light
                           if (id(automation_mode) == 1) {
                             id(automation_mode) = -1; // No mode selected
+                            id(sw1_last_trigger) = "UI deselected Until Time mode";
                             id(sw1).turn_off();
                             id(sw1_off_time) = 0;
                             ESP_LOGI("automation", "No automation mode selected: Light turned OFF");
@@ -4404,10 +4944,12 @@ lvgl:
                           }
                           // If leaving Manual mode, turn light off
                           if (id(automation_mode) == 3) {
+                            id(sw1_last_trigger) = "UI left Manual mode for Until Time";
                             id(sw1).turn_off();
                             ESP_LOGI("automation", "Left Manual mode: Light turned OFF");
                           }
                           id(automation_mode) = 1;
+                          id(sw1_manual_override_time) = 0;  // Ensure auto scheduling is active
                       - lvgl.widget.update:
                           id: mode_duration_btn
                           state:
@@ -4455,6 +4997,7 @@ lvgl:
                           // If already in Between Times mode, deselect and turn off light
                           if (id(automation_mode) == 2) {
                             id(automation_mode) = -1; // No mode selected
+                            id(sw1_last_trigger) = "UI deselected Between mode";
                             id(sw1).turn_off();
                             id(sw1_off_time) = 0;
                             ESP_LOGI("automation", "No automation mode selected: Light turned OFF");
@@ -4462,10 +5005,12 @@ lvgl:
                           }
                           // If leaving Manual mode, turn light off
                           if (id(automation_mode) == 3) {
+                            id(sw1_last_trigger) = "UI left Manual mode for Between";
                             id(sw1).turn_off();
                             ESP_LOGI("automation", "Left Manual mode: Light turned OFF");
                           }
                           id(automation_mode) = 2;
+                          id(sw1_manual_override_time) = 0;  // Ensure auto scheduling is active
                       - lvgl.widget.update:
                           id: mode_duration_btn
                           state:
@@ -4512,6 +5057,7 @@ lvgl:
                           // If already in Manual mode, deselect and turn off light
                           if (id(automation_mode) == 3) {
                             id(automation_mode) = -1; // No mode selected
+                            id(sw1_last_trigger) = "UI deselected Manual mode";
                             id(sw1).turn_off();
                             id(sw1_off_time) = 0;
                             ESP_LOGI("automation", "No automation mode selected: Light turned OFF");
@@ -4523,6 +5069,7 @@ lvgl:
                           // Turn light ON immediately in Manual mode and set timer
                           auto now = id(sntp_time).now();
                           if (now.is_valid()) {
+                            id(sw1_last_trigger) = "UI selected Manual mode";
                             id(sw1).turn_on();
                             id(sw1_off_time) = now.timestamp + (id(manual_duration_hours) * 3600);
                             id(sw1_manual_override_time) = 0; // Clear override so timer works
@@ -4583,12 +5130,10 @@ lvgl:
 
     - id: water_pump_settings_page
       bg_color: 0x000000
-      #bg_opa: cover
       pad_all: 0
       border_width: 0
       scrollable: false
       widgets:
-        # Background image
         - image:
             src: background_image
             x: 0
@@ -4597,116 +5142,177 @@ lvgl:
             height: 480
             align: TOP_LEFT
 
-        # Title bar
+        # ── TITLE BAR ────────────────────────────────────────────────
         - obj:
             width: 460
-            height: 50
+            height: 44
             bg_color: 0x1E3A8A
-            bg_opa: 80%
+            bg_opa: 90%
             radius: 10
             x: 10
-            y: 10
+            y: 5
             scrollable: false
             widgets:
               - label:
-                  text: "VALVE SETTINGS - WATER FILL/RELEASE"
+                  text: "WATER FILL / VALVE"
                   text_font: roboto24
                   align: center
                   text_color: 0xFFFFFF
-                  border_width: 0
                   x: 0
-                  y: 5
-                  scrollable: false
+                  y: 0
+              - button:
+                  id: back_to_controls_btn
+                  x: 358
+                  y: -9
+                  width: 82
+                  height: 30
+                  bg_color: 0x22C55E
+                  widgets:
+                    - label:
+                        text: "Done"
+                        text_font: roboto
+                        align: center
                   on_click:
                     then:
-                      - lvgl.page.previous:
                       - lambda: |-
-                          id(current_page) = 1;  // Set current page to controll settings
+                          id(lvgl_comp).show_page(1, LV_SCR_LOAD_ANIM_OVER_RIGHT, 300);
 
-        # WaterCalculations Section
+        # ── STATUS CARD ───────────────────────────────────────────────
+        - obj:
+            width: 460
+            height: 80
+            bg_color: 0x0F3460
+            bg_opa: 85%
+            radius: 10
+            x: 10
+            y: 57
+            scrollable: false
+            widgets:
+              - label:
+                  text: "Need"
+                  text_font: roboto
+                  text_color: 0x94A3B8
+                  x: 10
+                  y: 4
+              - label:
+                  id: irrigation_needed_display
+                  text: !lambda |-
+                    static char need_text[20];
+                    bool api_ready = id(owm_temperature).has_state() || id(owm_humidity).has_state() || id(owm_wind_speed).has_state();
+                    if (!api_ready && id(irrigation_needed_liters) <= 0.0f) {
+                      snprintf(need_text, sizeof(need_text), "...");
+                    } else {
+                      snprintf(need_text, sizeof(need_text), "%.1f L", id(irrigation_needed_liters));
+                    }
+                    return need_text;
+                  text_font: roboto24
+                  x: 10
+                  y: 28
+                  text_color: !lambda |-
+                    if (id(irrigation_needed_liters) > 0) return lv_color_hex(0xFF8C00);
+                    return lv_color_hex(0x4ADE80);
+              - label:
+                  text: "Fill time"
+                  text_font: roboto
+                  text_color: 0x94A3B8
+                  x: 180
+                  y: 4
+              - label:
+                  id: fill_time_display
+                  text: !lambda |-
+                    static char ft_text[20];
+                    float flow = id(valve_liters_per_minute);
+                    if (flow <= 0.0f) flow = 1.0f;
+                    float need = id(irrigation_needed_liters);
+                    if (need > 0.0f) {
+                      snprintf(ft_text, sizeof(ft_text), "%.1f min", need / flow);
+                    } else {
+                      snprintf(ft_text, sizeof(ft_text), "---");
+                    }
+                    return ft_text;
+                  text_font: roboto24
+                  x: 180
+                  y: 28
+                  text_color: 0xFFFFFF
+              - label:
+                  text: "Flow"
+                  text_font: roboto
+                  text_color: 0x94A3B8
+                  x: 340
+                  y: 4
+              - label:
+                  id: flow_rate_display
+                  text: !lambda |-
+                    static char fl_text[20];
+                    snprintf(fl_text, sizeof(fl_text), "%.1f L/m", id(valve_liters_per_minute));
+                    return fl_text;
+                  text_font: roboto24
+                  x: 334
+                  y: 28
+                  text_color: 0xFFFFFF
+
+        # ── DAILY DATA CARD ──────────────────────────────────────────
         - obj:
             scrollable: false
             width: 460
-            height: 160
+            height: 112
             bg_color: 0x1E3A8A
             bg_opa: 60%
             radius: 10
             x: 10
-            y: 70
+            y: 145
             widgets:
               - label:
-                  text: "Daily Water Calculations"
+                  text: "Evaporation"
                   text_font: roboto24
-                  text_color: 0xFFFFFF
                   x: 10
-                  y: 5
-              - label:
-                  text: "Evaporation:"
-                  text_font: roboto
-                  x: 10
-                  y: 35
-                  text_color: 0xFFFFFF
+                  y: -2
+                  text_color: 0x94A3B8
               - label:
                   id: evaporation_display
                   text: !lambda |-
                     static char evap_text[40];
-                    snprintf(evap_text, sizeof(evap_text), "%.1f L/day", id(calculated_evaporation_liters));
+                    bool api_ready = id(owm_temperature).has_state() || id(owm_humidity).has_state() || id(owm_wind_speed).has_state();
+                    float evap = id(calculated_evaporation_liters);
+                    if (!api_ready && evap <= 0.0f) {
+                      snprintf(evap_text, sizeof(evap_text), "Waiting API...");
+                    } else {
+                      snprintf(evap_text, sizeof(evap_text), "%.1f L/day", evap);
+                    }
                     return evap_text;
-                  text_font: roboto
-                  x: 120
-                  y: 35
+                  text_font: roboto24
+                  x: 160
+                  y: -2
                   text_color: 0xFFFFFF
               - label:
-                  text: "Rainfall:"
-                  text_font: roboto
+                  text: "Rainfall today"
+                  text_font: roboto24
                   x: 10
-                  y: 60
-                  text_color: 0xFFFFFF
+                  y: 30
+                  text_color: 0x94A3B8
               - label:
                   id: rainfall_display
                   text: !lambda |-
                     static char rain_text[40];
-                    float rainfall_liters = id(daily_rainfall_mm) * id(field_area_m2);
-                    snprintf(rain_text, sizeof(rain_text), "%.1f L (%.1f mm)", rainfall_liters, id(daily_rainfall_mm));
-                    return rain_text;
-                  text_font: roboto
-                  x: 80
-                  y: 60
-                  text_color: 0xFFFFFF
-              - label:
-                  text: "Today :"
-                  text_font: roboto
-                  x: 10
-                  y: 85
-                  text_color: 0xFFFFFF
-              - label:
-                  id: irrigation_needed_display
-                  text: !lambda |-
-                    static char need_text[50];
-                    if (id(irrigation_needed_liters) > 0) {
-                      float flow_lpm = id(valve_liters_per_minute);
-                      if (flow_lpm <= 0.0f) flow_lpm = 1.0f;
-                      float minutes_needed = id(irrigation_needed_liters) / flow_lpm;
-                      snprintf(need_text, sizeof(need_text), "%.1f L (%.1f min)", 
-                              id(irrigation_needed_liters), minutes_needed);
+                    bool api_ready = id(owm_temperature).has_state() || id(owm_humidity).has_state() || id(owm_wind_speed).has_state();
+                    float rain_mm = id(daily_rainfall_mm);
+                    float rainfall_liters = rain_mm * id(field_area_m2);
+                    if (!api_ready && rain_mm == 0.0f) {
+                      snprintf(rain_text, sizeof(rain_text), "Waiting API...");
                     } else {
-                      snprintf(need_text, sizeof(need_text), "0 L (No Water needed)");
+                      snprintf(rain_text, sizeof(rain_text), "%.1f L  (%.1f mm)", rainfall_liters, rain_mm);
                     }
-                    return need_text;
-                  text_font: roboto
-                  x: 80
-                  y: 85
-                  text_color: !lambda |-
-                    if (id(irrigation_needed_liters) > 0) {
-                      return lv_color_hex(0xFFA500);  // Orange
-                    }
-                    return lv_color_hex(0xFFFFFF);  // Light gray when no water needed
+                    return rain_text;
+                  text_font: roboto24
+                  x: 160
+                  y: 30
+                  text_color: 0x60A5FA
               - label:
-                  text: "Mode:"
-                  text_font: roboto
+                  text: "Season"
+                  text_font: roboto24
                   x: 10
-                  y: 110
-                  text_color: 0xFFFFFF
+                  y: 63
+                  text_color: 0x94A3B8
               - label:
                   id: irrigation_mode_display
                   text: !lambda |-
@@ -4718,315 +5324,210 @@ lvgl:
                       is_winter = (day_of_year <= 80 || day_of_year >= 355);
                     }
                     if (is_winter) {
-                      return "Winter (Low evaporation)";
+                      return "Winter  (low evaporation)";
                     } else {
-                      return "Summer (High evaporation)";
+                      return "Summer  (high evaporation)";
                     }
                   text_font: roboto
-                  x: 60
-                  y: 110
+                  x: 160
+                  y: 63
                   text_color: 0xFFFFFF
-        # Current Mode Display (Non-clickable)
-        - obj:
-            id: sw3_mode_toggle
-            width: 460
-            height: 60
-            x: 10
-            y: 230
-            bg_color: 0x1E3A8A
-            bg_opa: 60%
-            radius: 10
-            widgets:
-              - label:
-                  id: sw3_mode_label
-                  text: !lambda |-
-                    auto now = id(time_comp).now();
-                    if (!now.is_valid()) now = id(sntp_time).now();
-                    if (!now.is_valid()) {
-                      return id(sw3_winter_mode) ? "Season: Winter" : "Season: Summer";
-                    }
-                    
-                    // Calculate season based on day of year (same logic as irrigation calculation)
-                    int day_of_year = now.day_of_year;
-                    bool is_winter = (day_of_year <= 80 || day_of_year >= 355);
-                    
-                    // Check if manual mode is active
-                    bool manual_active = id(sw3_manual_override_time) > 0 && 
-                                         (now.timestamp - id(sw3_manual_override_time)) < 86400;
-                    
-                    if (manual_active) {
-                      return is_winter ? "Season: Winter (Manual)" : "Season: Summer (Manual)";
-                    } else {
-                      return is_winter ? "Season: Winter (Auto)" : "Season: Summer (Auto)";
-                    }
-                  text_font: roboto24
-                  text_color: 0xFFFFFF
-                  align: center
-                  x: 0
-                  y: -10
-        # Weather Impact Section
-        - obj:
-            width: 460
-            height: 110
-            bg_color: 0x000000
-            bg_opa: 0%
-            scrollable: false
-            hidden: true
-            border_width: 0
-            radius: 10
-            x: 10
-            y: 300
-            widgets:
-              - label:
-                  text: "Weather Impact"
-                  text_font: roboto24
-                  text_color: 0xFFFFFF
-                  x: 10
-                  y: 0
-              - label:
-                  id: weather_recommendation
-                  text: !lambda |-
-                    if (id(irrigation_needed_liters) > 20) {
-                      return " High Water needs - Check valve operation";
-                    } else if (id(irrigation_needed_liters) > 5) {
-                      return " Moderate Water recommended";
-                    } else if (id(daily_rainfall_mm) > 10) {
-                      return " Recent rainfall - Water not needed";
-                    } else {
-                      return " Water levels optimal";
-                    }
-                  text_font: roboto
-                  x: 10
-                  y: 30
-                  text_color: 0xFFFFFF
-                  width: 440
 
-        # Control Buttons Section
+        # ── CONTROL BUTTONS ──────────────────────────────────────────
         - obj:
-            width: 460
-            height: 170
+            width: 480
+            height: 90
             bg_color: 0x000000
             bg_opa: 0%
             radius: 10
             scrollable: false
             border_width: 0
-            x: 10
-            y: 300
+            x: 0
+            y: 250
             widgets:
               - button:
                   id: auto_mode_toggle
-                  x: 2
-                  y: 10
-                  width: 150
-                  height: 60
+                  x: 0
+                  y: 0
+                  width: 170
+                  height: 75
                   checkable: true
                   state:
-                    checked: !lambda |-
-                      auto now = id(time_comp).now();
-                      if (!now.is_valid()) now = id(sntp_time).now();
-                      if (!now.is_valid()) return id(sw3_manual_override_time) == 0;
-                      return !(id(sw3_manual_override_time) > 0 && 
-                               (now.timestamp - id(sw3_manual_override_time)) < 86400);
+                    checked: !lambda "return id(auto_irrigation_enabled);"
                   bg_color: !lambda |-
-                    auto now = id(time_comp).now();
-                    if (!now.is_valid()) now = id(sntp_time).now();
-                    if (!now.is_valid()) {
-                      bool is_auto = id(sw3_manual_override_time) == 0;
-                      return is_auto ? lv_color_hex(0x00AA00) : lv_color_hex(0x444444);
-                    }
-                    bool is_auto = !(id(sw3_manual_override_time) > 0 && 
-                                     (now.timestamp - id(sw3_manual_override_time)) < 86400);
-                    return is_auto ? lv_color_hex(0x00AA00) : lv_color_hex(0x444444);
+                    return id(auto_irrigation_enabled) ? lv_color_hex(0x16A34A) : lv_color_hex(0x374151);
                   widgets:
                     - label:
                         id: auto_mode_label
                         text: !lambda |-
-                          auto now = id(time_comp).now();
-                          if (!now.is_valid()) now = id(sntp_time).now();
-                          if (!now.is_valid()) {
-                            return id(sw3_manual_override_time) == 0 ? "Auto Mode" : "Auto Off";
-                          }
-                          bool is_auto = !(id(sw3_manual_override_time) > 0 && 
-                                           (now.timestamp - id(sw3_manual_override_time)) < 86400);
-                          return is_auto ? "Auto Mode" : "Auto Off";
+                          return std::string(id(auto_irrigation_enabled) ? "Auto ON" : "Auto OFF");
+                        text_font: roboto24
+                        align: center
+                        y: -20
+                    - label:
+                        text: "Schedule"
                         text_font: roboto
                         align: center
+                        text_color: 0xD1D5DB
+                        y: 14
                   on_click:
                     then:
                       - lambda: |-
-                          // Deactivate manual mode (activate auto)
-                          id(sw3_manual_override_time) = 0;
-                          ESP_LOGI("automation", "SW3 switched to AUTO mode");
+                          id(auto_irrigation_enabled) = !id(auto_irrigation_enabled);
+                          if (id(auto_irrigation_enabled)) {
+                            id(sw3_manual_override_time) = 0;
+                            ESP_LOGI("automation", "Auto irrigation ENABLED");
+                          } else {
+                            ESP_LOGI("automation", "Auto irrigation DISABLED");
+                          }
                       - lvgl.widget.update:
                           id: auto_mode_toggle
                           state:
-                            checked: true
+                            checked: !lambda "return id(auto_irrigation_enabled);"
                       - lvgl.widget.update:
                           id: auto_mode_toggle
-                          bg_color: !lambda "return lv_color_hex(0x00AA00);"
+                          bg_color: !lambda "return id(auto_irrigation_enabled) ? lv_color_hex(0x16A34A) : lv_color_hex(0x374151);"
                       - lvgl.label.update:
                           id: auto_mode_label
-                          text: "Auto Mode"
+                          text: !lambda "return std::string(id(auto_irrigation_enabled) ? \"Auto ON\" : \"Auto OFF\");"
                       - lvgl.widget.update:
                           id: manual_irrigation_btn
                           state:
-                            checked: false
+                            checked: !lambda "return id(sw3).state;"
                       - lvgl.widget.update:
                           id: manual_irrigation_btn
-                          bg_color: !lambda "return lv_color_hex(0x444444);"
+                          bg_color: !lambda "return id(sw3).state ? lv_color_hex(0xC2410C) : lv_color_hex(0x374151);"
                       - lvgl.label.update:
                           id: manual_irrigation_label
-                          text: "Manual"
+                          text: !lambda "return std::string(id(sw3).state ? \"Valve ON\" : \"Fill Now\");"
+              - button:
+                  id: bucket_time_label
+                  x: 175
+                  y: 0
+                  width: 100
+                  height: 75
+                  bg_color: black_color
+                  bg_opa: 90%
+                  border_width: 0
+                  checkable: false
+                  widgets:
+                    - label:
+                        text: "Bucket time"
+                        text_font: roboto
+                        text_color: white_color
+                        align: center
+                        y: -10
+                    - label:
+                        id: bucket_time_value_label
+                        text: !lambda |-
+                          static char bucket_time_value[20];
+                          float flow = id(valve_liters_per_minute);
+                          if (flow <= 0.0f) {
+                            snprintf(bucket_time_value, sizeof(bucket_time_value), "---");
+                          } else {
+                            snprintf(bucket_time_value, sizeof(bucket_time_value), "%.1f min", id(bucket_volume_liters) / flow);
+                          }
+                          return bucket_time_value;
+                        text_font: roboto24
+                        text_color: white_color
+                        align: center
+                        y: 12
 
               - button:
                   id: manual_irrigation_btn
-                  x: 160
-                  y: 10
-                  width: 130
-                  height: 60
+                  x: 280
+                  y: 0
+                  width: 170
+                  height: 75
                   checkable: true
                   state:
-                    checked: !lambda |-
-                      auto now = id(time_comp).now();
-                      if (!now.is_valid()) now = id(sntp_time).now();
-                      if (!now.is_valid()) return id(sw3_manual_override_time) > 0;
-                      return id(sw3_manual_override_time) > 0 && 
-                             (now.timestamp - id(sw3_manual_override_time)) < 86400;
+                    checked: !lambda "return id(sw3).state;"
                   bg_color: !lambda |-
-                    auto now = id(time_comp).now();
-                    if (!now.is_valid()) now = id(sntp_time).now();
-                    if (!now.is_valid()) {
-                      bool is_active = id(sw3_manual_override_time) > 0;
-                      return is_active ? lv_color_hex(0xFF6600) : lv_color_hex(0x444444);
-                    }
-                    bool is_active = id(sw3_manual_override_time) > 0 && 
-                                     (now.timestamp - id(sw3_manual_override_time)) < 86400;
-                    return is_active ? lv_color_hex(0xFF6600) : lv_color_hex(0x444444);
+                    return id(sw3).state ? lv_color_hex(0xC2410C) : lv_color_hex(0x374151);
                   widgets:
                     - label:
                         id: manual_irrigation_label
                         text: !lambda |-
-                          auto now = id(time_comp).now();
-                          if (!now.is_valid()) now = id(sntp_time).now();
-                          if (!now.is_valid()) {
-                            return id(sw3_manual_override_time) > 0 ? "Manual ON" : "Manual";
-                          }
-                          bool is_active = id(sw3_manual_override_time) > 0 && 
-                                           (now.timestamp - id(sw3_manual_override_time)) < 86400;
-                          return is_active ? "Manual ON" : "Manual";
+                          return std::string(id(sw3).state ? "Valve ON" : "Fill Now");
+                        text_font: roboto24
+                        align: center
+                        y: -20
+                    - label:
+                        text: "Manual fill"
                         text_font: roboto
                         align: center
+                        text_color: 0xD1D5DB
+                        y: 14
                   on_click:
                     then:
-                      - switch.toggle: sw3
                       - lambda: |-
+                          bool manual_active = id(sw3).state;
                           auto now = id(time_comp).now();
                           if (!now.is_valid()) now = id(sntp_time).now();
-                          // Toggle manual override
-                          bool is_active = false;
-                          if (now.is_valid()) {
-                            is_active = id(sw3_manual_override_time) > 0 && 
-                                        (now.timestamp - id(sw3_manual_override_time)) < 86400;
-                          } else {
-                            is_active = id(sw3_manual_override_time) > 0;
-                          }
-                          if (is_active) {
+                          if (manual_active) {
+                            id(sw3_last_trigger) = "Manual irrigation button requested OFF";
+                            id(sw3).turn_off();
                             id(sw3_manual_override_time) = 0;
-                            ESP_LOGI("automation", "SW3 manual override deactivated");
+                            ESP_LOGI("automation", "Manual irrigation OFF (valve only)");
                           } else {
+                            id(auto_irrigation_enabled) = false;
+                            id(sw3_last_trigger) = "Manual irrigation button requested ON";
+                            float need = id(irrigation_needed_liters);
+                            float flow = id(valve_liters_per_minute);
+                            if (flow <= 0.0f) flow = 1.0f;
+                            float fill_minutes = (need > 0.0f) ? (need / flow) : 0.0f;
+                            if (fill_minutes > 60.0f) fill_minutes = 60.0f;
+                            id(sw3).turn_on();
                             id(sw3_manual_override_time) = now.is_valid() ? now.timestamp : 1;
-                            ESP_LOGI("automation", "SW3 manual override activated");
+                            if (fill_minutes > 0.0f && now.is_valid()) {
+                              id(sw3_off_time) = now.timestamp + (int)(fill_minutes * 60);
+                              ESP_LOGI("automation", "Manual irrigation ON: need=%.1fL flow=%.1fL/min fill=%.1f min",
+                                       need, flow, fill_minutes);
+                            } else {
+                              id(sw3_off_time) = 0;
+                              ESP_LOGW("automation", "Manual irrigation ON: no water need, valve open until manual stop");
+                            }
                           }
                       - lvgl.widget.update:
                           id: manual_irrigation_btn
                           state:
-                            checked: !lambda |-
-                              auto now = id(time_comp).now();
-                              if (!now.is_valid()) now = id(sntp_time).now();
-                              if (!now.is_valid()) return id(sw3_manual_override_time) > 0;
-                              return id(sw3_manual_override_time) > 0 && 
-                                     (now.timestamp - id(sw3_manual_override_time)) < 86400;
+                            checked: !lambda "return id(sw3).state;"
                       - lvgl.widget.update:
                           id: manual_irrigation_btn
-                          bg_color: !lambda |-
-                            auto now = id(time_comp).now();
-                            if (!now.is_valid()) now = id(sntp_time).now();
-                            if (!now.is_valid()) {
-                              bool is_active = id(sw3_manual_override_time) > 0;
-                              return is_active ? lv_color_hex(0xFF6600) : lv_color_hex(0x444444);
-                            }
-                            bool is_active = id(sw3_manual_override_time) > 0 && 
-                                             (now.timestamp - id(sw3_manual_override_time)) < 86400;
-                            return is_active ? lv_color_hex(0xFF6600) : lv_color_hex(0x444444);
+                          bg_color: !lambda "return id(sw3).state ? lv_color_hex(0xC2410C) : lv_color_hex(0x374151);"
                       - lvgl.label.update:
                           id: manual_irrigation_label
-                          text: !lambda |-
-                            auto now = id(time_comp).now();
-                            if (!now.is_valid()) now = id(sntp_time).now();
-                            if (!now.is_valid()) {
-                              return id(sw3_manual_override_time) > 0 ? "Manual ON" : "Manual";
-                            }
-                            bool is_active = id(sw3_manual_override_time) > 0 && 
-                                             (now.timestamp - id(sw3_manual_override_time)) < 86400;
-                            return is_active ? "Manual ON" : "Manual";
+                          text: !lambda "return std::string(id(sw3).state ? \"Valve ON\" : \"Fill Now\");"
                       - lvgl.widget.update:
                           id: auto_mode_toggle
                           state:
-                            checked: !lambda |-
-                              auto now = id(time_comp).now();
-                              if (!now.is_valid()) now = id(sntp_time).now();
-                              if (!now.is_valid()) return id(sw3_manual_override_time) == 0;
-                              return !(id(sw3_manual_override_time) > 0 && 
-                                       (now.timestamp - id(sw3_manual_override_time)) < 86400);
+                            checked: !lambda "return id(auto_irrigation_enabled);"
                       - lvgl.widget.update:
                           id: auto_mode_toggle
-                          bg_color: !lambda |-
-                            auto now = id(time_comp).now();
-                            if (!now.is_valid()) now = id(sntp_time).now();
-                            if (!now.is_valid()) {
-                              bool is_auto = id(sw3_manual_override_time) == 0;
-                              return is_auto ? lv_color_hex(0x00AA00) : lv_color_hex(0x444444);
-                            }
-                            bool is_auto = !(id(sw3_manual_override_time) > 0 && 
-                                             (now.timestamp - id(sw3_manual_override_time)) < 86400);
-                            return is_auto ? lv_color_hex(0x00AA00) : lv_color_hex(0x444444);
+                          bg_color: !lambda "return id(auto_irrigation_enabled) ? lv_color_hex(0x16A34A) : lv_color_hex(0x374151);"
                       - lvgl.label.update:
                           id: auto_mode_label
-                          text: !lambda |-
-                            auto now = id(time_comp).now();
-                            if (!now.is_valid()) now = id(sntp_time).now();
-                            if (!now.is_valid()) {
-                              return id(sw3_manual_override_time) == 0 ? "Auto Mode" : "Auto Off";
-                            }
-                            bool is_auto = !(id(sw3_manual_override_time) > 0 && 
-                                             (now.timestamp - id(sw3_manual_override_time)) < 86400);
-                            return is_auto ? "Auto Mode" : "Auto Off";
+                          text: !lambda "return std::string(id(auto_irrigation_enabled) ? \"Auto ON\" : \"Auto OFF\");"
 
-              - button:
-                  id: back_to_controls_btn
-                  x: 350
-                  y: 10
-                  width: 100
-                  height: 60
-                  bg_color: 0x00FF00
-                  widgets:
-                    - label:
-                        text: "Done"
-                        text_font: roboto
-                        align: center
-                  on_click:
-                    then:
-                      - lambda: |-
-                          // go to sttong page from control page
-                          id(lvgl_comp).show_page(1, LV_SCR_LOAD_ANIM_OVER_RIGHT, 300);
+              
 
+        # ── BUCKET CALIBRATION ROW ───────────────────────────────────
+        - obj:
+            width: 460
+            height: 56
+            bg_color: 0x1E3A8A
+            bg_opa: 40%
+            radius: 10
+            x: 10
+            y: 347
+            scrollable: false
+            widgets:
               - label:
-                  text: "Bucket Vol:"
-                  text_font: roboto
+                  text: "Bucket:"
+                  text_font: roboto24
                   x: 10
-                  y: 88
+                  y: -2
                   text_color: 0xFFFFFF
-
               - label:
                   id: bucket_volume_display
                   text: !lambda |-
@@ -5034,17 +5535,16 @@ lvgl:
                     snprintf(bucket_text, sizeof(bucket_text), "%.1f L", id(bucket_volume_liters));
                     return bucket_text;
                   text_font: roboto24
-                  x: 130
-                  y: 82
-                  text_color: 0xFFFFFF
-
+                  x: 110
+                  y: -2
+                  text_color: 0xFBBF24
               - button:
                   id: bucket_minus_btn
-                  x: 280
-                  y: 78
-                  width: 70
-                  height: 44
-                  bg_color: 0x444444
+                  x: 216
+                  y: -8
+                  width: 44
+                  height: 40
+                  bg_color: 0x374151
                   widgets:
                     - label:
                         text: "-"
@@ -5056,20 +5556,33 @@ lvgl:
                           id(bucket_volume_liters) -= 0.5f;
                           if (id(bucket_volume_liters) < 1.0f) id(bucket_volume_liters) = 1.0f;
                           ESP_LOGI("irrigation", "Bucket volume set to %.1f L", id(bucket_volume_liters));
+                      - globals.set:
+                          id: bucket_volume_liters
+                          value: !lambda "return id(bucket_volume_liters);"
                       - lvgl.label.update:
                           id: bucket_volume_display
                           text: !lambda |-
                             static char bucket_text[20];
                             snprintf(bucket_text, sizeof(bucket_text), "%.1f L", id(bucket_volume_liters));
                             return bucket_text;
-
+                      - lvgl.label.update:
+                          id: bucket_time_value_label
+                          text: !lambda |-
+                            static char bucket_time_value[20];
+                            float flow = id(valve_liters_per_minute);
+                            if (flow <= 0.0f) {
+                              snprintf(bucket_time_value, sizeof(bucket_time_value), "---");
+                            } else {
+                              snprintf(bucket_time_value, sizeof(bucket_time_value), "%.1f min", id(bucket_volume_liters) / flow);
+                            }
+                            return bucket_time_value;
               - button:
                   id: bucket_plus_btn
-                  x: 360
-                  y: 78
-                  width: 70
-                  height: 44
-                  bg_color: 0x444444
+                  x: 268
+                  y: -8
+                  width: 44
+                  height: 40
+                  bg_color: 0x374151
                   widgets:
                     - label:
                         text: "+"
@@ -5081,14 +5594,84 @@ lvgl:
                           id(bucket_volume_liters) += 0.5f;
                           if (id(bucket_volume_liters) > 50.0f) id(bucket_volume_liters) = 50.0f;
                           ESP_LOGI("irrigation", "Bucket volume set to %.1f L", id(bucket_volume_liters));
+                      - globals.set:
+                          id: bucket_volume_liters
+                          value: !lambda "return id(bucket_volume_liters);"
                       - lvgl.label.update:
                           id: bucket_volume_display
                           text: !lambda |-
                             static char bucket_text[20];
                             snprintf(bucket_text, sizeof(bucket_text), "%.1f L", id(bucket_volume_liters));
                             return bucket_text;
+                      - lvgl.label.update:
+                          id: bucket_time_value_label
+                          text: !lambda |-
+                            static char bucket_time_value[20];
+                            float flow = id(valve_liters_per_minute);
+                            if (flow <= 0.0f) {
+                              snprintf(bucket_time_value, sizeof(bucket_time_value), "---");
+                            } else {
+                              snprintf(bucket_time_value, sizeof(bucket_time_value), "%.1f min", id(bucket_volume_liters) / flow);
+                            }
+                            return bucket_time_value;
+              - button:
+                  id: start_cal_btn
+                  x: 320
+                  y: -8
+                  width: 100
+                  height: 40
+                  bg_color: 0x7C3AED
+                  widgets:
+                    - label:
+                        id: start_cal_btn_label
+                        text: "Calibrate"
+                        text_font: roboto
+                        align: center
+                  on_click:
+                    then:
+                      - script.execute: start_valve_training
 
-  
+        # ── SEASON / STATUS BAR ──────────────────────────────────────
+        - obj:
+            id: sw3_mode_toggle
+            width: 460
+            height: 54
+            x: 10
+            y: 411
+            bg_color: 0x1E3A8A
+            bg_opa: 50%
+            radius: 10
+            widgets:
+              - label:
+                  id: sw3_mode_label
+                  text: !lambda |-
+                    auto now = id(time_comp).now();
+                    if (!now.is_valid()) now = id(sntp_time).now();
+                    if (!now.is_valid()) {
+                      return id(sw3_winter_mode) ? "Season: Winter" : "Season: Summer";
+                    }
+                    int day_of_year = now.day_of_year;
+                    bool is_winter = (day_of_year <= 80 || day_of_year >= 355);
+                    bool manual_active = id(sw3_manual_override_time) > 0 &&
+                                         (now.timestamp - id(sw3_manual_override_time)) < 86400;
+                    if (manual_active) {
+                      return is_winter ? "Season: Winter (Manual)" : "Season: Summer (Manual)";
+                    } else {
+                      return is_winter ? "Season: Winter (Auto)" : "Season: Summer (Auto)";
+                    }
+                  text_font: roboto24
+                  text_color: 0xFFFFFF
+                  align: center
+                  x: 0
+                  y: 0
+
+        # Hidden label retained for script compatibility
+        - label:
+            id: weather_recommendation
+            hidden: true
+            text: ""
+            x: 0
+            y: 0
 
     - id: pool_pump_settings_page
       bg_color: 0x0F172A
@@ -6175,6 +6758,11 @@ switch:
     output: internal_relay_1
     on_turn_on:
       then:
+        - lambda: |-
+            ESP_LOGW("switch_state", "SW1 Light Control -> ON | trigger=%s | mode=%d | override=%s | off_time=%u",
+                     id(sw1_last_trigger).c_str(), id(automation_mode),
+                     id(sw1_manual_override_time) > 0 ? "YES" : "NO", id(sw1_off_time));
+            id(sw1_last_trigger) = "unspecified";
         - lvgl.widget.update:
             id: sw1_button
             state:
@@ -6183,8 +6771,18 @@ switch:
             id: status_label
             text: "Light ON"
             text_color: green_color
+        - lvgl.widget.update:
+            id: relay_light_indicator
+            bg_color: 0xFFCC00
+            bg_opa: cover
+            border_color: 0xFFCC00
     on_turn_off:
       then:
+        - lambda: |-
+            ESP_LOGW("switch_state", "SW1 Light Control -> OFF | trigger=%s | mode=%d | override=%s | off_time=%u",
+                     id(sw1_last_trigger).c_str(), id(automation_mode),
+                     id(sw1_manual_override_time) > 0 ? "YES" : "NO", id(sw1_off_time));
+            id(sw1_last_trigger) = "unspecified";
         - lvgl.widget.update:
             id: sw1_button
             state:
@@ -6193,6 +6791,11 @@ switch:
             id: status_label
             text: "Light OFF"
             text_color: red_color
+        - lvgl.widget.update:
+            id: relay_light_indicator
+            bg_color: 0x000000
+            bg_opa: 0%
+            border_color: 0x444444
 
   - platform: output
     id: sw2
@@ -6200,6 +6803,13 @@ switch:
     output: internal_relay_2
     on_turn_on:
       then:
+        - lambda: |-
+            ESP_LOGW("switch_state", "SW2 Water Pump -> now ON | trigger=%s | seasonal=%s | override=%s | runtime=%d min | blocks=%d",
+                     id(sw2_last_trigger).c_str(),
+                     id(seasonal_pump_enabled) ? "YES" : "NO",
+                     id(sw2_manual_override_time) > 0 ? "YES" : "NO",
+                     id(calculated_daily_runtime), id(pump_runtime_blocks));
+            id(sw2_last_trigger) = "unknown/unspecified";
         - lvgl.widget.update:
             id: sw2_button
             state:
@@ -6208,8 +6818,20 @@ switch:
             id: status_label
             text: "Water Pump ON"
             text_color: green_color
+        - lvgl.widget.update:
+            id: relay_pump_indicator
+            bg_color: 0x00AA00
+            bg_opa: cover
+            border_color: 0x00AA00
     on_turn_off:
       then:
+        - lambda: |-
+            ESP_LOGW("switch_state", "SW2 Water Pump -> OFF | trigger=%s | seasonal=%s | override=%s | runtime=%d min | blocks=%d",
+                     id(sw2_last_trigger).c_str(),
+                     id(seasonal_pump_enabled) ? "YES" : "NO",
+                     id(sw2_manual_override_time) > 0 ? "YES" : "NO",
+                     id(calculated_daily_runtime), id(pump_runtime_blocks));
+            id(sw2_last_trigger) = "unspecified";
         - lvgl.widget.update:
             id: sw2_button
             state:
@@ -6218,6 +6840,11 @@ switch:
             id: status_label
             text: "Water Pump OFF"
             text_color: red_color
+        - lvgl.widget.update:
+            id: relay_pump_indicator
+            bg_color: 0x000000
+            bg_opa: 0%
+            border_color: 0x444444
 
   - platform: output
     id: sw3
@@ -6225,17 +6852,30 @@ switch:
     output: internal_relay_3
     on_turn_on:
       then:
+        - lambda: |-
+            ESP_LOGW("switch_state", "SW3 Watering Valve -> ON | trigger=%s | mode=%s | override=%s | need=%.1fL | off_time=%u",
+                     id(sw3_last_trigger).c_str(),
+                     id(valve_training_mode) ? "TRAINING" : (id(sw3_winter_mode) ? "WINTER" : "SUMMER"),
+                     id(sw3_manual_override_time) > 0 ? "YES" : "NO",
+                     id(irrigation_needed_liters), id(sw3_off_time));
+            id(sw3_last_trigger) = "unspecified";
         - lvgl.label.update:
             id: current_status_display
             text: " Pump ON - Irrigating..."
-        - logger.log: "Watering pump turned ON"
         - if:
             condition:
               lambda: "return id(valve_training_mode);"
             then:
               - lambda: |-
-                  id(valve_training_start_time) = id(time_comp).now().timestamp;
-                  ESP_LOGI("irrigation", "Training mode: Valve opened, timer started");
+                  auto now = id(time_comp).now();
+                  if (!now.is_valid()) now = id(sntp_time).now();
+                  if (now.is_valid()) {
+                    id(valve_training_start_time) = now.timestamp;
+                    ESP_LOGI("irrigation", "Training mode: Valve opened, timer started (%u)", id(valve_training_start_time));
+                  } else {
+                    id(valve_training_start_time) = 0;
+                    ESP_LOGW("irrigation", "Training mode started but system time unavailable; calibration will not update until time is valid");
+                  }
               - lvgl.label.update:
                   id: status_label
                   text: "TRAINING: Valve ON - Timer running"
@@ -6262,33 +6902,68 @@ switch:
             id: sw3_button
             state:
               checked: true
+        - lvgl.widget.update:
+            id: relay_valve_indicator
+            bg_color: 0x0088FF
+            bg_opa: cover
+            border_color: 0x0088FF
     on_turn_off:
       then:
+        - lambda: |-
+            ESP_LOGW("switch_state", "SW3 Watering Valve -> OFF | trigger=%s | mode=%s | override=%s | remaining=%.1fL",
+                     id(sw3_last_trigger).c_str(),
+                     id(valve_training_mode) ? "TRAINING" : (id(sw3_winter_mode) ? "WINTER" : "SUMMER"),
+                     id(sw3_manual_override_time) > 0 ? "YES" : "NO",
+                     id(irrigation_needed_liters));
+            id(sw3_last_trigger) = "unspecified";
         - lvgl.label.update:
             id: current_status_display
             text: "Pump OFF - Watering stopped"
-        - logger.log: "Watering pump turned OFF"
         - if:
             condition:
               lambda: "return id(valve_training_mode) && id(valve_training_start_time) > 0;"
             then:
               - lambda: |-
-                  int training_duration = id(time_comp).now().timestamp - id(valve_training_start_time);
-                  float training_minutes = training_duration / 60.0f;
+                  auto now = id(time_comp).now();
+                  if (!now.is_valid()) now = id(sntp_time).now();
                   
-                  // Calculate flow rate based on known bucket volume
-                  if (training_minutes > 0.25f) {  // Minimum 15 seconds for valid training
-                    float vol = id(bucket_volume_liters);
-                    if (vol <= 0.0f) vol = 10.0f;
-                    id(valve_liters_per_minute) = vol / training_minutes;
-                    ESP_LOGI("irrigation", "Training complete: %.1f min for %.1f L → %.2f L/min",
-                             training_minutes, vol, id(valve_liters_per_minute));
+                  if (!now.is_valid()) {
+                    ESP_LOGE("irrigation", "CALIBRATION ERROR: System time not available! Cannot calculate flow rate.");
+                    id(valve_training_start_time) = 0;
+                    id(valve_training_mode) = false;
                   } else {
-                    ESP_LOGW("irrigation", "Training too short (%.2fs). Keep previous calibration.", training_minutes * 60.0f);
+                    int training_duration = now.timestamp - id(valve_training_start_time);
+                    float training_minutes = training_duration / 60.0f;
+                    
+                    // Validate training start time was captured
+                    if (id(valve_training_start_time) == 0) {
+                      ESP_LOGE("irrigation", "CALIBRATION ERROR: Start time was never captured!");
+                    } else {
+                      ESP_LOGI("irrigation", "DEBUG: start_time=%u, end_time=%u, duration=%d sec, minutes=%.2f",
+                               id(valve_training_start_time), now.timestamp, training_duration, training_minutes);
+                    }
+                    
+                    // Calculate flow rate based on known bucket volume
+                    if (training_minutes >= 0.25f) {  // Minimum 15 seconds for valid training
+                      float vol = id(bucket_volume_liters);
+                      if (vol <= 0.0f) vol = 10.0f;
+                      id(valve_liters_per_minute) = vol / training_minutes;
+                      ESP_LOGI("irrigation", "✓ CALIBRATION SUCCESS: %.1f min for %.1f L → %.2f L/min",
+                               training_minutes, vol, id(valve_liters_per_minute));
+                    } else {
+                      ESP_LOGW("irrigation", "✗ Training too short (%.2f sec). Keeping previous flow=%.1f L/min", 
+                               training_minutes * 60.0f, id(valve_liters_per_minute));
+                    }
+                    
+                    id(valve_training_start_time) = 0;
+                    id(valve_training_mode) = false;
                   }
-                  
-                  id(valve_training_start_time) = 0;
-                  id(valve_training_mode) = false;
+              - globals.set:
+                  id: valve_liters_per_minute
+                  value: !lambda "return id(valve_liters_per_minute);"
+              - number.set:
+                  id: valve_flow_rate_input
+                  value: !lambda "return id(valve_liters_per_minute);"
               - lvgl.label.update:
                   id: status_label
                   text: !lambda |-
@@ -6296,6 +6971,29 @@ switch:
                     snprintf(msg, sizeof(msg), "Calibration: %.2f L/min (bucket %.1fL)", id(valve_liters_per_minute), id(bucket_volume_liters));
                     return msg;
                   text_color: green_color
+              - lvgl.widget.update:
+                  id: start_cal_btn
+                  bg_color: 0x7C3AED
+              - lvgl.label.update:
+                  id: start_cal_btn_label
+                  text: "Calibrate"
+              - lvgl.label.update:
+                  id: flow_rate_display
+                  text: !lambda |-
+                    static char fl_text[20];
+                    snprintf(fl_text, sizeof(fl_text), "%.1f L/m", id(valve_liters_per_minute));
+                    return fl_text;
+              - lvgl.label.update:
+                  id: bucket_time_value_label
+                  text: !lambda |-
+                    static char bucket_time_value[20];
+                    float flow = id(valve_liters_per_minute);
+                    if (flow <= 0.0f) {
+                      snprintf(bucket_time_value, sizeof(bucket_time_value), "---");
+                    } else {
+                      snprintf(bucket_time_value, sizeof(bucket_time_value), "%.1f min", id(bucket_volume_liters) / flow);
+                    }
+                    return bucket_time_value;
               - delay: 3s
               - lvgl.label.update:
                   id: status_label
@@ -6322,6 +7020,11 @@ switch:
             id: sw3_button
             state:
               checked: false
+        - lvgl.widget.update:
+            id: relay_valve_indicator
+            bg_color: 0x000000
+            bg_opa: 0%
+            border_color: 0x444444
 
 #-------------------------------------------
 # Scripts for automation logic
@@ -6397,7 +7100,7 @@ script:
           id: irrigation_schedule_minute_input
           value: 0
       - lambda: |-
-          id(auto_irrigation_enabled) = true;
+          id(auto_irrigation_enabled) = false;
           // Reset all irrigation globals to defaults
           id(field_area_m2) = 48.0;
           id(valve_liters_per_minute) = 20.0;
@@ -6407,10 +7110,10 @@ script:
       - lvgl.widget.update:
           id: auto_irrigation_toggle
           state:
-            checked: true
+            checked: false
       - lvgl.label.update:
           id: auto_irrigation_label
-          text: "Auto Irrigation: ON"
+          text: "Auto: DISABLED"
       - script.execute: calculate_irrigation_needs
       - delay: 1s
       - lvgl.label.update:
@@ -6495,6 +7198,9 @@ script:
                     return id(wifi_mac).state.c_str();
                   }
                   return "N/A";
+            - lvgl.label.update:
+                id: wifi_firmware_text
+                text: "v${project_version}"
             - delay: 1s
           else:
             - lvgl.widget.hide: wifi_popup_obj
@@ -6573,6 +7279,9 @@ script:
                     return id(wifi_mac).state.c_str();
                   }
                   return "N/A";
+            - lvgl.label.update:
+                id: wifi_firmware_text
+                text: "v${project_version}"
           # else:
           #   - lvgl.widget.hide: wifi_popup_obj
 
@@ -6708,12 +7417,81 @@ script:
           ESP_LOGI("irrigation", "Daily runtime: %d min, Center block: %d min, Free blocks: %d min each", 
                    daily_runtime, id(center_block_runtime), id(free_block_runtime));
 
+      - sensor.template.publish:
+          id: daily_evaporation_sensor
+          state: !lambda "return id(calculated_evaporation_liters);"
+      - sensor.template.publish:
+          id: irrigation_needed_sensor
+          state: !lambda "return id(irrigation_needed_liters);"
+      - sensor.template.publish:
+          id: daily_rainfall_sensor
+          state: !lambda "return id(daily_rainfall_mm);"
+
       - lvgl.label.update:
           id: evaporation_display
+          text: !lambda |-
+            static char evap_text[40];
+            bool api_ready = id(owm_temperature).has_state() || id(owm_humidity).has_state() || id(owm_wind_speed).has_state();
+            float evap = id(calculated_evaporation_liters);
+            if (!api_ready && evap <= 0.0f) {
+              snprintf(evap_text, sizeof(evap_text), "Waiting API...");
+            } else {
+              snprintf(evap_text, sizeof(evap_text), "%.1f L/day", evap);
+            }
+            return evap_text;
       - lvgl.label.update:
           id: rainfall_display
+          text: !lambda |-
+            static char rain_text[40];
+            bool api_ready = id(owm_temperature).has_state() || id(owm_humidity).has_state() || id(owm_wind_speed).has_state();
+            float rain_mm = id(daily_rainfall_mm);
+            float rainfall_liters = rain_mm * id(field_area_m2);
+            if (!api_ready && rain_mm == 0.0f) {
+              snprintf(rain_text, sizeof(rain_text), "Waiting API...");
+            } else {
+              snprintf(rain_text, sizeof(rain_text), "%.1f L (%.1f mm)", rainfall_liters, rain_mm);
+            }
+            return rain_text;
       - lvgl.label.update:
           id: irrigation_needed_display
+          text: !lambda |-
+            static char need_text[20];
+            bool api_ready = id(owm_temperature).has_state() || id(owm_humidity).has_state() || id(owm_wind_speed).has_state();
+            if (!api_ready && id(irrigation_needed_liters) <= 0.0f) {
+              snprintf(need_text, sizeof(need_text), "...");
+            } else {
+              snprintf(need_text, sizeof(need_text), "%.1f L", id(irrigation_needed_liters));
+            }
+            return need_text;
+      - lvgl.label.update:
+          id: fill_time_display
+          text: !lambda |-
+            static char ft_text[20];
+            float flow = id(valve_liters_per_minute);
+            if (flow <= 0.0f) flow = 1.0f;
+            float need = id(irrigation_needed_liters);
+            if (need > 0.0f) {
+              snprintf(ft_text, sizeof(ft_text), "%.1f min", need / flow);
+            } else {
+              snprintf(ft_text, sizeof(ft_text), "---");
+            }
+            return ft_text;
+      - lvgl.label.update:
+          id: irrigation_summary_line1
+          text: !lambda |-
+            static char line1_text[60];
+            snprintf(line1_text, sizeof(line1_text), 
+                    "Size : %.1f m^3 | Flow: %.1f L/min", 
+                    id(pool_volume).state, id(valve_liters_per_minute));
+            return line1_text;
+      - lvgl.label.update:
+          id: irrigation_summary_line2
+          text: !lambda |-
+            static char line2_text[60];
+            snprintf(line2_text, sizeof(line2_text), 
+                    "Evap: %.1fL/day | Need: %.1fL", 
+                    id(calculated_evaporation_liters), id(irrigation_needed_liters));
+            return line2_text;
       - lvgl.label.update:
           id: irrigation_mode_display
       - lvgl.label.update:
@@ -6733,19 +7511,43 @@ script:
           then:
             - lambda: |-
                 id(valve_training_mode) = true;
-                ESP_LOGI("irrigation", "Training mode activated - Turn ON valve manually");
+                id(sw3_last_trigger) = "Calibration start";
+                ESP_LOGI("irrigation", "Training mode activated - opening valve and starting timer");
+            - lvgl.widget.update:
+                id: start_cal_btn
+                bg_color: 0xDC2626
+            - lvgl.label.update:
+                id: start_cal_btn_label
+                text: "Stop"
             - lvgl.label.update:
                 id: status_label
-                text: "Training: Turn ON valve manually, then OFF when done"
+                text: "TRAINING: Valve opening..."
                 text_color: orange_color
+            - switch.turn_on: sw3
           else:
-            - lambda: |-
-                id(valve_training_mode) = false;
-                ESP_LOGI("irrigation", "Training mode cancelled");
-            - lvgl.label.update:
-                id: status_label
-                text: "Training cancelled"
-                text_color: red_color
+            - if:
+                condition:
+                  switch.is_on: sw3
+                then:
+                  - lambda: |-
+                      id(sw3_last_trigger) = "Calibration stop";
+                      ESP_LOGI("irrigation", "Calibration stop requested - closing valve and calculating result");
+                  - switch.turn_off: sw3
+                else:
+                  - lambda: |-
+                      id(valve_training_mode) = false;
+                      id(valve_training_start_time) = 0;
+                      ESP_LOGI("irrigation", "Training cancelled (valve already off)");
+                  - lvgl.widget.update:
+                      id: start_cal_btn
+                      bg_color: 0x7C3AED
+                  - lvgl.label.update:
+                      id: start_cal_btn_label
+                      text: "Calibrate"
+                  - lvgl.label.update:
+                      id: status_label
+                      text: "Training cancelled"
+                      text_color: red_color
 
   - id: update_qr_display
     then:
@@ -6755,7 +7557,7 @@ script:
           id: settings_qr
           text: !lambda |-
             if (id(ip_address).has_state() && !id(ip_address).state.empty()) {
-              return "http://${name}.local/";
+              return "phijo-smart-device.local/";
             }
             return "http://192.168.4.1/";
 
@@ -6780,8 +7582,8 @@ script:
                 src: wifi_icon_online
             - lvgl.label.update:
                 id: status_label
-                text: "Online: http://${name}.local/"
-                text_color: green_color
+                text: " "
+                text_color: ha_blue
             - logger.log:
                 format: "Web portal active at http://%s"
                 args:
@@ -6791,7 +7593,7 @@ script:
                 #Update QR code when WiFi is connected
             - lvgl.qrcode.update:
                 id: settings_qr
-                text: "http://${name}.local/"
+                text: http://phijo-smart-device.local
             - lvgl.label.update:
                 id: qr_url_label
                 text: !lambda |-
@@ -6826,6 +7628,9 @@ script:
             }
   - id: run_scheduled_irrigation
     then:
+      - lambda: |-
+          id(irrigation_script_running) = true;
+          ESP_LOGI("irrigation", "Irrigation script started - guard flag set");
       - if:
           condition:
             lambda: "return id(auto_irrigation_enabled) && !id(sw2).state;"
@@ -6884,6 +7689,7 @@ script:
 
                 if (!should_run) {
                   ESP_LOGW("irrigation", "Current time not in any irrigation block");
+                  id(irrigation_script_running) = false;
                   return;
                 }
 
@@ -6919,6 +7725,9 @@ script:
             # Turn off both pump and valve
             - switch.turn_off: sw2
             - switch.turn_off: sw3
+      - lambda: |-
+          id(irrigation_script_running) = false;
+          ESP_LOGI("irrigation", "Irrigation script completed - guard flag cleared");
 
   - id: time_display_update
     then:
@@ -6994,14 +7803,22 @@ script:
             ESP_LOGI("automation", "check_light_schedules: script executed (10min mark)");
           }
 
+          bool using_sntp = false;
           auto now = id(time_comp).now();
+          if (!now.is_valid()) {
+            now = id(sntp_time).now();
+            using_sntp = true;
+          }
           if (!now.is_valid()) {
             static int invalid_time_count = 0;
             if (++invalid_time_count >= 1) { // Log every 5 minutes if stuck
               invalid_time_count = 0;
-              ESP_LOGW("automation", "Time invalid - skipping automation check");
+              ESP_LOGW("automation", "Time invalid on both HA and SNTP - skipping automation check");
             }
             return;
+          }
+          if (using_sntp) {
+            ESP_LOGI("automation", "Using SNTP fallback time for pump scheduling");
           }
 
           // Log automation status every 5 minutes
@@ -7026,7 +7843,7 @@ script:
             id(sw1_manual_override_time) = 0;
             ESP_LOGI("automation", "SW1 override expired - automation re-enabled");
           }
-          if (id(sw2_manual_override_time) > 0 && 
+          if (id(sw2_manual_override_time) > 1 && 
               now.timestamp - id(sw2_manual_override_time) > 86400) {
             id(sw2_manual_override_time) = 0;
             ESP_LOGI("automation", "SW2 override expired - automation re-enabled");
@@ -7169,6 +7986,7 @@ script:
             // If no mode selected, ensure light is OFF
             if (mode == -1) {
               if (id(sw1).state) {
+                id(sw1_last_trigger) = "No automation mode selected";
                 id(sw1).turn_off();
                 id(sw1_off_time) = 0;
                 ESP_LOGI("automation", "No automation mode selected: SW1 turned OFF");
@@ -7184,6 +8002,7 @@ script:
               if ((int32_t)(sunrise_ts - now.timestamp) <= sunrise_seconds && 
                   (int32_t)(sunrise_ts - now.timestamp) > (sunrise_seconds - 60) && 
                   !id(sw1_before_sunrise) && !id(sw1).state) {
+                  id(sw1_last_trigger) = "Before sunrise automation";
                   id(sw1).turn_on();
                   id(sw1_before_sunrise) = true;
                   ESP_LOGI("automation", "SW1 turned ON - %d hours before sunrise (mode=%d)", id(sunrise_duration_hours), mode);
@@ -7195,6 +8014,7 @@ script:
               // 2. In Between mode (mode 2) and light is on with off_time set to sunrise
               if (abs((int32_t)(sunrise_ts - now.timestamp)) < 60 && id(sw1).state) {
                 if (id(sw1_before_sunrise) || mode == 2) {
+                  id(sw1_last_trigger) = "Sunrise reached";
                   id(sw1).turn_off();
                   id(sw1_before_sunrise) = false;
                   id(sw1_off_time) = 0;
@@ -7252,6 +8072,7 @@ script:
               
               // Check if we're between today's sunset and tomorrow's sunrise
               if (now.timestamp > sunset_ts && now.timestamp < next_sunrise_ts) {
+                id(sw1_last_trigger) = "Between mode catchup";
                 id(sw1).turn_on();
                 id(sw1_off_time) = next_sunrise_ts;
                 int hrs_until = (next_sunrise_ts - now.timestamp) / 3600;
@@ -7266,6 +8087,7 @@ script:
               uint32_t expected_off_time = sunset_ts + (id(sunset_duration_hours) * 3600);
               // If we're past sunset but before expected off time, turn on
               if (now.timestamp > sunset_ts && now.timestamp < expected_off_time) {
+                id(sw1_last_trigger) = "Duration mode catchup";
                 id(sw1).turn_on();
                 id(sw1_off_time) = expected_off_time;
                 int mins_left = (expected_off_time - now.timestamp) / 60;
@@ -7279,12 +8101,13 @@ script:
               uint32_t until_ts = day_start_ts + 
                                   (uint32_t)id(sunset_until_time_hour) * 3600u + 
                                   (uint32_t)id(sunset_until_time_minute) * 60u;
-              // If until_time is before sunset, it's tomorrow
-              if (until_ts < sunset_ts) {
+              // Ensure until_ts is in the future from current time
+              if (until_ts <= now.timestamp) {
                 until_ts += 86400u;
               }
               // If we're past sunset but before until time, turn on
               if (now.timestamp > sunset_ts && now.timestamp < until_ts) {
+                id(sw1_last_trigger) = "Until Time mode catchup";
                 id(sw1).turn_on();
                 id(sw1_off_time) = until_ts;
                 int mins_left = (until_ts - now.timestamp) / 60;
@@ -7296,6 +8119,7 @@ script:
             // Turn on at sunset (except in manual mode 3)
             if (mode != 3 && (in_sunset_window || past_sunset_today) && 
                 !id(sw1).state && id(sw1_off_time) == 0) {
+                id(sw1_last_trigger) = mode == 0 ? "Sunset schedule (Duration mode)" : (mode == 1 ? "Sunset schedule (Until Time mode)" : "Sunset schedule (Between mode)");
                 id(sw1).turn_on();
                 
                 // Calculate off time based on automation mode
@@ -7311,8 +8135,8 @@ script:
                                       (uint32_t)id(sunset_until_time_hour) * 3600u + 
                                       (uint32_t)id(sunset_until_time_minute) * 60u;
                   
-                  // If until_time is before sunset (e.g., 02:00), it's tomorrow
-                  if (until_ts < sunset_ts) {
+                  // Ensure until_ts is in the future from current time
+                  if (until_ts <= now.timestamp) {
                     until_ts += 86400u;
                   }
                   id(sw1_off_time) = until_ts;
@@ -7369,6 +8193,7 @@ script:
             // For Between mode (mode 2), this will trigger at sunrise time
             // For other modes, this will trigger at the calculated off time
             if (id(sw1).state && id(sw1_off_time) > 0 && now.timestamp >= id(sw1_off_time)) {
+              id(sw1_last_trigger) = "SW1 off timer expired";
               id(sw1).turn_off();
               id(sw1_off_time) = 0;
               id(sw1_before_sunrise) = false;  // Clear the before-sunrise flag
@@ -7381,6 +8206,7 @@ script:
           // Check manual mode timer even when in override (manual button press)
           if (id(sw1_manual_override_time) > 0 && id(sw1).state && 
               id(sw1_off_time) > 0 && now.timestamp >= id(sw1_off_time)) {
+            id(sw1_last_trigger) = "Manual duration expired";
             id(sw1).turn_off();
             id(sw1_off_time) = 0;
             ESP_LOGI("automation", "SW1 manual OFF - timer expired after %d hours", id(manual_duration_hours));
@@ -7399,10 +8225,34 @@ script:
           }
           
           // Log why pump automation might be disabled
-          ESP_LOGI("pump_debug", "SW2 automation check: manual_override=%d seasonal_enabled=%d (both must be 0 and 1 to run)",
-                   id(sw2_manual_override_time), id(seasonal_pump_enabled));
+          bool irrigation_assist_active = id(sw3).state && id(sw3_off_time) > 0 && !id(sw3_winter_mode);
+          ESP_LOGI("pump_debug", "SW2 automation check: manual_override=%d seasonal_enabled=%d irrigation_assist=%d",
+                   id(sw2_manual_override_time), id(seasonal_pump_enabled), irrigation_assist_active ? 1 : 0);
 
-          if (id(sw2_manual_override_time) == 0 && id(seasonal_pump_enabled)) {
+          // ===== HANDLE MANUAL DURATION OVERRIDE =====
+          if (id(sw2_manual_duration_end_time) > 0 && now.is_valid()) {
+            if (now.timestamp < id(sw2_manual_duration_end_time)) {
+              // Manual duration still active - keep pump ON
+              if (!id(sw2).state) {
+                id(sw2_last_trigger) = "Manual duration override active";
+                id(sw2).turn_on();
+                int time_left = id(sw2_manual_duration_end_time) - now.timestamp;
+                int hours_left = time_left / 3600;
+                int mins_left = (time_left % 3600) / 60;
+                ESP_LOGI("automation", "SW2 PUMP turned ON - manual duration active (%dh %02dm remaining)", hours_left, mins_left);
+              }
+              // Pump is already on, just let it run until the timer expires
+              return; // Skip normal automation logic while manual duration is active
+            } else {
+              // Manual duration has expired
+              id(sw2_manual_duration_end_time) = 0;
+              id(sw2_manual_duration_minutes) = 0;
+              ESP_LOGI("automation", "SW2 manual duration expired - returning to normal automation");
+              // Fall through to normal automation logic
+            }
+          }
+
+          if (id(sw2_manual_override_time) == 0 && id(seasonal_pump_enabled) && !irrigation_assist_active) {
             // Calculate if pump should be running based on runtime blocks
             // PRIMARY SOURCE: total_runtime_multiple from pool pump settings (in hours)
             // FALLBACK: calculated_daily_runtime (in minutes) from seasonal calculation
@@ -7476,11 +8326,13 @@ script:
             
             // Turn pump ON if in window and not already on
             if (in_runtime_window && !id(sw2).state) {
+              id(sw2_last_trigger) = "Pool runtime block schedule";
               id(sw2).turn_on();
               ESP_LOGI("automation", "✓✓✓ SW2 PUMP turned ON - runtime block active (daily: %d min)", daily_runtime);
             }
             // Turn pump OFF if outside window and currently on
             else if (!in_runtime_window && id(sw2).state) {
+              id(sw2_last_trigger) = "Outside pool runtime window";
               id(sw2).turn_off();
               id(sw2_off_time) = 0;  // clear any pending timers when schedule says OFF
               ESP_LOGI("automation", "SW2 PUMP turned OFF - outside runtime window");
@@ -7496,51 +8348,54 @@ script:
           // Similar logic for SW2 
           // ---- SWITCH 3: IRRIGATION VALVE CONTROL ----
           if (id(sw3_manual_override_time) == 0) {
-            // Check if irrigation is needed and it's appropriate time
-            bool should_irrigate = false;
-            // Recompute today's net water need based on mode
-            float evap_liters = id(calculated_evaporation_liters);
-            float rainfall_liters = id(daily_rainfall_mm) * id(field_area_m2); // 1 mm * 1 m² = 1 liter
-            float need_liters = 0.0f;
-            if (id(sw3_winter_mode)) {
-              // WINTER: drain excess (rain - evaporation)
-              need_liters = std::max(0.0f, rainfall_liters - evap_liters);
-            } else {
-              // SUMMER: fill deficit (evaporation - rain)
-              need_liters = std::max(0.0f, evap_liters - rainfall_liters);
-            }
-            id(irrigation_needed_liters) = need_liters;
-            ESP_LOGI("automation", "SW3 need: mode=%s evap=%.1fL rain=%.1fL need=%.1fL",
-                     id(sw3_winter_mode) ? "WINTER(DRAIN)" : "SUMMER(FILL)",
-                     evap_liters, rainfall_liters, need_liters);
-            
-            // Only irrigate during appropriate hours (early morning or evening)
-            int hour = now.hour;
-            bool appropriate_time = (hour >= 5 && hour <= 7) || (hour >= 18 && hour <= 20);
-            
-            if (appropriate_time && id(irrigation_needed_liters) > 10.0) {
+            if (id(auto_irrigation_enabled)) {
+              // Check if irrigation is needed and it's appropriate time
+              bool should_irrigate = false;
+              // Recompute today's net water need based on mode
+              float evap_liters = id(calculated_evaporation_liters);
+              float rainfall_liters = id(daily_rainfall_mm) * id(field_area_m2); // 1 mm * 1 m² = 1 liter
+              float need_liters = 0.0f;
               if (id(sw3_winter_mode)) {
-                // Winter mode: Only irrigate if really needed (>15L)
-                should_irrigate = id(irrigation_needed_liters) > 15.0;
+                // WINTER: drain excess (rain - evaporation)
+                need_liters = std::max(0.0f, rainfall_liters - evap_liters);
               } else {
-                // Summer mode: Irrigate if needed (>10L)
-                should_irrigate = id(irrigation_needed_liters) > 10.0;
+                // SUMMER: fill deficit (evaporation - rain)
+                need_liters = std::max(0.0f, evap_liters - rainfall_liters);
               }
-            }
-            
-            // Turn on irrigation if needed
-            if (should_irrigate && !id(sw3).state) {
+              id(irrigation_needed_liters) = need_liters;
+              ESP_LOGI("automation", "SW3 need: mode=%s evap=%.1fL rain=%.1fL need=%.1fL",
+                       id(sw3_winter_mode) ? "WINTER(DRAIN)" : "SUMMER(FILL)",
+                       evap_liters, rainfall_liters, need_liters);
+              
+              // Only irrigate during appropriate hours (early morning or evening)
+              int hour = now.hour;
+              bool appropriate_time = (hour >= 5 && hour <= 7) || (hour >= 18 && hour <= 20);
+              
+              if (appropriate_time && id(irrigation_needed_liters) > 10.0) {
+                if (id(sw3_winter_mode)) {
+                  // Winter mode: Only irrigate if really needed (>15L)
+                  should_irrigate = id(irrigation_needed_liters) > 15.0;
+                } else {
+                  // Summer mode: Irrigate if needed (>10L)
+                  should_irrigate = id(irrigation_needed_liters) > 10.0;
+                }
+              }
+              
+              // Turn on irrigation if needed
+              if (should_irrigate && !id(sw3).state) {
               // Calculate irrigation time based on needs
               float irrigation_minutes = id(irrigation_needed_liters) / id(valve_liters_per_minute);
               irrigation_minutes = std::min(irrigation_minutes, 30.0f); // Max 30 minutes
               
               // Turn on valve first
+              id(sw3_last_trigger) = "Auto irrigation schedule";
               id(sw3).turn_on();
               delay(2000); // Wait 2 seconds
               
               // SUMMER(fill): optionally assist with pump; WINTER(drain): do not turn pump on
               if (!id(sw3_winter_mode)) {
                 if (!id(sw2).state) {
+                  id(sw2_last_trigger) = "Irrigation assist pump";
                   id(sw2).turn_on();
                   ESP_LOGI("automation", "SW2 PUMP turned ON - for filling");
                 }
@@ -7550,16 +8405,19 @@ script:
               ESP_LOGI("automation", "SW3 VALVE turned ON - %.1f min for %.1fL (mode: %s)", 
                       irrigation_minutes, id(irrigation_needed_liters),
                       id(sw3_winter_mode) ? "WINTER" : "SUMMER");
+              }
             }
             // Turn off irrigation when timer expires
             if (id(sw3).state && now.timestamp >= id(sw3_off_time) && id(sw3_off_time) > 0) {
               // Turn off pump first (if it was turned on for irrigation)
               bool pump_was_for_irrigation = id(sw2).state && !id(seasonal_pump_enabled);
               if (pump_was_for_irrigation) {
+                id(sw2_last_trigger) = "Irrigation complete";
                 id(sw2).turn_off();
                 ESP_LOGI("automation", "SW2 PUMP turned OFF - irrigation complete");
               }
               
+              id(sw3_last_trigger) = "Auto irrigation timer expired";
               id(sw3).turn_off();
               id(sw3_off_time) = 0;
                     ESP_LOGI("automation", "SW3 VALVE OFF - Remaining need: %.1fL", id(irrigation_needed_liters));
@@ -7844,6 +8702,70 @@ image:
     type: RGB565
 
 interval:
+  - interval: 500ms  # Update every 500ms during calibration
+    then:
+      - if:
+          condition:
+            lambda: "return id(valve_training_mode) && id(sw3).state;"
+          then:
+            - lambda: |-
+                auto now = id(time_comp).now();
+                if (!now.is_valid()) now = id(sntp_time).now();
+                
+                if (now.is_valid() && id(valve_training_start_time) > 0) {
+                  int elapsed_seconds = now.timestamp - id(valve_training_start_time);
+                  float elapsed_minutes = elapsed_seconds / 60.0f;
+                  
+                  if (elapsed_minutes > 0.01f) {  // Avoid division by zero
+                    float current_flow = id(bucket_volume_liters) / elapsed_minutes;
+                    
+                    // Temporary update (not saved until calibration completes)
+                    ESP_LOGD("irrigation", "Calibration in progress: %.1f sec (%.2f min) → %.2f L/min", 
+                             (float)elapsed_seconds, elapsed_minutes, current_flow);
+                  }
+                }
+            - lvgl.label.update:
+                id: flow_rate_display
+                text: !lambda |-
+                  auto now = id(time_comp).now();
+                  if (!now.is_valid()) now = id(sntp_time).now();
+                  
+                  static char fl_text[20];
+                  if (id(valve_training_mode) && id(valve_training_start_time) > 0 && now.is_valid()) {
+                    int elapsed = now.timestamp - id(valve_training_start_time);
+                    float minutes = elapsed / 60.0f;
+                    if (minutes > 0.01f) {
+                      float current_flow = id(bucket_volume_liters) / minutes;
+                      snprintf(fl_text, sizeof(fl_text), "%.1f L/m", current_flow);
+                      return fl_text;
+                    }
+                  }
+                  snprintf(fl_text, sizeof(fl_text), "%.1f L/m", id(valve_liters_per_minute));
+                  return fl_text;
+            - lvgl.label.update:
+                id: bucket_time_value_label
+                text: !lambda |-
+                  auto now = id(time_comp).now();
+                  if (!now.is_valid()) now = id(sntp_time).now();
+                  
+                  static char bucket_time_value[20];
+                  float flow = id(valve_liters_per_minute);
+                  
+                  // During calibration, show live elapsed time
+                  if (id(valve_training_mode) && id(valve_training_start_time) > 0 && now.is_valid()) {
+                    int elapsed = now.timestamp - id(valve_training_start_time);
+                    float minutes = elapsed / 60.0f;
+                    snprintf(bucket_time_value, sizeof(bucket_time_value), "%.1f min", minutes);
+                    return bucket_time_value;
+                  }
+                  
+                  // Normal display when not calibrating
+                  if (flow <= 0.0f) {
+                    snprintf(bucket_time_value, sizeof(bucket_time_value), "---");
+                  } else {
+                    snprintf(bucket_time_value, sizeof(bucket_time_value), "%.1f min", id(bucket_volume_liters) / flow);
+                  }
+                  return bucket_time_value;      
   - interval: 10s
     then:
       - script.execute: update_wifi_details
@@ -7966,52 +8888,97 @@ interval:
     then:
       - if:
           condition:
+            lambda: |-
+              return millis() < id(weather_api_retry_until_ms);
+          then:
+            - logger.log: "Weather API is in backoff period; skipping this cycle"
+            - lambda: |-
+                return;
+      - if:
+          condition:
             wifi.connected:
           then:
             - logger.log: "Making weather API request..."
-            # - http_request.get:
-            #     url: "https://api.ip2location.io/"
-            #     capture_response: true
-            #     on_response:
-            #       then:
-            #         - lambda: |-
-            #             ESP_LOGI("geo", "Geo API response: %s", body.c_str());
-
-            #             // Minimal JSON extraction using find/substr to reduce stack load
-            #             size_t lat_pos = body.find("\"latitude\":");
-            #             size_t lon_pos = body.find("\"longitude\":");
-            #             size_t city_pos = body.find("\"city_name\":");
-
-            #             if (lat_pos != std::string::npos && lon_pos != std::string::npos) {
-            #               float lat = atof(body.substr(lat_pos + 11).c_str());
-            #               float lon = atof(body.substr(lon_pos + 12).c_str());
-            #               id(current_lat) = lat;
-            #               id(current_lon) = lon;
-            #               ESP_LOGI("geo", "Lat: %.4f, Lon: %.4f", lat, lon);
-            #             }
-
-            #             if (city_pos != std::string::npos) {
-            #               size_t start = city_pos + 13;
-            #               size_t end = body.find("\"", start);
-            #               if (end != std::string::npos) {
-            #                // id(location_name_str) = body.substr(start, end - start);
-            #                 ESP_LOGI("geo", "City: %s", id(location_name_str).c_str());
-            #               }
-            #             }
             - delay: 3s
             - lvgl.label.update:
                 id: location_display_label
                 text: !lambda |-
                   return id(location_name_str).c_str();
 
-            # Step 1: Get coordinates from ZIP code
+            # Step 1: Get coordinates from ZIP code (with URL encoding and validation)
             - logger.log: "Fetching coordinates from ZIP code..."
+            - lambda: |-
+                // URL encode the zip code and country to handle spaces and special characters
+                std::string zip_code = id(user_zip_code);
+                std::string country = id(user_country);
+                
+                // Basic validation
+                if (zip_code.empty() || country.empty()) {
+                  ESP_LOGW("geo", "ZIP code or country is empty, skipping weather update");
+                  return;
+                }
+                
+                // URL encode function - replace spaces with %20 and handle special chars
+                auto url_encode = [](const std::string& str) -> std::string {
+                  std::string encoded;
+                  for (char c : str) {
+                    if (c == ' ') {
+                      encoded += "%20";
+                    } else if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || 
+                               (c >= 'a' && c <= 'z') || c == '-' || c == '_' || c == '.' || c == '~') {
+                      encoded += c;
+                    } else {
+                      encoded += '%';
+                      static const char hex[] = "0123456789ABCDEF";
+                      encoded += hex[(c >> 4) & 0xF];
+                      encoded += hex[c & 0xF];
+                    }
+                  }
+                  return encoded;
+                };
+                
+                std::string encoded_zip = url_encode(zip_code);
+                std::string encoded_country = url_encode(country);
+                
+                ESP_LOGI("geo", "Using ZIP: %s (%s), Country: %s (%s)", 
+                         zip_code.c_str(), encoded_zip.c_str(), 
+                         country.c_str(), encoded_country.c_str());
+                
+                // Only use ZIP as a temporary fallback until geocoding returns a city name.
+                if (id(location_name_str).empty() || id(location_name_str) == "Unknown") {
+                  id(location_name_str) = zip_code + ", " + country;
+                }
+            
             - http_request.get:
                 url: !lambda |-
+                  // URL encode function - replace spaces with %20
+                  auto url_encode = [](const std::string& str) -> std::string {
+                    std::string encoded;
+                    for (char c : str) {
+                      if (c == ' ') {
+                        encoded += "%20";
+                      } else if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || 
+                                 (c >= 'a' && c <= 'z') || c == '-' || c == '_' || c == '.' || c == '~') {
+                        encoded += c;
+                      } else {
+                        encoded += '%';
+                        static const char hex[] = "0123456789ABCDEF";
+                        encoded += hex[(c >> 4) & 0xF];
+                        encoded += hex[c & 0xF];
+                      }
+                    }
+                    return encoded;
+                  };
+                  
                   char url[512];
-                  sprintf(url,
+                  std::string zip_clean = id(user_zip_code);
+                  zip_clean.erase(std::remove(zip_clean.begin(), zip_clean.end(), ' '), zip_clean.end());
+                  std::string enc_zip = url_encode(zip_clean);
+                  std::string enc_country = url_encode(id(user_country));
+                  snprintf(url, sizeof(url),
                     "http://api.openweathermap.org/geo/1.0/zip?zip=%s,%s&appid=b0fed035f1b875bafaf66f85d33f4e71",
-                    id(user_zip_code).c_str(), id(user_country).c_str());
+                    enc_zip.c_str(), enc_country.c_str());
+                  ESP_LOGD("geo", "Geocoding URL: %s", url);
                   return std::string(url);
                 request_headers:
                   User-Agent: "ESPHome/1.0"
@@ -8019,58 +8986,109 @@ interval:
                 on_response:
                   then:
                     - lambda: |-
-                        ESP_LOGD("geo", "Geocoding response: %s", body.c_str());
+                        ESP_LOGD("geo", "Geocoding response (status %d): %s", response->status_code, body.c_str());
 
-                        // Parse latitude
-                        size_t lat_pos = body.find("\"lat\":");
-                        if (lat_pos != std::string::npos) {
-                          size_t start = lat_pos + 6;
-                          size_t end = body.find(",", start);
-                          if (end == std::string::npos) end = body.find("}", start);
-                          
-                          if (end != std::string::npos) {
-                            std::string lat_str = body.substr(start, end - start);
-                            id(current_lat) = std::stof(lat_str);
-                            ESP_LOGI("geo", "Latitude: %.4f", id(current_lat));
+                          // The ZIP geocoding endpoint returns lat/lon/name and may not include "cod".
+                          if (response->status_code != 200 || body.empty()) {
+                            ESP_LOGW("geo", "Invalid geocoding response - status=%d", response->status_code);
+                            return;
                           }
-                        }
 
-                        // Parse longitude
-                        size_t lon_pos = body.find("\"lon\":");
-                        if (lon_pos != std::string::npos) {
-                          size_t start = lon_pos + 6;
-                          size_t end = body.find(",", start);
-                          if (end == std::string::npos) end = body.find("}", start);
-                          
-                          if (end != std::string::npos) {
-                            std::string lon_str = body.substr(start, end - start);
-                            id(current_lon) = std::stof(lon_str);
-                            ESP_LOGI("geo", "Longitude: %.4f", id(current_lon));
+                          // Parse latitude
+                          size_t lat_pos = body.find("\"lat\":");
+                          if (lat_pos != std::string::npos) {
+                            size_t start = lat_pos + 6;
+                            size_t end = body.find(",", start);
+                            if (end == std::string::npos) end = body.find("}", start);
+                            
+                            if (end != std::string::npos) {
+                              std::string lat_str = body.substr(start, end - start);
+                              id(current_lat) = std::stof(lat_str);
+                              ESP_LOGI("geo", "✓ Latitude: %.4f", id(current_lat));
+                            }
                           }
-                        }
 
-                        // Parse location name
-                        size_t name_pos = body.find("\"name\":\"");
-                        if (name_pos != std::string::npos) {
-                          size_t start = name_pos + 8;
-                          size_t end = body.find("\"", start);
-                          
-                          if (end != std::string::npos) {
-                            id(location_name_str) = body.substr(start, end - start);
-                            ESP_LOGI("geo", "Location: %s", id(location_name_str).c_str());
+                          // Parse longitude
+                          size_t lon_pos = body.find("\"lon\":");
+                          if (lon_pos != std::string::npos) {
+                            size_t start = lon_pos + 6;
+                            size_t end = body.find(",", start);
+                            if (end == std::string::npos) end = body.find("}", start);
+                            
+                            if (end != std::string::npos) {
+                              std::string lon_str = body.substr(start, end - start);
+                              id(current_lon) = std::stof(lon_str);
+                              ESP_LOGI("geo", "✓ Longitude: %.4f", id(current_lon));
+                            }
                           }
-                        }
+
+                          // Parse location name
+                          size_t name_pos = body.find("\"name\":\"");
+                          if (name_pos != std::string::npos) {
+                            size_t start = name_pos + 8;
+                            size_t end = body.find("\"", start);
+                            
+                            if (end != std::string::npos) {
+                              std::string city_name = body.substr(start, end - start);
+                              // Normalize common UTF-8 accents to ASCII so the current font can render it.
+                              auto normalize_ascii = [](const std::string& in) -> std::string {
+                                std::string out;
+                                out.reserve(in.size());
+                                for (size_t i = 0; i < in.size(); i++) {
+                                  unsigned char c = static_cast<unsigned char>(in[i]);
+                                  if (c == 0xC3 && (i + 1) < in.size()) {
+                                    unsigned char d = static_cast<unsigned char>(in[i + 1]);
+                                    switch (d) {
+                                      case 0xA1: case 0xA0: case 0xA2: case 0xA3: case 0xA4: out += 'a'; i++; continue;
+                                      case 0x81: case 0x80: case 0x82: case 0x83: case 0x84: out += 'A'; i++; continue;
+                                      case 0xA9: case 0xAA: case 0xA8: case 0xAB: out += 'e'; i++; continue;
+                                      case 0x89: case 0x8A: case 0x88: case 0x8B: out += 'E'; i++; continue;
+                                      case 0xAD: case 0xAC: case 0xAE: case 0xAF: out += 'i'; i++; continue;
+                                      case 0x8D: case 0x8C: case 0x8E: case 0x8F: out += 'I'; i++; continue;
+                                      case 0xB3: case 0xB2: case 0xB4: case 0xB5: case 0xB6: out += 'o'; i++; continue;
+                                      case 0x93: case 0x92: case 0x94: case 0x95: case 0x96: out += 'O'; i++; continue;
+                                      case 0xBA: case 0xB9: case 0xBB: case 0xBC: out += 'u'; i++; continue;
+                                      case 0x9A: case 0x99: case 0x9B: case 0x9C: out += 'U'; i++; continue;
+                                      case 0xA7: out += 'c'; i++; continue;
+                                      case 0x87: out += 'C'; i++; continue;
+                                      default: break;
+                                    }
+                                  }
+                                  if (c < 0x80) {
+                                    out += static_cast<char>(c);
+                                  }
+                                }
+                                return out;
+                              };
+                              id(location_name_str) = normalize_ascii(city_name);
+                              ESP_LOGI("geo", "✓ Location: %s", id(location_name_str).c_str());
+                            }
+                          }
+                        
+
                 on_error:
                   then:
-                    - logger.log: "Failed to fetch coordinates from ZIP code"
+                    - lambda: |-
+                        ESP_LOGW("geo", "⚠ Failed to fetch coordinates - API unavailable or network error");
+                        ESP_LOGW("geo", "Will retry next interval. Current fallback: lat=%.4f lon=%.4f", 
+                                 id(current_lat), id(current_lon));
+                        id(weather_api_retry_until_ms) = millis() + 900000UL;
 
-            # Step 2: Get weather data using coordinates
+            # Step 2: Get weather data using coordinates (only if coordinates are valid)
             - delay: 2s
             - logger.log: "Making OpenWeatherMap weather API request..."
+            - lambda: |-
+                // Validate coordinates before making weather request
+                if (id(current_lat) == 0.0f && id(current_lon) == 0.0f) {
+                  ESP_LOGW("weather", "Skipping weather API - no valid coordinates yet");
+                } else {
+                  ESP_LOGD("weather", "Using coordinates: lat=%.4f lon=%.4f for weather request", 
+                           id(current_lat), id(current_lon));
+                }
             - http_request.get:
                 url: !lambda |-
                   char url[512];
-                  sprintf(url,
+                  snprintf(url, sizeof(url),
                     "http://api.openweathermap.org/data/2.5/weather?lat=%.4f&lon=%.4f&appid=b0fed035f1b875bafaf66f85d33f4e71&units=metric",
                     id(current_lat), id(current_lon));
                   return std::string(url);
@@ -8082,9 +9100,19 @@ interval:
                   then:
                     - lambda: |-
                         ESP_LOGD("weather", "HTTP Status: %d", response->status_code);
-                        ESP_LOGD("weather", "Response body: %s", body.c_str());
+                          
+                          // Check for valid response
+                          if (response->status_code != 200) {
+                            ESP_LOGW("weather", "Weather API returned status %d", response->status_code);
+                            return;
+                          }
 
-                        if (body.length() > 0) {
+                          if (body.length() == 0) {
+                            ESP_LOGW("weather", "Empty response from weather API");
+                            return;
+                          }
+
+                          ESP_LOGD("weather", "Response body: %s", body.c_str());
                           
                           // Parse temperature
                           size_t temp_pos = body.find("\"temp\":");
@@ -8126,12 +9154,10 @@ interval:
                               std::string humidity_str = body.substr(start, end - start);
                               float humidity = std::stof(humidity_str);
                               id(owm_humidity).publish_state(humidity);
-                              
                             }
                           }
 
                           // Parse rain in mm from OWM payload
-                          // Prefer rain.1h, fallback to rain.3h (converted to approximate daily)
                           float rain_mm = 0.0f;
                           bool rain_found = false;
 
@@ -8190,10 +9216,8 @@ interval:
                               std::string wind_str = body.substr(start, end - start);
                               float wind_speed = std::stof(wind_str);
                               id(owm_wind_speed).publish_state(wind_speed);
-                             
                             }
                           }
-                          
                           
                           size_t gust_pos = body.find("\"gust\":");
                           if (gust_pos != std::string::npos) {
@@ -8205,11 +9229,10 @@ interval:
                               std::string gust_str = body.substr(start, end - start);
                               float wind_gust = std::stof(gust_str);
                               id(owm_wind_gust).publish_state(wind_gust);
-                              
                             }
                           }
                           
-                          // ADD NEW PARSING - Wind direction
+                          // Parse wind direction
                           size_t deg_pos = body.find("\"deg\":");
                           if (deg_pos != std::string::npos) {
                             size_t start = deg_pos + 6;
@@ -8220,11 +9243,10 @@ interval:
                               std::string deg_str = body.substr(start, end - start);
                               float wind_direction = std::stof(deg_str);
                               id(owm_wind_direction).publish_state(wind_direction);
-                              
-                              }
+                            }
                           }
                           
-                          // ADD NEW PARSING - Visibility
+                          // Parse visibility
                           size_t vis_pos = body.find("\"visibility\":");
                           if (vis_pos != std::string::npos) {
                             size_t start = vis_pos + 13;
@@ -8233,13 +9255,12 @@ interval:
                             
                             if (end != std::string::npos) {
                               std::string vis_str = body.substr(start, end - start);
-                              float visibility = std::stof(vis_str) / 1000.0; // Convert meters to kilometers
+                              float visibility = std::stof(vis_str) / 1000.0;
                               id(owm_visibility).publish_state(visibility);
-                              
                             }
                           }
                           
-                          // ADD NEW PARSING - Cloud coverage
+                          // Parse cloud coverage
                           size_t clouds_pos = body.find("\"all\":");
                           if (clouds_pos != std::string::npos) {
                             size_t start = clouds_pos + 6;
@@ -8250,11 +9271,10 @@ interval:
                               std::string clouds_str = body.substr(start, end - start);
                               float cloud_coverage = std::stof(clouds_str);
                               id(owm_clouds).publish_state(cloud_coverage);
-                            
                             }
                           }
                           
-                          // Parse weather main condition (e.g., "Clear", "Clouds", "Rain")
+                          // Parse weather main condition
                           size_t main_pos = body.find("\"main\":\"");
                           if (main_pos != std::string::npos) {
                             size_t start = main_pos + 8;
@@ -8263,11 +9283,10 @@ interval:
                             if (end != std::string::npos) {
                               std::string main_weather = body.substr(start, end - start);
                               id(weather_condition).publish_state(main_weather);
-                             
                             }
                           }
                           
-                          // Parse weather description (e.g., "clear sky", "few clouds")
+                          // Parse weather description
                           size_t desc_pos = body.find("\"description\":\"");
                           if (desc_pos != std::string::npos) {
                             size_t start = desc_pos + 15;
@@ -8275,28 +9294,26 @@ interval:
                             
                             if (end != std::string::npos) {
                               std::string description = body.substr(start, end - start);
-                              // Capitalize first letter
                               if (!description.empty()) {
                                 description[0] = std::toupper(description[0]);
                               }
                               id(weather_description).publish_state(description);
-
                             }
                           }
-                          // Parse city name (e.g., "London")
+                          
+                          // Parse city name
                           size_t name_pos = body.find("\"name\":\"");
                           if (name_pos != std::string::npos) {
-                            size_t start = name_pos + 8;  // skip `"name":"`
+                            size_t start = name_pos + 8;
                             size_t end = body.find("\"", start);
                             if (end != std::string::npos) {
                               std::string city_name = body.substr(start, end - start);
-                              //id(location_name_str) = city_name;
-                              ESP_LOGD("weather", "City name: %s", city_name.c_str());
-                              //id(weather_city).publish_state(city_name);
+                              // Keep geocoding ZIP name as the source of truth for location label.
+                              ESP_LOGW("weather", "Weather city parsed (ignored for label): %s", city_name.c_str());
                             }
                           }
 
-                          // Convert OWM UTC timestamps into local time using the current HA time offset.
+                          // Convert OWM UTC timestamps into local time
                           int owm_local_offset_minutes = 0;
                           auto local_now = id(time_comp).now();
                           if (local_now.is_valid()) {
@@ -8310,7 +9327,7 @@ interval:
                             }
                           }
                           
-                          // Parse sunrise time (Unix timestamp)
+                          // Parse sunrise time
                           size_t sunrise_pos = body.find("\"sunrise\":");
                           if (sunrise_pos != std::string::npos) {
                             size_t start = sunrise_pos + 10;
@@ -8321,21 +9338,19 @@ interval:
                               std::string sunrise_str = body.substr(start, end - start);
                               time_t sunrise_unix = std::stol(sunrise_str);
                               
-                              // OWM returns UTC timestamp - convert to ESPHome time object
                               ESPTime sunrise_time = ESPTime::from_epoch_utc(sunrise_unix);
-                                    int sunrise_total_min = sunrise_time.hour * 60 + sunrise_time.minute + owm_local_offset_minutes;
-                                    sunrise_total_min = (sunrise_total_min % 1440 + 1440) % 1440;
-                                    int sunrise_h = sunrise_total_min / 60;
-                                    int sunrise_m = sunrise_total_min % 60;
+                              int sunrise_total_min = sunrise_time.hour * 60 + sunrise_time.minute + owm_local_offset_minutes;
+                              sunrise_total_min = (sunrise_total_min % 1440 + 1440) % 1440;
+                              int sunrise_h = sunrise_total_min / 60;
+                              int sunrise_m = sunrise_total_min % 60;
                               char time_str[20];
-                              snprintf(time_str, sizeof(time_str), "%02d:%02d", 
-                                      sunrise_h, sunrise_m);
+                              snprintf(time_str, sizeof(time_str), "%02d:%02d", sunrise_h, sunrise_m);
                               id(owm_sunrise_time).publish_state(time_str);
                               ESP_LOGD("weather", "Sunrise: %s (Unix: %ld)", time_str, sunrise_unix);
                             }
                           }
                           
-                          // Parse sunset time (Unix timestamp)
+                          // Parse sunset time
                           size_t sunset_pos = body.find("\"sunset\":");
                           if (sunset_pos != std::string::npos) {
                             size_t start = sunset_pos + 9;
@@ -8346,24 +9361,22 @@ interval:
                               std::string sunset_str = body.substr(start, end - start);
                               time_t sunset_unix = std::stol(sunset_str);
                               
-                              // OWM returns UTC timestamp - convert to ESPHome time object
                               ESPTime sunset_time = ESPTime::from_epoch_utc(sunset_unix);
-                                    int sunset_total_min = sunset_time.hour * 60 + sunset_time.minute + owm_local_offset_minutes;
-                                    sunset_total_min = (sunset_total_min % 1440 + 1440) % 1440;
-                                    int sunset_h = sunset_total_min / 60;
-                                    int sunset_m = sunset_total_min % 60;
+                              int sunset_total_min = sunset_time.hour * 60 + sunset_time.minute + owm_local_offset_minutes;
+                              sunset_total_min = (sunset_total_min % 1440 + 1440) % 1440;
+                              int sunset_h = sunset_total_min / 60;
+                              int sunset_m = sunset_total_min % 60;
                               char time_str[20];
-                              snprintf(time_str, sizeof(time_str), "%02d:%02d", 
-                                      sunset_h, sunset_m);
+                              snprintf(time_str, sizeof(time_str), "%02d:%02d", sunset_h, sunset_m);
                               id(owm_sunset_time).publish_state(time_str);
                               ESP_LOGD("weather", "Sunset: %s (Unix: %ld)", time_str, sunset_unix);
                             }
                           }
 
-                          ESP_LOGD("weather", "Weather data parsing complete - updating display");
-                        } else {
-                          ESP_LOGW("weather", "Empty response from weather API");
-                        }
+                          ESP_LOGI("weather", "✓ Weather data parsing complete");
+                            id(weather_api_retry_until_ms) = 0;
+
+                        
 
                     - script.execute: calculate_irrigation_needs
 
@@ -8375,6 +9388,9 @@ interval:
 
                     - lvgl.label.update:
                         id: irrigation_needed_display
+
+                    - lvgl.label.update:
+                        id: fill_time_display
 
                     - lvgl.label.update:
                         id: irrigation_mode_display
@@ -8422,10 +9438,10 @@ interval:
                         id: pressure_label
                         text: !lambda |-
                           static char info_text[50];
-                          if ( id(owm_pressure).has_state()) {
+                          if (id(owm_pressure).has_state()) {
                             snprintf(info_text, sizeof(info_text), " %.0fhPa ", 
                                      id(owm_pressure).state);
-                          }else {
+                          } else {
                             snprintf(info_text, sizeof(info_text), "--%");
                           }
                           return info_text;
@@ -8476,10 +9492,13 @@ interval:
                           }
                           return "--:--";
 
-                    - logger.log: "All weather display labels updated"
+                    - logger.log: "✓ All weather display labels updated"
 
                 on_error:
                   then:
-                    - logger.log: "Weather API request failed"
+                    - lambda: |-
+                        ESP_LOGW("weather", "⚠ Weather API request failed - will retry next interval");
+                        ESP_LOGW("weather", "This is normal when internet is unavailable");
+                        id(weather_api_retry_until_ms) = millis() + 900000UL;
           else:
             - logger.log: "WiFi not connected, skipping weather update"
