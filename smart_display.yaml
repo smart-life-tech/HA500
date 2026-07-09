@@ -439,7 +439,8 @@ psram:
 # Enable logging
 logger:
   level: DEBUG
-  baud_rate: 115200
+  hardware_uart: USB_CDC
+  baud_rate: 0
   logs:
     # Change any section below from ERROR to INFO or DEBUG when needed.
     main: ${log_main}
