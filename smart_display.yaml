@@ -464,8 +464,8 @@ logger:
     touch: ${log_touch}
     swipe: ${log_touch}
     switch_state: ${log_switch_state}
-    ota: VERY_VERBOSE
-    api: VERY_VERBOSE
+    ota: DEBUG
+    api: DEBUG
     wifi: DEBUG
     time: DEBUG
     lvgl: DEBUG
