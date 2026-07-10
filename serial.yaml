@@ -4,8 +4,8 @@ substitutions:
   device_description: "Smart Controller"
   project_name: "Guition.ESP32_S3_4848S040"
   project_version: "09.07.26.1"
-  wifi_ssid: ""
-  wifi_password: ""
+  wifi_ssid: "AlfaobeiroGuest"
+  wifi_password: "Vale2020"
 
   log_main: "DEBUG"
   log_boot: "DEBUG"
@@ -18,43 +18,85 @@ substitutions:
   log_touch: "DEBUG"
   log_switch_state: "DEBUG"
 
-  # icon examples
-  lightbulb: "\U000F0335"
-  ceiling_light: "\U000F0769"
-  floor_lamp: "\U000F08DD"
-  settings_icon: "\U000F0493"
-  home_icon: "\U000F02DC"
-  sun_icon: "\U000F0599"
-  moon_icon: "\U000F0F64"
-  rain_icon: "\U000F0596"
-
 esphome:
   name: "${name}"
   friendly_name: "${friendly_name}"
+
   project:
     name: "${project_name}"
     version: "${project_version}"
+
   platformio_options:
     board_build.flash_mode: dio
     build_unflags:
       - "-f"
       - "-shared"
+
   on_boot:
+    priority: 600
     then:
       - lambda: |-
-          ESP_LOGD("BOOT", "Device ${friendly_name} starting up...");
-          ESP_LOGD("BOOT", "Project: %s v%s", "${project_name}", "${project_version}");
-          ESP_LOGD("BOOT", "Position variable set to MIDDLE_LEFT");
+          ESP_LOGI("BOOT", "====================================");
+          ESP_LOGI("BOOT", "Device: ${friendly_name}");
+          ESP_LOGI("BOOT", "Project: ${project_name}");
+          ESP_LOGI("BOOT", "Version: ${project_version}");
+          ESP_LOGI("BOOT", "Boot complete");
+          ESP_LOGI("BOOT", "====================================");
 
 esp32:
   board: esp32-s3-devkitc-1
   framework:
     type: esp-idf
 
+##########################################################
+# NETWORK
+##########################################################
+
+wifi:
+  ssid: "${wifi_ssid}"
+  password: "${wifi_password}"
+
+  ap:
+    ssid: "${friendly_name} Fallback"
+    password: "12345678"
+
+captive_portal:
+
+##########################################################
+# OTA
+##########################################################
+
+ota:
+  platform: esphome
+  password: "your_ota_password"
+
+##########################################################
+# WEB SERVER
+##########################################################
+
+web_server:
+  port: 80
+  version: 3
+  include_internal: true
+  log: true
+
+##########################################################
+# API
+##########################################################
+
+api:
+
+##########################################################
+# LOGGER
+##########################################################
+
 logger:
   level: DEBUG
 
-# Main loop: continuously count up
+##########################################################
+# MAIN LOOP
+##########################################################
+
 interval:
   - interval: 1s
     then:
@@ -63,15 +105,18 @@ interval:
           counter++;
           ESP_LOGD("COUNTER", "Count: %d", counter);
 
+##########################################################
+# TEST SWITCH
+##########################################################
 
-# Example dummy switch just to trigger logs
 switch:
   - platform: template
     name: "Debug Switch"
+
     turn_on_action:
       - lambda: |-
-          ESP_LOGD("DEBUG_SWITCH", "Switch turned ON at position MIDDLE_LEFT");
+          ESP_LOGD("DEBUG_SWITCH", "Switch turned ON");
+
     turn_off_action:
       - lambda: |-
-          ESP_LOGD("DEBUG_SWITCH", "Switch turned OFF at position MIDDLE_LEFT");
-
+          ESP_LOGD("DEBUG_SWITCH", "Switch turned OFF");
