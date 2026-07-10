@@ -103,7 +103,12 @@ interval:
           static int counter = 0;
           counter++;
           ESP_LOGD("COUNTER", "Count: %d", counter);
-
+  - interval: 2s
+    then:
+      - logger.log:
+          tag: TEST
+          level: INFO
+          format: "Counter alive"
 ##########################################################
 # TEST SWITCH
 ##########################################################
