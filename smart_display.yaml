@@ -2061,24 +2061,6 @@ button:
             id(daily_rainfall_mm) = 0.0f;
             ESP_LOGI("irrigation", "Daily rainfall reset to 0mm");
 
-script:
-  - id: sw2_long_press_script
-    then:
-      - delay: 3s
-      - lambda: |-
-          if (!id(sw2_hold_timer_active)) {
-            return;
-          }
-          if (id(lvgl_comp).get_current_page() != 1) {
-            id(sw2_hold_timer_active) = false;
-            return;
-          }
-          id(sw2_long_press_suppressed) = true;
-          id(sw2_manual_duration_minutes) = 300;
-          id(sw2_hold_timer_active) = false;
-          ESP_LOGI("ui", "SW2 long press detected - showing duration popup");
-      - lvgl.widget.show: pump_duration_popup
-
 # Add select for irrigation mode
 select:
   - platform: template
@@ -7088,6 +7070,23 @@ script:
           id: pump_runtime_label
           text: !lambda |-
             static char buf[16];
+  - id: sw2_long_press_script
+    then:
+      - delay: 3s
+      - lambda: |-
+          if (!id(sw2_hold_timer_active)) {
+            return;
+          }
+          if (id(lvgl_comp).get_current_page() != 1) {
+            id(sw2_hold_timer_active) = false;
+            return;
+          }
+          id(sw2_long_press_suppressed) = true;
+          id(sw2_manual_duration_minutes) = 300;
+          id(sw2_hold_timer_active) = false;
+          ESP_LOGI("ui", "SW2 long press detected - showing duration popup");
+      - lvgl.widget.show: pump_duration_popup
+
             sprintf(buf, "%.2f", id(total_runtime_multiple));
             return buf;
       - logger.log:
