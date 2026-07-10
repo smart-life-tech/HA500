@@ -2022,6 +2022,21 @@ globals:
     restore_value: no
     initial_value: "0"
 
+  - id: sw2_hold_timer_active
+    type: bool
+    restore_value: no
+    initial_value: "false"
+
+  - id: sw2_long_press_suppressed
+    type: bool
+    restore_value: no
+    initial_value: "false"
+
+  - id: sw2_long_press_start_time
+    type: unsigned long
+    restore_value: no
+    initial_value: "0"
+
 button:
   - platform: template
     name: "Start Valve Training"
@@ -2045,6 +2060,24 @@ button:
         - lambda: |-
             id(daily_rainfall_mm) = 0.0f;
             ESP_LOGI("irrigation", "Daily rainfall reset to 0mm");
+
+script:
+  - id: sw2_long_press_script
+    then:
+      - delay: 3s
+      - lambda: |-
+          if (!id(sw2_hold_timer_active)) {
+            return;
+          }
+          if (id(lvgl_comp).get_current_page() != 1) {
+            id(sw2_hold_timer_active) = false;
+            return;
+          }
+          id(sw2_long_press_suppressed) = true;
+          id(sw2_manual_duration_minutes) = 300;
+          id(sw2_hold_timer_active) = false;
+          ESP_LOGI("ui", "SW2 long press detected - showing duration popup");
+      - lvgl.widget.show: pump_duration_popup
 
 # Add select for irrigation mode
 select:
@@ -2803,25 +2836,33 @@ lvgl:
                   align: center
             on_click:
               then:
-                - lambda: |-
-                    id(sw2_last_trigger) = id(sw2).state ? "UI button requested OFF" : "UI button requested ON";
-                    ESP_LOGI("switch_state", "CONTROL PAGE: SW2 button pressed, current=%d", id(sw2).state ? 1 : 0);
-                - switch.toggle: sw2
-                - lambda: |-
-                    ESP_LOGI("switch_state", "CONTROL PAGE: SW2 after toggle state=%d", id(sw2).state ? 1 : 0);
-                    auto now = id(time_comp).now();
-                    if (!now.is_valid()) {
-                      now = id(sntp_time).now();
-                    }
-                    if (id(sw2).state) {
-                      if (now.is_valid()) {
-                        id(sw2_manual_override_time) = now.timestamp;
-                      } else {
-                        id(sw2_manual_override_time) = 1;
-                      }
-                    } else {
-                      id(sw2_manual_override_time) = 0;
-                    }
+                - if:
+                    condition:
+                      lambda: "return id(sw2_long_press_suppressed);"
+                    then:
+                      - lambda: |-
+                          ESP_LOGD("ui", "SW2 click suppressed after long press popup");
+                          id(sw2_long_press_suppressed) = false;
+                    else:
+                      - lambda: |-
+                          id(sw2_last_trigger) = id(sw2).state ? "UI button requested OFF" : "UI button requested ON";
+                          ESP_LOGI("switch_state", "CONTROL PAGE: SW2 button pressed, current=%d", id(sw2).state ? 1 : 0);
+                      - switch.toggle: sw2
+                      - lambda: |-
+                          ESP_LOGI("switch_state", "CONTROL PAGE: SW2 after toggle state=%d", id(sw2).state ? 1 : 0);
+                          auto now = id(time_comp).now();
+                          if (!now.is_valid()) {
+                            now = id(sntp_time).now();
+                          }
+                          if (id(sw2).state) {
+                            if (now.is_valid()) {
+                              id(sw2_manual_override_time) = now.timestamp;
+                            } else {
+                              id(sw2_manual_override_time) = 1;
+                            }
+                          } else {
+                            id(sw2_manual_override_time) = 0;
+                          }
         - image:
             src: settings_icon
             x: 390
@@ -8507,22 +8548,25 @@ touchscreen:
           // go to the light settings Page
           id(current_page) = 4;
           id(lvgl_comp).show_page(4, LV_SCR_LOAD_ANIM_OVER_LEFT, 300);
-          return; // Exit early if pump settings  area touched
+          return;
         }
-        if (touch.x >= 390 && touch.y >= 150 && touch.y <= 200 && (id(lvgl_comp).get_current_page()) == 1) {
-          ESP_LOGD("touch", "pump area touched at (%d, %d)", touch.x, touch.y);
-          // go to the pump settings Page
-          id(current_page) = 2;
-          id(lvgl_comp).show_page(2, LV_SCR_LOAD_ANIM_OVER_LEFT, 300);
-          return; // Exit early if pump settings  area touched
+
+        if (touch.x >= 40 && touch.x <= 380 && touch.y >= 140 && touch.y <= 210 && (id(lvgl_comp).get_current_page()) == 1) {
+          ESP_LOGD("touch", "SW2 button area touched at (%d, %d)", touch.x, touch.y);
+          id(sw2_hold_timer_active) = true;
+          id(sw2_long_press_suppressed) = false;
+          id(sw2_long_press_start_time) = millis();
+          id(sw2_long_press_script).execute();
         }
+
         if (touch.x >= 390 && touch.y >= 240 && touch.y <= 290 && (id(lvgl_comp).get_current_page()) == 1) {
           ESP_LOGD("touch", "valve area touched at (%d, %d)", touch.x, touch.y);
-          // go to the pump settings Page
+          // go to the valve settings Page
           id(current_page) = 5;
           id(lvgl_comp).show_page(5, LV_SCR_LOAD_ANIM_OVER_LEFT, 300);
-          return; // Exit early if pump settings  area touched
-          }
+          return; // Exit early if valve settings area touched
+        }
+
         if (!id(touch_active)) {
           // Store initial touch position
           id(touch_start_y) = touch.y;
@@ -8533,6 +8577,11 @@ touchscreen:
 
   on_release:
     - lambda: |-
+        // Stop the SW2 hold timer when the touch ends
+        if (id(sw2_hold_timer_active)) {
+          id(sw2_hold_timer_active) = false;
+        }
+
         // Calculate swipe distance
         int swipe_distance = id(touch_start_y) - id(touch_end_y);
         int min_swipe_distance = 80;
