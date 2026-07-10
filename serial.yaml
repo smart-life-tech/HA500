@@ -27,7 +27,9 @@ esphome:
     version: "${project_version}"
 
   platformio_options:
- 
+    build_flags:
+      - -DCONFIG_ESP_CONSOLE_UART_DEFAULT=1
+      - -DCONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=0
     build_unflags:
       - "-f"
       - "-shared"
