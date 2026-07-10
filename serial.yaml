@@ -27,7 +27,6 @@ esphome:
     version: "${project_version}"
 
   platformio_options:
-    board_build.flash_mode: dio
     build_unflags:
       - "-f"
       - "-shared"
