@@ -7070,6 +7070,12 @@ script:
           id: pump_runtime_label
           text: !lambda |-
             static char buf[16];
+            snprintf(buf, sizeof(buf), "%.2f", id(total_runtime_multiple));
+            return buf;
+      - logger.log:
+          format: "Runtime saved: %.2f hours"
+          args: ['id(total_runtime_multiple)']
+
   - id: sw2_long_press_script
     then:
       - delay: 3s
@@ -7087,12 +7093,6 @@ script:
           ESP_LOGI("ui", "SW2 long press detected - showing duration popup");
       - lvgl.widget.show: pump_duration_popup
 
-            sprintf(buf, "%.2f", id(total_runtime_multiple));
-            return buf;
-      - logger.log:
-          format: "Runtime saved: %.2f hours"
-          args: ['id(total_runtime_multiple)']
-          
   - id: manual_irrigation_test
     then:
       - logger.log: "Manual irrigation test started"
