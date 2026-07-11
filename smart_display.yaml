@@ -3186,7 +3186,7 @@ lvgl:
 
               # Cancel button
               - button:
-                  x: 218
+                  x: 220
                   y: 210
                   width: 110
                   height: 30
