@@ -2950,9 +2950,9 @@ lvgl:
         # ===== PUMP DURATION PICKER POPUP =====
         - obj:
             id: pump_duration_popup
-            x: 55
+            x: 45
             y: 120
-            width: 380
+            width: 400
             height: 280
             bg_color: 0x1E3A8A
             bg_opa: 95%
@@ -2969,13 +2969,13 @@ lvgl:
                   text_font: roboto
                   text_color: 0xFFFFFF
                   align: center
-                  x: 100
+                  x: 120
                   y: 15
                   width: 360
 
               # Duration display box
               - obj:
-                  x: 80
+                  x: 20
                   y: 50
                   width: 200
                   height: 60
