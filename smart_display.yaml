@@ -3007,7 +3007,7 @@ lvgl:
               # Decrease button (5 min step)
               - button:
                   x: 30
-                  y: 130
+                  y: 90
                   width: 50
                   height: 50
                   radius: 10
@@ -3031,7 +3031,7 @@ lvgl:
               # Increase button (5 min step)
               - button:
                   x: 280
-                  y: 130
+                  y: 90
                   width: 50
                   height: 50
                   radius: 10
@@ -3055,7 +3055,7 @@ lvgl:
               # Quick preset buttons (15, 30, 60 min)
               - button:
                   x: 30
-                  y: 195
+                  y: 155
                   width: 45
                   height: 35
                   radius: 5
@@ -3074,7 +3074,7 @@ lvgl:
 
               - button:
                   x: 85
-                  y: 195
+                  y: 155
                   width: 45
                   height: 35
                   radius: 5
@@ -3093,7 +3093,7 @@ lvgl:
 
               - button:
                   x: 140
-                  y: 195
+                  y: 155
                   width: 45
                   height: 35
                   radius: 5
@@ -3112,7 +3112,7 @@ lvgl:
 
               - button:
                   x: 195
-                  y: 195
+                  y: 155
                   width: 45
                   height: 35
                   radius: 5
@@ -3131,7 +3131,7 @@ lvgl:
 
               - button:
                   x: 250
-                  y: 195
+                  y: 155
                   width: 80
                   height: 35
                   radius: 5
@@ -3150,7 +3150,7 @@ lvgl:
               # Save/Done button
               - button:
                   x: 50
-                  y: 240
+                  y: 190
                   width: 110
                   height: 30
                   radius: 8
@@ -3187,7 +3187,7 @@ lvgl:
               # Cancel button
               - button:
                   x: 170
-                  y: 240
+                  y: 190
                   width: 110
                   height: 30
                   radius: 8
