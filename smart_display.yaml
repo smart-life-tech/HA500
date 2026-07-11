@@ -2969,7 +2969,7 @@ lvgl:
                   text_font: roboto
                   text_color: 0xFFFFFF
                   align: center
-                  #x: 0
+                  x: 150
                   y: 10
                   width: 360
 
