@@ -3150,7 +3150,7 @@ lvgl:
               # Save/Done button
               - button:
                   x: 30
-                  y: 200
+                  y: 210
                   width: 110
                   height: 30
                   radius: 8
@@ -3186,8 +3186,8 @@ lvgl:
 
               # Cancel button
               - button:
-                  x: 140
-                  y: 200
+                  x: 200
+                  y: 210
                   width: 110
                   height: 30
                   radius: 8
