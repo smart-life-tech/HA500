@@ -2950,7 +2950,7 @@ lvgl:
         # ===== PUMP DURATION PICKER POPUP =====
         - obj:
             id: pump_duration_popup
-            x: 20
+            x: 45
             y: 120
             width: 390
             height: 280
@@ -3149,7 +3149,7 @@ lvgl:
 
               # Save/Done button
               - button:
-                  x: 50
+                  x: 30
                   y: 200
                   width: 110
                   height: 30
@@ -3186,7 +3186,7 @@ lvgl:
 
               # Cancel button
               - button:
-                  x: 170
+                  x: 140
                   y: 200
                   width: 110
                   height: 30
