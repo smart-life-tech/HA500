@@ -3186,7 +3186,7 @@ lvgl:
 
               # Cancel button
               - button:
-                  x: 215
+                  x: 218
                   y: 210
                   width: 110
                   height: 30
@@ -3194,7 +3194,7 @@ lvgl:
                   bg_color: 0xAA0000
                   widgets:
                     - label:
-                        text: "Cancel"
+                        text: "CANCEL"
                         text_font: roboto
                         align: center
                         text_color: 0xFFFFFF
