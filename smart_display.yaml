@@ -2037,6 +2037,11 @@ globals:
     restore_value: no
     initial_value: "0"
 
+  - id: sw2_hold_confirmed
+    type: bool
+    restore_value: no
+    initial_value: "false"
+
 button:
   - platform: template
     name: "Start Valve Training"
@@ -2820,10 +2825,11 @@ lvgl:
               then:
                 - if:
                     condition:
-                      lambda: "return id(sw2_long_press_suppressed);"
+                      lambda: "return id(sw2_hold_confirmed);"
                     then:
                       - lambda: |-
-                          ESP_LOGD("ui", "SW2 click suppressed after long press popup");
+                          ESP_LOGD("ui", "SW2 click suppressed after confirmed long press");
+                          id(sw2_hold_confirmed) = false;
                           id(sw2_long_press_suppressed) = false;
                     else:
                       - lambda: |-
@@ -3025,6 +3031,7 @@ lvgl:
                           } else {
                             id(sw2_manual_duration_minutes) = 5;
                           }
+                          ESP_LOGI("pump_debug", "SW2 duration decreased to %d minutes", id(sw2_manual_duration_minutes));
                       - lvgl.label.update:
                           id: pump_duration_display
 
@@ -3049,6 +3056,7 @@ lvgl:
                           if (id(sw2_manual_duration_minutes) > 1440) {
                             id(sw2_manual_duration_minutes) = 1440;
                           }
+                          ESP_LOGI("pump_debug", "SW2 duration increased to %d minutes", id(sw2_manual_duration_minutes));
                       - lvgl.label.update:
                           id: pump_duration_display
 
@@ -3069,6 +3077,7 @@ lvgl:
                     then:
                       - lambda: |-
                           id(sw2_manual_duration_minutes) = 15;
+                          ESP_LOGI("pump_debug", "SW2 duration preset 15m");
                       - lvgl.label.update:
                           id: pump_duration_display
 
@@ -3088,6 +3097,7 @@ lvgl:
                     then:
                       - lambda: |-
                           id(sw2_manual_duration_minutes) = 30;
+                          ESP_LOGI("pump_debug", "SW2 duration preset 30m");
                       - lvgl.label.update:
                           id: pump_duration_display
 
@@ -3107,6 +3117,7 @@ lvgl:
                     then:
                       - lambda: |-
                           id(sw2_manual_duration_minutes) = 60;
+                          ESP_LOGI("pump_debug", "SW2 duration preset 60m");
                       - lvgl.label.update:
                           id: pump_duration_display
 
@@ -3126,6 +3137,7 @@ lvgl:
                     then:
                       - lambda: |-
                           id(sw2_manual_duration_minutes) = 300;
+                          ESP_LOGI("pump_debug", "SW2 duration preset 5h");
                       - lvgl.label.update:
                           id: pump_duration_display
 
@@ -3144,8 +3156,7 @@ lvgl:
                   on_click:
                     then:
                       - lambda: |-
-                          // Just leave it for manual adjustment
-                          ESP_LOGI("ui", "Custom duration mode");
+                          ESP_LOGI("pump_debug", "SW2 duration custom selection; current=%d min", id(sw2_manual_duration_minutes));
 
               # Save/Done button
               - button:
@@ -3169,9 +3180,7 @@ lvgl:
                             now = id(sntp_time).now();
                           }
                           if (now.is_valid()) {
-                            // Set the manual duration end time
                             id(sw2_manual_duration_end_time) = now.timestamp + (id(sw2_manual_duration_minutes) * 60);
-                            // Also set the override timestamp to trigger manual mode
                             id(sw2_manual_override_time) = now.timestamp;
                             ESP_LOGI("pump_debug", "SW2 manual duration set: %d min, end_time=%u", 
                                      id(sw2_manual_duration_minutes), id(sw2_manual_duration_end_time));
@@ -3181,7 +3190,8 @@ lvgl:
                       - switch.turn_on: sw2
                       - lvgl.widget.hide: pump_duration_popup
                       - lambda: |-
-                          // Return to controls page
+                          id(sw2_hold_confirmed) = false;
+                          id(sw2_long_press_suppressed) = false;
                           id(lvgl_comp).show_page(1, LV_SCR_LOAD_ANIM_FADE_ON, 300);
 
               # Cancel button
@@ -3202,7 +3212,8 @@ lvgl:
                     then:
                       - lvgl.widget.hide: pump_duration_popup
                       - lambda: |-
-                          // Return to controls page without making changes
+                          id(sw2_hold_confirmed) = false;
+                          id(sw2_long_press_suppressed) = false;
                           id(lvgl_comp).show_page(1, LV_SCR_LOAD_ANIM_FADE_ON, 300);
 
         # ===== END PUMP DURATION PICKER =====
@@ -7081,17 +7092,24 @@ script:
       - delay: 3s
       - lambda: |-
           if (!id(sw2_hold_timer_active)) {
+            ESP_LOGD("ui", "SW2 long press aborted before timeout");
             return;
           }
           if (id(lvgl_comp).get_current_page() != 1) {
             id(sw2_hold_timer_active) = false;
+            id(sw2_hold_confirmed) = false;
             return;
           }
+          id(sw2_hold_confirmed) = true;
           id(sw2_long_press_suppressed) = true;
           id(sw2_manual_duration_minutes) = 300;
           id(sw2_hold_timer_active) = false;
           ESP_LOGI("ui", "SW2 long press detected - showing duration popup");
-      - lvgl.widget.show: pump_duration_popup
+      - if:
+          condition:
+            lambda: "return id(sw2_hold_confirmed);"
+          then:
+            - lvgl.widget.show: pump_duration_popup
 
   - id: manual_irrigation_test
     then:
@@ -8553,6 +8571,7 @@ touchscreen:
         if (touch.x >= 40 && touch.x <= 380 && touch.y >= 140 && touch.y <= 210 && (id(lvgl_comp).get_current_page()) == 1) {
           ESP_LOGD("touch", "SW2 button area touched at (%d, %d)", touch.x, touch.y);
           id(sw2_hold_timer_active) = true;
+          id(sw2_hold_confirmed) = false;
           id(sw2_long_press_suppressed) = false;
           id(sw2_long_press_start_time) = millis();
           id(sw2_long_press_script).execute();
@@ -8579,6 +8598,7 @@ touchscreen:
         // Stop the SW2 hold timer when the touch ends
         if (id(sw2_hold_timer_active)) {
           id(sw2_hold_timer_active) = false;
+          id(sw2_hold_confirmed) = false;
         }
 
         // Calculate swipe distance
