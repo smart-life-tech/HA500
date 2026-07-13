@@ -4,7 +4,7 @@ substitutions:
   friendly_name: "Phijo Smart"
   device_description: " Smart Controller"
   project_name: "Guition.ESP32_S3_4848S040"
-  project_version: "13.07.26.1"
+  project_version: "13.07.26.2"
   wifi_ssid: ""
   wifi_password: ""
 
@@ -76,6 +76,10 @@ esphome:
           id(lvgl_comp).show_page(0, LV_SCR_LOAD_ANIM_FADE_ON, 400);
           ESP_LOGD("BOOT", "Showing main page");
       - script.execute: calculate_irrigation_needs
+      - lvgl.widget.update:
+          id: sw2_button
+          state:
+            checked: !lambda "return id(sw2).state;"
       - number.set:
           id: pool_length
           value: !lambda "return id(global_pool_length);"
@@ -2816,6 +2820,8 @@ lvgl:
             x: 40
             y: 140
             checkable: true
+            state:
+              checked: !lambda "return id(sw2).state;"
             widgets:
               - label:
                   text: "Pump"
@@ -2836,6 +2842,10 @@ lvgl:
                           id(sw2_last_trigger) = id(sw2).state ? "UI button requested OFF" : "UI button requested ON";
                           ESP_LOGI("switch_state", "CONTROL PAGE: SW2 button pressed, current=%d", id(sw2).state ? 1 : 0);
                       - switch.toggle: sw2
+                      - lvgl.widget.update:
+                          id: sw2_button
+                          state:
+                            checked: !lambda "return id(sw2).state;"
                       - lambda: |-
                           ESP_LOGI("switch_state", "CONTROL PAGE: SW2 after toggle state=%d", id(sw2).state ? 1 : 0);
                           auto now = id(time_comp).now();
@@ -6909,7 +6919,7 @@ switch:
         - lvgl.widget.update:
             id: sw2_button
             state:
-              checked: true
+              checked: !lambda "return id(sw2).state;"
         - lvgl.label.update:
             id: status_label
             text: "Water Pump ON"
@@ -6931,7 +6941,7 @@ switch:
         - lvgl.widget.update:
             id: sw2_button
             state:
-              checked: false
+              checked: !lambda "return id(sw2).state;"
         - lvgl.label.update:
             id: status_label
             text: "Water Pump OFF"
