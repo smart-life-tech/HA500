@@ -1,43 +1,49 @@
-For the LM5155, the switching frequency is determined by the RT pin resistor. In our design, we used approximately 49.9kΩ, which according to the datasheet targets roughly 440kHz switching frequency.
+1. Add USB Input Protection
 
-To verify the controller is actually switching and boosting you measured ~416kHz–430kHz, which is already very close to expected operation. That indicates the LM5155 oscillator is alive and driving the MOSFET.
+    Recommend an ESD protection diode array on the USB-C VBUS and CC lines to improve robustness against electrostatic discharge.
+    Consider a resettable polyfuse on VBUS to protect the board from accidental shorts or excessive input current.
 
-The real confirmation of boost operation is at the switch node / MOSFET drain / transformer primary:
+2. Improve ADC Measurement Stability
 
- In a working boost/flyback converter, the drain voltage should pulse significantly above VIN during flyback events.
- Since you saw:
+    Add a small capacitor (typically 100 nF) across the lower resistor of the battery voltage divider to form a low-pass filter. This reduces ADC noise and provides more stable battery readings.
 
-   VIN ≈ 13.4V
-   drain peaks ≈ 18V
-   transformer primary oscillation at hundreds of kHz
+3. Increase Local Decoupling on the Motor Driver
 
-that confirms energy transfer is occurring in the primary.
+    The DRV8837 should have a dedicated 100 nF ceramic capacitor placed immediately adjacent to the VM supply pin in addition to the existing bulk capacitor to suppress switching transients.
 
-The problem is likely on the secondary/flyback side, because:
+4. Review Boost Converter Feedback Network
 
- HV capacitor only reaches 12–22V
- expected should be hundreds of volts
- therefore secondary energy is either:
+    Verify that the resistor divider values actually produce the intended 6 V output and confirm they comply with the regulator's recommended operating range.
 
-   not rectified,
-   transformer polarity wrong,
-   secondary open,
-   diode reversed,
-   capacitor wiring incorrect,
-   or SCR discharge path loading the output.
+5. Improve LDO Output Stability
 
-From the datasheet behavior:
+    While the MCP1700 will operate with the current capacitors, increasing the output capacitance (e.g., to 4.7 µF) provides better transient response during MCU and LED load changes.
 
- If the LM5155 was not boosting, the drain would stay near battery voltage with little switching activity.
- Seeing oscillation + elevated drain voltage + audible magnetics means the controller is operating.
+6. Optimize Speaker Driver
 
-Next critical checks:
+    In addition to adding the series resistor, replace the through-hole 2N2222 with an SOT-23 transistor (MMBT2222A or BC817) to match the SMT assembly process.
 
-1. Verify transformer dot orientation/polarity.
-2. Verify HV diode direction.
-3. Disconnect SCR discharge path temporarily.
-4. Measure raw AC voltage directly across secondary winding.
-5. Measure HV capacitor voltage relative to isolated HV return only.
+7. Replace Through-Hole Components
 
-Also important:
-The measured 416kHz is far above audible range, so the “buzzing” is likely transformer core vibration or burst/protection cycling, not the actual switching frequency.
+    Replace the 1N4148 DO-35 diode with an SMD equivalent (1N4148WS/BAS16) to maintain a fully SMT assembly.
+
+8. Thermal Design Considerations
+
+    Verify that the BQ24040 exposed pad and the DRV8837 thermal pad are connected to a solid ground plane with sufficient thermal vias for heat dissipation.
+
+9. components layout on pcb
+    re layout all the componets and mounting holes on the pcb to make sure all are aligned.
+
+10. Decoupling Placement
+
+ Ensure every IC's bypass capacitor is physically located as close as possible to its supply pins. This cannot be confirmed from the schematic but should be verified during layout review.
+
+11. Battery Protection Path Verification
+
+ Confirm the DW01A and dual MOSFET orientation matches the recommended application circuit so that over-charge, over-discharge, and over-current protection operate correctly.
+
+12. PWM/Motor Control Readiness
+
+ Verify the chosen STM32 timer channels support true hardware PWM on the selected DRV8837 input pins to meet the requirement for smooth, jitter-free motor control.
+
+
