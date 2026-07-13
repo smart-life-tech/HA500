@@ -45,6 +45,8 @@ esphome:
       - logger.log: "BOOT: logger active"
       - delay: 500ms
       - lambda: |-
+          // go to boot page at start up
+          id(lvgl_comp).show_page(8, LV_SCR_LOAD_ANIM_OVER_LEFT, 300);
           ESP_LOGI("BOOT", "BOOT: logger test message");
           auto now = id(time_comp).now();
           auto sunrise_opt = id(sun_comp).sunrise(0.0);
@@ -2175,7 +2177,7 @@ lvgl:
   page_wrap: true
   pages:
     # Main Page - Dashboard with Clock, Date, Weather
-    - id: main_page
+    - id: main_page #0
       skip: false
       bg_color: 0x000000
       bg_opa: cover
@@ -2524,6 +2526,7 @@ lvgl:
                 - lambda: |-
                     id(current_page) = 1;
                 - lvgl.page.next:
+                - lvgl.widget.hide: pump_duration_popup
 
         - obj:
             id: wifi_popup_obj
@@ -2755,7 +2758,7 @@ lvgl:
             scrollable: false
 
     # Controls Page - Light Control Buttons
-    - id: controls_page
+    - id: controls_page #1
       skip: false
       bg_color: 0x000000
       bg_opa: cover
@@ -2873,7 +2876,9 @@ lvgl:
                 - lambda: |-
                     ESP_LOGI("ui", "SW2 settings icon clicked - showing pump duration popup");
                     id(sw2_manual_duration_minutes) = 300; // Reset to default
-                - lvgl.widget.show: pump_duration_popup
+                    // go to sttong page from control page
+                    id(lvgl_comp).show_page(2, LV_SCR_LOAD_ANIM_OVER_LEFT, 300);
+                #- lvgl.widget.show: pump_duration_popup
         # Update Switch 3 - Watering Valve
         - button:
             id: sw3_button
@@ -3329,7 +3334,7 @@ lvgl:
                     id(lvgl_comp).show_page(3, LV_SCR_LOAD_ANIM_OVER_LEFT, 300);
 
     # New Pump/Watering Settings Page
-    - id: pump_settings_page
+    - id: pump_settings_page #2
       scrollable: false
 
       widgets:
@@ -4423,7 +4428,7 @@ lvgl:
                           id(lvgl_comp).show_page(1, LV_SCR_LOAD_ANIM_OVER_RIGHT, 300);
 
     # Settings Page
-    - id: settings_page
+    - id: settings_page #3
       bg_color: 0x000000
       bg_opa: cover
       pad_all: 0
@@ -4566,7 +4571,7 @@ lvgl:
                     id(lvgl_comp).show_page(1, LV_SCR_LOAD_ANIM_OVER_RIGHT, 300);
 
         # Light Automation Settings Page
-    - id: light_settings_page
+    - id: light_settings_page #4
       bg_color: 0x000000
       bg_opa: cover
       pad_all: 0
@@ -5234,7 +5239,7 @@ lvgl:
                           // go to sttong page from control page
                           id(lvgl_comp).show_page(1, LV_SCR_LOAD_ANIM_OVER_RIGHT, 300);
 
-    - id: water_pump_settings_page
+    - id: water_pump_settings_page #5
       bg_color: 0x000000
       pad_all: 0
       border_width: 0
@@ -5779,7 +5784,7 @@ lvgl:
             x: 0
             y: 0
 
-    - id: pool_pump_settings_page
+    - id: pool_pump_settings_page #6
       bg_color: 0x0F172A
       pad_all: 0
       border_width: 0
@@ -6669,7 +6674,7 @@ lvgl:
                     snprintf(text, sizeof(text), "%.2f", id(total_runtime_multiple));
                     return text;
     #-------------------------------------------
-    - id: location_setup_screen
+    - id: location_setup_screen #7
       pad_all: 0
       border_width: 0
       scrollable: false
@@ -6806,7 +6811,7 @@ lvgl:
                     tag: location_setup
 
     #-------------------------------------------
-    - id: splash_screen
+    - id: splash_screen #8
       skip: false
       bg_color: 0x000000
       bg_opa: COVER
