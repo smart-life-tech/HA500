@@ -3034,6 +3034,16 @@ lvgl:
                           ESP_LOGI("pump_debug", "SW2 duration decreased to %d minutes", id(sw2_manual_duration_minutes));
                       - lvgl.label.update:
                           id: pump_duration_display
+                          text: !lambda |-
+                            static char text[40];
+                            int hours = id(sw2_manual_duration_minutes) / 60;
+                            int minutes = id(sw2_manual_duration_minutes) % 60;
+                            if (hours > 0) {
+                              snprintf(text, sizeof(text), "%dh %02dm", hours, minutes);
+                            } else {
+                              snprintf(text, sizeof(text), "%d min", minutes);
+                            }
+                            return text;
 
               # Increase button (5 min step)
               - button:
@@ -3059,6 +3069,16 @@ lvgl:
                           ESP_LOGI("pump_debug", "SW2 duration increased to %d minutes", id(sw2_manual_duration_minutes));
                       - lvgl.label.update:
                           id: pump_duration_display
+                          text: !lambda |-
+                            static char text[40];
+                            int hours = id(sw2_manual_duration_minutes) / 60;
+                            int minutes = id(sw2_manual_duration_minutes) % 60;
+                            if (hours > 0) {
+                              snprintf(text, sizeof(text), "%dh %02dm", hours, minutes);
+                            } else {
+                              snprintf(text, sizeof(text), "%d min", minutes);
+                            }
+                            return text;
 
               # Quick preset buttons (15, 30, 60 min)
               - button:
@@ -3080,6 +3100,16 @@ lvgl:
                           ESP_LOGI("pump_debug", "SW2 duration preset 15m");
                       - lvgl.label.update:
                           id: pump_duration_display
+                          text: !lambda |-
+                            static char text[40];
+                            int hours = id(sw2_manual_duration_minutes) / 60;
+                            int minutes = id(sw2_manual_duration_minutes) % 60;
+                            if (hours > 0) {
+                              snprintf(text, sizeof(text), "%dh %02dm", hours, minutes);
+                            } else {
+                              snprintf(text, sizeof(text), "%d min", minutes);
+                            }
+                            return text;
 
               - button:
                   x: 85
@@ -3100,6 +3130,16 @@ lvgl:
                           ESP_LOGI("pump_debug", "SW2 duration preset 30m");
                       - lvgl.label.update:
                           id: pump_duration_display
+                          text: !lambda |-
+                            static char text[40];
+                            int hours = id(sw2_manual_duration_minutes) / 60;
+                            int minutes = id(sw2_manual_duration_minutes) % 60;
+                            if (hours > 0) {
+                              snprintf(text, sizeof(text), "%dh %02dm", hours, minutes);
+                            } else {
+                              snprintf(text, sizeof(text), "%d min", minutes);
+                            }
+                            return text;
 
               - button:
                   x: 140
@@ -3120,6 +3160,16 @@ lvgl:
                           ESP_LOGI("pump_debug", "SW2 duration preset 60m");
                       - lvgl.label.update:
                           id: pump_duration_display
+                          text: !lambda |-
+                            static char text[40];
+                            int hours = id(sw2_manual_duration_minutes) / 60;
+                            int minutes = id(sw2_manual_duration_minutes) % 60;
+                            if (hours > 0) {
+                              snprintf(text, sizeof(text), "%dh %02dm", hours, minutes);
+                            } else {
+                              snprintf(text, sizeof(text), "%d min", minutes);
+                            }
+                            return text;
 
               - button:
                   x: 195
@@ -3140,6 +3190,16 @@ lvgl:
                           ESP_LOGI("pump_debug", "SW2 duration preset 5h");
                       - lvgl.label.update:
                           id: pump_duration_display
+                          text: !lambda |-
+                            static char text[40];
+                            int hours = id(sw2_manual_duration_minutes) / 60;
+                            int minutes = id(sw2_manual_duration_minutes) % 60;
+                            if (hours > 0) {
+                              snprintf(text, sizeof(text), "%dh %02dm", hours, minutes);
+                            } else {
+                              snprintf(text, sizeof(text), "%d min", minutes);
+                            }
+                            return text;
 
               - button:
                   x: 250
