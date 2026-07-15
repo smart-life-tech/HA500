@@ -4,7 +4,7 @@ substitutions:
   friendly_name: "Phijo Smart"
   device_description: " Smart Controller"
   project_name: "Guition.ESP32_S3_4848S040"
-  project_version: "14.07.26.2"
+  project_version: "15.07.26.1"
   wifi_ssid: ""
   wifi_password: ""
 
@@ -2048,6 +2048,16 @@ globals:
     restore_value: no
     initial_value: "false"
 
+  - id: sw2_popup_restore_pending
+    type: bool
+    restore_value: no
+    initial_value: "false"
+
+  - id: sw2_popup_previous_state
+    type: bool
+    restore_value: no
+    initial_value: "false"
+
 button:
   - platform: template
     name: "Start Valve Training"
@@ -3250,6 +3260,7 @@ lvgl:
                   on_click:
                     then:
                       - lambda: |-
+                          id(sw2_popup_restore_pending) = false;
                           auto now = id(time_comp).now();
                           if (!now.is_valid()) {
                             now = id(sntp_time).now();
@@ -3287,6 +3298,17 @@ lvgl:
                     then:
                       - lvgl.widget.hide: pump_duration_popup
                       - lambda: |-
+                          if (id(sw2_popup_restore_pending)) {
+                            bool prev_state = id(sw2_popup_previous_state);
+                            if (prev_state != id(sw2).state) {
+                              if (prev_state) {
+                                id(sw2).turn_on();
+                              } else {
+                                id(sw2).turn_off();
+                              }
+                            }
+                            id(sw2_popup_restore_pending) = false;
+                          }
                           id(sw2_hold_confirmed) = false;
                           id(sw2_long_press_suppressed) = false;
                           id(lvgl_comp).show_page(1, LV_SCR_LOAD_ANIM_FADE_ON, 300);
@@ -7167,16 +7189,20 @@ script:
       - delay: 3s
       - lambda: |-
           if (!id(sw2_hold_timer_active)) {
+            id(sw2_popup_restore_pending) = false;
             ESP_LOGD("ui", "SW2 long press aborted before timeout");
             return;
           }
           if (id(lvgl_comp).get_current_page() != 1) {
             id(sw2_hold_timer_active) = false;
             id(sw2_hold_confirmed) = false;
+            id(sw2_popup_restore_pending) = false;
             return;
           }
           id(sw2_hold_confirmed) = true;
           id(sw2_long_press_suppressed) = true;
+          id(sw2_popup_previous_state) = id(sw2).state;
+          id(sw2_popup_restore_pending) = true;
           id(sw2_manual_duration_minutes) = 300;
           id(sw2_hold_timer_active) = false;
           ESP_LOGI("ui", "SW2 long press detected - showing duration popup");
