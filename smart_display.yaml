@@ -2844,12 +2844,10 @@ lvgl:
               then:
                 - if:
                     condition:
-                      lambda: "return id(sw2_hold_confirmed);"
+                      lambda: "return id(sw2_hold_confirmed) || id(sw2_long_press_suppressed);"
                     then:
                       - lambda: |-
-                          ESP_LOGD("ui", "SW2 click suppressed after confirmed long press");
-                          id(sw2_hold_confirmed) = false;
-                          id(sw2_long_press_suppressed) = false;
+                          ESP_LOGD("ui", "SW2 click suppressed after long press handling");
                     else:
                       - lambda: |-
                           id(sw2_last_trigger) = id(sw2).state ? "UI button requested OFF" : "UI button requested ON";
@@ -3297,20 +3295,14 @@ lvgl:
                   on_click:
                     then:
                       - lvgl.widget.hide: pump_duration_popup
+                      - lvgl.widget.update:
+                          id: sw2_button
+                          state:
+                            checked: !lambda "return id(sw2_popup_previous_state);"
                       - lambda: |-
-                          if (id(sw2_popup_restore_pending)) {
-                            bool prev_state = id(sw2_popup_previous_state);
-                            if (prev_state != id(sw2).state) {
-                              if (prev_state) {
-                                id(sw2).turn_on();
-                              } else {
-                                id(sw2).turn_off();
-                              }
-                            }
-                            id(sw2_popup_restore_pending) = false;
-                          }
                           id(sw2_hold_confirmed) = false;
                           id(sw2_long_press_suppressed) = false;
+                          id(sw2_popup_restore_pending) = false;
                           id(lvgl_comp).show_page(1, LV_SCR_LOAD_ANIM_FADE_ON, 300);
 
         # ===== END PUMP DURATION PICKER =====
@@ -8671,6 +8663,8 @@ touchscreen:
 
         if (touch.x >= 40 && touch.x <= 380 && touch.y >= 140 && touch.y <= 210 && (id(lvgl_comp).get_current_page()) == 1) {
           ESP_LOGD("touch", "SW2 button area touched at (%d, %d)", touch.x, touch.y);
+          id(sw2_popup_previous_state) = id(sw2).state;
+          id(sw2_popup_restore_pending) = true;
           id(sw2_hold_timer_active) = true;
           id(sw2_hold_confirmed) = false;
           id(sw2_long_press_suppressed) = false;
@@ -8696,10 +8690,18 @@ touchscreen:
 
   on_release:
     - lambda: |-
-        // Stop the SW2 hold timer when the touch ends
+        // Stop the SW2 hold timer when the touch ends, but preserve a confirmed long press
         if (id(sw2_hold_timer_active)) {
-          id(sw2_hold_timer_active) = false;
-          id(sw2_hold_confirmed) = false;
+          if (!id(sw2_hold_confirmed)) {
+            if (millis() - id(sw2_long_press_start_time) < 3000) {
+              id(sw2_long_press_suppressed) = false;
+              id(sw2_popup_restore_pending) = false;
+            }
+            id(sw2_hold_timer_active) = false;
+            id(sw2_hold_confirmed) = false;
+          } else {
+            id(sw2_hold_timer_active) = false;
+          }
         }
 
         // Calculate swipe distance
