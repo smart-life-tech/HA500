@@ -9118,8 +9118,8 @@ interval:
                 on_error:
                   then:
                     - lambda: |-
-                        ESP_LOGW("geo", "HTTP request failed, but will still mark as fetched to avoid retrying this boot");
-                        id(geoapi_location_fetched) = false;
+                        ESP_LOGW("geo", "HTTP request failed; marking geo lookup as fetched for this boot to avoid repeated calls");
+                        id(geoapi_location_fetched) = true;
       # - lvgl.label.update:
       #     id: location_display_label
       #     text: !lambda |-
