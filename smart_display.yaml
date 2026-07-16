@@ -9021,35 +9021,91 @@ interval:
           condition:
             wifi.connected:
           then:
-            - logger.log: "fechting  request..."
+            - logger.log: "Fetching geoapi.pt location data..."
             - http_request.get:
-                url: "https://api.ip2location.io/"  #  Replace 'demo' with your API key
+                url: !lambda |-
+                  std::string zip = id(user_zip_code);
+                  zip.erase(std::remove(zip.begin(), zip.end(), ' '), zip.end());
+                  if (zip.empty()) {
+                    ESP_LOGW("geo", "ZIP code empty, skipping geoapi.pt request");
+                    return std::string();
+                  }
+                  char url[256];
+                  snprintf(url, sizeof(url), "https://geoapi.pt/cp/%s?json=1", zip.c_str());
+                  return std::string(url);
+                request_headers:
+                  User-Agent: "ESPHome/1.0"
                 capture_response: true
                 on_response:
                   then:
                     - lambda: |-
-                        const char *data = body.c_str();
+                        std::string city_name = "Unknown";
+                        float lat = 0.0f;
+                        float lon = 0.0f;
 
-                        const char *lat_ptr = strstr(data, "\"latitude\":");
-                        const char *lon_ptr = strstr(data, "\"longitude\":");
-                        const char *city_ptr = strstr(data, "\"city_name\":\"");
+                        size_t local_pos = body.find("\"Localidade\":");
+                        if (local_pos != std::string::npos) {
+                          size_t start = body.find('[', local_pos);
+                          size_t end = body.find(']', start);
+                          size_t pos = start + 1;
+                          while (start != std::string::npos && end != std::string::npos && pos < end) {
+                            size_t quote1 = body.find('"', pos);
+                            if (quote1 == std::string::npos || quote1 >= end) break;
+                            size_t quote2 = body.find('"', quote1 + 1);
+                            if (quote2 == std::string::npos || quote2 > end) break;
+                            city_name = body.substr(quote1 + 1, quote2 - quote1 - 1);
+                            pos = quote2 + 1;
+                          }
+                        }
 
-                        if (lat_ptr && lon_ptr) {
-                          float lat = atof(lat_ptr + 11);
-                          float lon = atof(lon_ptr + 12);
+                        size_t centre_pos = body.find("\"centro\":");
+                        if (centre_pos != std::string::npos) {
+                          size_t start = body.find('[', centre_pos);
+                          size_t end = body.find(']', start);
+                          if (start != std::string::npos && end != std::string::npos) {
+                            size_t comma = body.find(',', start + 1);
+                            if (comma != std::string::npos && comma < end) {
+                              std::string lat_str = body.substr(start + 1, comma - start - 1);
+                              std::string lon_str = body.substr(comma + 1, end - comma - 1);
+                              lat = atof(lat_str.c_str());
+                              lon = atof(lon_str.c_str());
+                            }
+                          }
+                        }
+
+                        if (lat == 0.0f && lon == 0.0f) {
+                          size_t pontos_pos = body.find("\"pontos\":");
+                          if (pontos_pos != std::string::npos) {
+                            size_t coord_pos = body.find("\"coordenadas\":", pontos_pos);
+                            if (coord_pos != std::string::npos) {
+                              size_t start = body.find('[', coord_pos);
+                              size_t end = body.find(']', start);
+                              if (start != std::string::npos && end != std::string::npos) {
+                                size_t comma = body.find(',', start + 1);
+                                if (comma != std::string::npos && comma < end) {
+                                  std::string lat_str = body.substr(start + 1, comma - start - 1);
+                                  std::string lon_str = body.substr(comma + 1, end - comma - 1);
+                                  lat = atof(lat_str.c_str());
+                                  lon = atof(lon_str.c_str());
+                                }
+                              }
+                            }
+                          }
+                        }
+
+                        if (lat != 0.0f || lon != 0.0f) {
                           id(current_lat) = lat;
                           id(current_lon) = lon;
                           ESP_LOGI("geo", "Detected lat=%.4f, lon=%.4f", lat, lon);
+                        } else {
+                          ESP_LOGW("geo", "No coordinates found in geoapi.pt response");
                         }
 
-                        if (city_ptr) {
-                          city_ptr += 13;
-                          const char *end = strchr(city_ptr, '"');
-                          if (end) {
-                            std::string city(city_ptr, end - city_ptr);
-                            id(location_name_str) = city;
-                            ESP_LOGI("geo", "Detected city: %s", city.c_str());
-                          }
+                        if (!city_name.empty() && city_name != "Unknown") {
+                          id(location_name_str) = city_name;
+                          ESP_LOGI("geo", "Detected city: %s", city_name.c_str());
+                        } else {
+                          ESP_LOGW("geo", "No Localidade found; leaving location_name_str unchanged");
                         }
 
       - lvgl.label.update:
