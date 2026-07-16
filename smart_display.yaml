@@ -1686,6 +1686,11 @@ globals:
     restore_value: true
     initial_value: "-8.0"
 
+  - id: geoapi_location_fetched
+    type: bool
+    restore_value: false
+    initial_value: "false"
+
   - id: global_pool_length
     type: float
     restore_value: true
@@ -9019,7 +9024,8 @@ interval:
     then:
       - if:
           condition:
-            wifi.connected:
+            lambda: |-
+              return !id(geoapi_location_fetched) && wifi.connected;
           then:
             - logger.log: "Fetching geoapi.pt location data..."
             - http_request.get:
@@ -9107,6 +9113,17 @@ interval:
                         } else {
                           ESP_LOGW("geo", "No Localidade found; leaving location_name_str unchanged");
                         }
+
+                        id(geoapi_location_fetched) = true;
+                on_error:
+                  then:
+                    - lambda: |-
+                        ESP_LOGW("geo", "HTTP request failed, but will still mark as fetched to avoid retrying this boot");
+                        id(geoapi_location_fetched) = false;
+      # - lvgl.label.update:
+      #     id: location_display_label
+      #     text: !lambda |-
+      #       return id(location_name_str).c_str();
 
       - lvgl.label.update:
           id: location_display_label
