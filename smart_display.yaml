@@ -4,7 +4,7 @@ substitutions:
   friendly_name: "Phijo Smart"
   device_description: " Smart Controller"
   project_name: "Guition.ESP32_S3_4848S040"
-  project_version: "16.07.26.2"
+  project_version: "18.07.26.2"
   wifi_ssid: ""
   wifi_password: ""
 
@@ -1676,6 +1676,12 @@ globals:
     restore_value: true
     max_restore_data_length: 10
     #initial_value: '"US"'     # default country
+
+  - id: geoapify_api_key
+    type: std::string
+    restore_value: true
+    max_restore_data_length: 64
+    initial_value: '"d5f9571f150844cca6f4d62a4f3554e0"'
 
   - id: current_lat
     type: float
@@ -9027,17 +9033,48 @@ interval:
             lambda: |-
               return !id(geoapi_location_fetched) && wifi.connected;
           then:
-            - logger.log: "Fetching geoapi.pt location data..."
+            - logger.log: "Fetching OpenWeather ZIP geocode and Geoapify reverse location..."
+            - lambda: |-
+                std::string zip_code = id(user_zip_code);
+                zip_code.erase(std::remove(zip_code.begin(), zip_code.end(), ' '), zip_code.end());
+                if (zip_code.empty()) {
+                  ESP_LOGW("geo", "ZIP code empty, skipping location lookup");
+                  id(geoapi_location_fetched) = true;
+                  return;
+                }
+                if (id(location_name_str).empty() || id(location_name_str) == "Unknown") {
+                  id(location_name_str) = zip_code + ", " + id(user_country);
+                }
             - http_request.get:
                 url: !lambda |-
+                  auto url_encode = [](const std::string &str) -> std::string {
+                    std::string encoded;
+                    for (char c : str) {
+                      if (c == ' ') {
+                        encoded += "%20";
+                      } else if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') ||
+                                 (c >= 'a' && c <= 'z') || c == '-' || c == '_' || c == '.' || c == '~') {
+                        encoded += c;
+                      } else {
+                        encoded += '%';
+                        static const char hex[] = "0123456789ABCDEF";
+                        encoded += hex[(c >> 4) & 0xF];
+                        encoded += hex[c & 0xF];
+                      }
+                    }
+                    return encoded;
+                  };
+
                   std::string zip = id(user_zip_code);
                   zip.erase(std::remove(zip.begin(), zip.end(), ' '), zip.end());
-                  if (zip.empty()) {
-                    ESP_LOGW("geo", "ZIP code empty, skipping geoapi.pt request");
-                    return std::string();
-                  }
-                  char url[256];
-                  snprintf(url, sizeof(url), "https://geoapi.pt/cp/%s?json=1", zip.c_str());
+                  std::string country = id(user_country);
+                  std::string enc_zip = url_encode(zip);
+                  std::string enc_country = url_encode(country);
+                  char url[512];
+                  snprintf(url, sizeof(url),
+                    "http://api.openweathermap.org/geo/1.0/zip?zip=%s,%s&appid=b0fed035f1b875bafaf66f85d33f4e71",
+                    enc_zip.c_str(), enc_country.c_str());
+                  ESP_LOGD("geo", "OpenWeather ZIP URL: %s", url);
                   return std::string(url);
                 request_headers:
                   User-Agent: "ESPHome/1.0"
@@ -9045,86 +9082,125 @@ interval:
                 on_response:
                   then:
                     - lambda: |-
-                        std::string city_name = "Unknown";
-                        float lat = 0.0f;
-                        float lon = 0.0f;
+                        ESP_LOGD("geo", "OpenWeather ZIP response (status %d): %s", response->status_code, body.c_str());
+                        if (response->status_code != 200 || body.empty()) {
+                          ESP_LOGW("geo", "Invalid OpenWeather ZIP response, code=%d", response->status_code);
+                          id(geoapi_location_fetched) = true;
+                          return;
+                        }
 
-                        size_t local_pos = body.find("\"Localidade\":");
-                        if (local_pos != std::string::npos) {
-                          size_t start = body.find('[', local_pos);
-                          size_t end = body.find(']', start);
-                          if (start != std::string::npos && end != std::string::npos && start < end) {
-                            size_t quote1 = body.find('"', start + 1);
-                            if (quote1 != std::string::npos && quote1 < end) {
-                              size_t quote2 = body.find('"', quote1 + 1);
-                              if (quote2 != std::string::npos && quote2 < end) {
-                                city_name = body.substr(quote1 + 1, quote2 - quote1 - 1);
-                              }
+                        size_t lat_pos = body.find("\"lat\":");
+                        if (lat_pos != std::string::npos) {
+                          size_t start = lat_pos + 6;
+                          size_t end = body.find_first_of(",}", start);
+                          if (end != std::string::npos) {
+                            id(current_lat) = std::stof(body.substr(start, end - start));
+                          }
+                        }
+
+                        size_t lon_pos = body.find("\"lon\":");
+                        if (lon_pos != std::string::npos) {
+                          size_t start = lon_pos + 6;
+                          size_t end = body.find_first_of(",}", start);
+                          if (end != std::string::npos) {
+                            id(current_lon) = std::stof(body.substr(start, end - start));
+                          }
+                        }
+
+                        size_t name_pos = body.find("\"name\":\"");
+                        if (name_pos != std::string::npos) {
+                          size_t start = name_pos + 8;
+                          size_t end = body.find('"', start);
+                          if (end != std::string::npos) {
+                            std::string city_name = body.substr(start, end - start);
+                            if (!city_name.empty()) {
+                              id(location_name_str) = city_name;
+                              ESP_LOGI("geo", "OpenWeather ZIP location name: %s", city_name.c_str());
                             }
                           }
                         }
 
-                        size_t centre_pos = body.find("\"centro\":");
-                        if (centre_pos != std::string::npos) {
-                          size_t start = body.find('[', centre_pos);
-                          size_t end = body.find(']', start);
-                          if (start != std::string::npos && end != std::string::npos) {
-                            size_t comma = body.find(',', start + 1);
-                            if (comma != std::string::npos && comma < end) {
-                              std::string lat_str = body.substr(start + 1, comma - start - 1);
-                              std::string lon_str = body.substr(comma + 1, end - comma - 1);
-                              lat = atof(lat_str.c_str());
-                              lon = atof(lon_str.c_str());
-                            }
-                          }
-                        }
-
-                        if (lat == 0.0f && lon == 0.0f) {
-                          size_t pontos_pos = body.find("\"pontos\":");
-                          if (pontos_pos != std::string::npos) {
-                            size_t coord_pos = body.find("\"coordenadas\":", pontos_pos);
-                            if (coord_pos != std::string::npos) {
-                              size_t start = body.find('[', coord_pos);
-                              size_t end = body.find(']', start);
-                              if (start != std::string::npos && end != std::string::npos) {
-                                size_t comma = body.find(',', start + 1);
-                                if (comma != std::string::npos && comma < end) {
-                                  std::string lat_str = body.substr(start + 1, comma - start - 1);
-                                  std::string lon_str = body.substr(comma + 1, end - comma - 1);
-                                  lat = atof(lat_str.c_str());
-                                  lon = atof(lon_str.c_str());
-                                }
-                              }
-                            }
-                          }
-                        }
-
-                        if (lat != 0.0f || lon != 0.0f) {
-                          id(current_lat) = lat;
-                          id(current_lon) = lon;
-                          ESP_LOGI("geo", "Detected lat=%.4f, lon=%.4f", lat, lon);
+                        if (id(current_lat) != 0.0f || id(current_lon) != 0.0f) {
+                          ESP_LOGI("geo", "OpenWeather ZIP lat/lon: %.6f / %.6f", id(current_lat), id(current_lon));
                         } else {
-                          ESP_LOGW("geo", "No coordinates found in geoapi.pt response");
+                          ESP_LOGW("geo", "OpenWeather ZIP did not return valid lat/lon");
+                          id(geoapi_location_fetched) = true;
                         }
+                    - if:
+                        condition:
+                          lambda: |-
+                            return (id(current_lat) != 0.0f || id(current_lon) != 0.0f) &&
+                                   !id(geoapi_location_fetched);
+                        then:
+                          - if:
+                              condition:
+                                lambda: |-
+                                  std::string key = id(geoapify_api_key);
+                                  return !key.empty() && key != "YOUR_GEOAPIFY_API_KEY";
+                              then:
+                                - http_request.get:
+                                    url: !lambda |-
+                                      char url[512];
+                                      snprintf(url, sizeof(url),
+                                        "https://api.geoapify.com/v1/geocode/reverse?lat=%.6f&lon=%.6f&apiKey=%s&format=json",
+                                        id(current_lat), id(current_lon), id(geoapify_api_key).c_str());
+                                      ESP_LOGD("geo", "Geoapify reverse URL: %s", url);
+                                      return std::string(url);
+                                    request_headers:
+                                      User-Agent: "ESPHome/1.0"
+                                    capture_response: true
+                                    on_response:
+                                      then:
+                                        - lambda: |-
+                                            ESP_LOGD("geo", "Geoapify reverse response (status %d): %s", response->status_code, body.c_str());
+                                            if (response->status_code != 200 || body.empty()) {
+                                              ESP_LOGW("geo", "Invalid Geoapify response, code=%d", response->status_code);
+                                              id(geoapi_location_fetched) = true;
+                                              return;
+                                            }
 
-                        if (!city_name.empty() && city_name != "Unknown") {
-                          id(location_name_str) = city_name;
-                          ESP_LOGI("geo", "Detected city: %s", city_name.c_str());
-                        } else {
-                          ESP_LOGW("geo", "No Localidade found; leaving location_name_str unchanged");
+                                            auto find_property = [&](const std::string &key) -> std::string {
+                                              std::string needle = "\"" + key + "\":\"";
+                                              size_t pos = body.find(needle);
+                                              if (pos == std::string::npos) return std::string();
+                                              size_t start = pos + needle.size();
+                                              size_t end = body.find('"', start);
+                                              if (end == std::string::npos) return std::string();
+                                              return body.substr(start, end - start);
+                                            };
+
+                                            std::string locality = find_property("hamlet");
+                                            if (locality.empty()) locality = find_property("village");
+                                            if (locality.empty()) locality = find_property("suburb");
+                                            if (locality.empty()) locality = find_property("city");
+                                            if (locality.empty()) locality = find_property("town");
+                                            if (locality.empty()) locality = find_property("county");
+
+                                            if (!locality.empty()) {
+                                              id(location_name_str) = locality;
+                                              ESP_LOGI("geo", "Geoapify location: %s", locality.c_str());
+                                            } else {
+                                              ESP_LOGW("geo", "Geoapify reverse did not return a locality field");
+                                            }
+                                            id(geoapi_location_fetched) = true;
+                                    on_error:
+                                      then:
+                                        - lambda: |-
+                                            ESP_LOGW("geo", "Geoapify reverse request failed; marking lookup complete for boot");
+                                            id(geoapi_location_fetched) = true;
+                              else:
+                                - lambda: |-
+                                    ESP_LOGW("geo", "Geoapify API key missing or placeholder, skipping reverse geocode");
+                                    id(geoapi_location_fetched) = true;
+                    - lambda: |-
+                        if (id(current_lat) == 0.0f && id(current_lon) == 0.0f) {
+                          id(geoapi_location_fetched) = true;
                         }
-
-                        id(geoapi_location_fetched) = true;
                 on_error:
                   then:
                     - lambda: |-
-                        ESP_LOGW("geo", "HTTP request failed; marking geo lookup as fetched for this boot to avoid repeated calls");
+                        ESP_LOGW("geo", "OpenWeather ZIP request failed; marking lookup complete for this boot");
                         id(geoapi_location_fetched) = true;
-      # - lvgl.label.update:
-      #     id: location_display_label
-      #     text: !lambda |-
-      #       return id(location_name_str).c_str();
-
       - lvgl.label.update:
           id: location_display_label
           text: !lambda |-
