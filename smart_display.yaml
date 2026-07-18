@@ -9125,6 +9125,14 @@ interval:
       - if:
           condition:
             lambda: |-
+              return millis() < id(weather_api_retry_until_ms);
+          then:
+            - logger.log: "Weather API is in backoff period; skipping this cycle"
+            - lambda: |-
+                return;
+      - if:
+          condition:
+            lambda: |-
               return !id(geoapi_location_fetched) && wifi::global_wifi_component->is_connected();
           then:
             - logger.log: "Fetching OpenWeather ZIP geocode and Geoapify reverse location..."
@@ -9478,6 +9486,7 @@ interval:
                               };
                               id(location_name_str) = normalize_ascii(city_name);
                               ESP_LOGI("geo", "✓ Location: %s", id(location_name_str).c_str());
+                              id(weather_api_retry_until_ms) = millis() + 900000UL;
                             }
                           }
                         
@@ -9488,7 +9497,7 @@ interval:
                         ESP_LOGW("geo", "⚠ Failed to fetch coordinates - API unavailable or network error");
                         ESP_LOGW("geo", "Will retry next interval. Current fallback: lat=%.4f lon=%.4f", 
                                  id(current_lat), id(current_lon));
-                        id(weather_api_retry_until_ms) = millis() + 900000UL;
+                        //id(weather_api_retry_until_ms) = millis() + 900000UL;
 
             # Step 2: Get weather data using coordinates (only if coordinates are valid)
             - delay: 2s
@@ -9790,7 +9799,7 @@ interval:
                           }
 
                           ESP_LOGI("weather", "✓ Weather data parsing complete");
-                            id(weather_api_retry_until_ms) = 7200000UL;
+                            //id(weather_api_retry_until_ms) = millis() + 7200000UL;
 
                         
 
