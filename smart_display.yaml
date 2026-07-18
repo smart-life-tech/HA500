@@ -1712,6 +1712,11 @@ globals:
     restore_value: false
     initial_value: "false"
 
+  - id: openweather_location_fetched
+    type: bool
+    restore_value: false
+    initial_value: "false"
+
   - id: global_pool_length
     type: float
     restore_value: true
@@ -9318,12 +9323,12 @@ interval:
           then:
             - logger.log: "Weather API is in backoff period; skipping this cycle"
             - lambda: |-
-                id(geoapi_location_fetched) = true;  // Prevent further attempts until backoff expires
+                //id(openweather_location_fetched) = true;  // Prevent further attempts until backoff expires
                 return;
       - if:
           condition:
             lambda: |-
-              return !id(geoapi_location_fetched) && wifi::global_wifi_component->is_connected();
+              return !id(openweather_location_fetched) && wifi::global_wifi_component->is_connected();
           
           then:
             - logger.log: "Making weather API request..."
@@ -9921,6 +9926,7 @@ interval:
                             return id(owm_sunset_time).state.c_str();
                           }
                           id(weather_api_retry_until_ms) = millis() + 900000UL;
+                          id(openweather_location_fetched) = true;
                           return "--:--";
 
                     - logger.log: "✓ All weather display labels updated"
