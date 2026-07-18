@@ -9223,10 +9223,11 @@ interval:
                           id(geoapi_location_fetched) = true;
                           return;
                         }
+                    - if:
                         condition:
                           lambda: |-
                             return (id(current_lat) != 0.0f || id(current_lon) != 0.0f) &&
-                                   !id(geoapi_location_fetched);
+                                    !id(geoapi_location_fetched);
                         then:
                           - if:
                               condition:
@@ -9284,15 +9285,15 @@ interval:
                                               ESP_LOGW("geo", "Geoapify reverse did not return a locality field");
                                             }
                                             id(geoapi_location_fetched) = true;
-                                    on_error:
-                                      then:
-                                        - lambda: |-
-                                            ESP_LOGW("geo", "Geoapify reverse request failed; marking lookup complete for boot");
-                                            id(geoapi_location_fetched) = true;
-                              else:
-                                - lambda: |-
-                                    ESP_LOGW("geo", "Geoapify API key missing or placeholder, skipping reverse geocode");
-                                    id(geoapi_location_fetched) = true;
+                                      on_error:
+                                        then:
+                                          - lambda: |-
+                                              ESP_LOGW("geo", "Geoapify reverse request failed; marking lookup complete for boot");
+                                              id(geoapi_location_fetched) = true;
+                        else:
+                            - lambda: |-
+                                ESP_LOGW("geo", "Geoapify API key missing or placeholder, skipping reverse geocode");
+                                id(geoapi_location_fetched) = true;
                     - lambda: |-
                         if (id(current_lat) == 0.0f && id(current_lon) == 0.0f) {
                           id(geoapi_location_fetched) = true;
