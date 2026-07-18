@@ -9210,6 +9210,8 @@ interval:
                             if (!city_name.empty()) {
                               id(location_name_str) = city_name;
                               ESP_LOGI("geo", "OpenWeather ZIP location name: %s", city_name.c_str());
+                              id(geoapi_location_fetched) = true;
+                              return;
                             }
                           }
                         }
@@ -9219,8 +9221,8 @@ interval:
                         } else {
                           ESP_LOGW("geo", "OpenWeather ZIP did not return valid lat/lon");
                           id(geoapi_location_fetched) = true;
+                          return;
                         }
-                    - if:
                         condition:
                           lambda: |-
                             return (id(current_lat) != 0.0f || id(current_lon) != 0.0f) &&
@@ -9247,8 +9249,13 @@ interval:
                                       then:
                                         - lambda: |-
                                             ESP_LOGD("geo", "Geoapify reverse response (status %d): %s", response->status_code, body.c_str());
-                                            if (response->status_code != 200 || body.empty()) {
-                                              ESP_LOGW("geo", "Invalid Geoapify response, code=%d", response->status_code);
+                                            if (response->status_code != 200) {
+                                              ESP_LOGW("geo", "Geoapify reverse status %d", response->status_code);
+                                              id(geoapi_location_fetched) = true;
+                                              return;
+                                            }
+                                            if (body.empty()) {
+                                              ESP_LOGW("geo", "Geoapify reverse response empty, using OpenWeather location fallback");
                                               id(geoapi_location_fetched) = true;
                                               return;
                                             }
@@ -9790,7 +9797,9 @@ interval:
                           }
 
                           ESP_LOGI("weather", "✓ Weather data parsing complete");
-                            id(weather_api_retry_until_ms) = 0;
+                            // Schedule next successful update after 2 hours to reduce API calls
+                            id(weather_api_retry_until_ms) = millis() + 7200000UL; // 2 hours
+                            ESP_LOGI("weather", "Next weather update scheduled in 2 hours");
 
                         
 
