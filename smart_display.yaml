@@ -9125,7 +9125,7 @@ interval:
       - if:
           condition:
             lambda: |-
-              return !id(geoapi_location_fetched) && wifi.connected;
+              return !id(geoapi_location_fetched) && wifi::global_wifi_component->is_connected();
           then:
             - logger.log: "Fetching OpenWeather ZIP geocode and Geoapify reverse location..."
             - lambda: |-
