@@ -9129,6 +9129,7 @@ interval:
           then:
             - logger.log: "Weather API is in backoff period; skipping this cycle"
             - lambda: |-
+                id(geoapi_location_fetched) = true;  // Prevent further attempts until backoff expires
                 return;
       - if:
           condition:
@@ -9317,10 +9318,13 @@ interval:
           then:
             - logger.log: "Weather API is in backoff period; skipping this cycle"
             - lambda: |-
+                id(geoapi_location_fetched) = true;  // Prevent further attempts until backoff expires
                 return;
       - if:
           condition:
-            wifi.connected:
+            lambda: |-
+              return !id(geoapi_location_fetched) && wifi::global_wifi_component->is_connected();
+          
           then:
             - logger.log: "Making weather API request..."
             - delay: 3s
