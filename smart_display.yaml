@@ -834,73 +834,6 @@ time:
             then:
               - script.execute: time_display_update
 
-# Fallback interval: run every minute and trigger scheduled irrigation even when network time sources are unavailable
-interval:
-  - interval: 60s
-    then:
-      - lambda: |-
-          if (!id(auto_irrigation_enabled)) return;
-          if (id(irrigation_script_running)) return;
-
-          // Determine a reliable current timestamp (prefer Home Assistant, then SNTP, then last_valid + uptime)
-          uint32_t ts = 0;
-          auto now = id(time_comp).now();
-          if (now.is_valid()) {
-            ts = now.timestamp;
-          } else {
-            auto nt = id(sntp_time).now();
-            if (nt.is_valid()) {
-              ts = nt.timestamp;
-            } else if (id(last_valid_time_ts) != 0) {
-              uint32_t elapsed = (uint32_t)(millis() / 1000ul - id(last_valid_millis));
-              ts = id(last_valid_time_ts) + elapsed;
-            } else {
-              // No reliable time available
-              ESP_LOGW("irrigation", "No valid time available for offline scheduling");
-              return;
-            }
-          }
-
-          int current_minutes = (ts % 86400u) / 60;
-
-          // Avoid retriggering multiple times within same minute
-          if (current_minutes == id(last_triggered_minute)) return;
-          id(last_triggered_minute) = current_minutes;
-
-          bool should_start = false;
-
-          // Recalculate daily runtime first (but only if not already running)
-          id(calculate_irrigation_needs).execute();
-
-          // Center block timing
-          int center_half_time = id(center_block_runtime) / 2;
-          int center_start = (id(center_pump_time_hour) * 60) - center_half_time;
-          int center_end = (id(center_pump_time_hour) * 60) + center_half_time;
-
-          if (current_minutes == center_start) {
-            ESP_LOGI("irrigation", "Fallback: Starting center block irrigation");
-            should_start = true;
-          }
-
-          // Free blocks
-          if (id(pump_runtime_blocks) >= 2 && current_minutes == (id(free_block2_start_hour) * 60 + id(free_block2_start_minute))) {
-            ESP_LOGI("irrigation", "Fallback: Starting free block 2 irrigation");
-            should_start = true;
-          }
-
-          if (id(pump_runtime_blocks) >= 3 && current_minutes == (id(free_block3_start_hour) * 60 + id(free_block3_start_minute))) {
-            ESP_LOGI("irrigation", "Fallback: Starting free block 3 irrigation");
-            should_start = true;
-          }
-
-          if (id(pump_runtime_blocks) >= 4 && current_minutes == (id(free_block4_start_hour) * 60 + id(free_block4_start_minute))) {
-            ESP_LOGI("irrigation", "Fallback: Starting free block 4 irrigation");
-            should_start = true;
-          }
-
-          if (should_start && !id(sw2).state) {
-            id(run_scheduled_irrigation).execute();
-          }
 
 # For the sun component, we need to use fixed values initially
 sun:
@@ -8981,6 +8914,72 @@ image:
     type: RGB565
 
 interval:
+  # Fallback interval: run every minute and trigger scheduled irrigation even when network time sources are unavailable
+  - interval: 60s
+    then:
+      - lambda: |-
+          if (!id(auto_irrigation_enabled)) return;
+          if (id(irrigation_script_running)) return;
+
+          // Determine a reliable current timestamp (prefer Home Assistant, then SNTP, then last_valid + uptime)
+          uint32_t ts = 0;
+          auto now = id(time_comp).now();
+          if (now.is_valid()) {
+            ts = now.timestamp;
+          } else {
+            auto nt = id(sntp_time).now();
+            if (nt.is_valid()) {
+              ts = nt.timestamp;
+            } else if (id(last_valid_time_ts) != 0) {
+              uint32_t elapsed = (uint32_t)(millis() / 1000ul - id(last_valid_millis));
+              ts = id(last_valid_time_ts) + elapsed;
+            } else {
+              // No reliable time available
+              ESP_LOGW("irrigation", "No valid time available for offline scheduling");
+              return;
+            }
+          }
+
+          int current_minutes = (ts % 86400u) / 60;
+
+          // Avoid retriggering multiple times within same minute
+          if (current_minutes == id(last_triggered_minute)) return;
+          id(last_triggered_minute) = current_minutes;
+
+          bool should_start = false;
+
+          // Recalculate daily runtime first (but only if not already running)
+          id(calculate_irrigation_needs).execute();
+
+          // Center block timing
+          int center_half_time = id(center_block_runtime) / 2;
+          int center_start = (id(center_pump_time_hour) * 60) - center_half_time;
+          int center_end = (id(center_pump_time_hour) * 60) + center_half_time;
+
+          if (current_minutes == center_start) {
+            ESP_LOGI("irrigation", "Fallback: Starting center block irrigation");
+            should_start = true;
+          }
+
+          // Free blocks
+          if (id(pump_runtime_blocks) >= 2 && current_minutes == (id(free_block2_start_hour) * 60 + id(free_block2_start_minute))) {
+            ESP_LOGI("irrigation", "Fallback: Starting free block 2 irrigation");
+            should_start = true;
+          }
+
+          if (id(pump_runtime_blocks) >= 3 && current_minutes == (id(free_block3_start_hour) * 60 + id(free_block3_start_minute))) {
+            ESP_LOGI("irrigation", "Fallback: Starting free block 3 irrigation");
+            should_start = true;
+          }
+
+          if (id(pump_runtime_blocks) >= 4 && current_minutes == (id(free_block4_start_hour) * 60 + id(free_block4_start_minute))) {
+            ESP_LOGI("irrigation", "Fallback: Starting free block 4 irrigation");
+            should_start = true;
+          }
+
+          if (should_start && !id(sw2).state) {
+            id(run_scheduled_irrigation).execute();
+          }
   - interval: 500ms  # Update every 500ms during calibration
     then:
       - if:
