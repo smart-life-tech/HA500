@@ -1927,8 +1927,8 @@ globals:
 
   - id: weather_api_retry_until_ms
     type: uint32_t
-    restore_value: no
-    initial_value: "7200000UL"
+    restore_value: yes
+    initial_value: "0"
 
   - id: sw3_on_time
     type: int
@@ -9735,6 +9735,7 @@ interval:
                               std::string city_name = body.substr(start, end - start);
                               // Keep geocoding ZIP name as the source of truth for location label.
                               ESP_LOGW("weather", "Weather city parsed (ignored for label): %s", city_name.c_str());
+                              id(weather_api_retry_until_ms) = millis() + 900000UL;
                             }
                           }
 
@@ -9915,6 +9916,7 @@ interval:
                           if (id(owm_sunset_time).has_state()) {
                             return id(owm_sunset_time).state.c_str();
                           }
+                          id(weather_api_retry_until_ms) = millis() + 900000UL;
                           return "--:--";
 
                     - logger.log: "✓ All weather display labels updated"
