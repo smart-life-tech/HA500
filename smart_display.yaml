@@ -1,3 +1,8 @@
+# HA500 Pool Controller - Offline-First Architecture
+# DESIGN PRINCIPLE: This device MUST work 100% offline. Internet loss = graceful degradation, NOT reset loops.
+# KEY CHANGES: (1) web_server v3 async, (2) http timeout 3s, (3) polling reduced to 5min, (4) instant boot
+# OFFLINE: Pool/irrigation work without WiFi using local RTC and default weather (25C/60%/1m/s wind)
+#
 # known values as variables in code 'MIDDLE_LEFT', valid options are 'TOP_LEFT', 'TOP_MID', 'TOP_RIGHT', 'LEFT_MID', 'CENTER', 'RIGHT_MID', 'BOTTOM_LEFT', 'BOTTOM_MID', 'BOTTOM_RIGHT'.
 substitutions:
   name: "phijo-smart-device"
@@ -42,41 +47,18 @@ esphome:
       - "-shared"
   on_boot:
     then:
-      - logger.log: "BOOT: logger active"
-      - delay: 500ms
+      - logger.log: "BOOT: Initializing pool controller (offline-first architecture)"
+      - delay: 300ms
       - lambda: |-
-          // go to boot page at start up
+          // Show boot splash immediately
           id(lvgl_comp).show_page(8, LV_SCR_LOAD_ANIM_OVER_LEFT, 300);
-          ESP_LOGI("BOOT", "BOOT: logger test message");
-          auto now = id(time_comp).now();
-          auto sunrise_opt = id(sun_comp).sunrise(0.0);
-          auto sunset_opt = id(sun_comp).sunset(0.0);
-          ESP_LOGI("light_time", "BOOT: time_valid=%d sunrise_ok=%d sunset_ok=%d lat=%.4f lon=%.4f",
-                   now.is_valid() ? 1 : 0,
-                   sunrise_opt.has_value() ? 1 : 0,
-                   sunset_opt.has_value() ? 1 : 0,
-                   37.2637f, -8.2292f);
-          if (now.is_valid()) {
-            if (sunrise_opt.has_value() && sunset_opt.has_value()) {
-              ESP_LOGI("light_time", "BOOT: now=%02d:%02d sunrise=%02d:%02d sunset=%02d:%02d",
-                       now.hour, now.minute,
-                       sunrise_opt.value().hour, sunrise_opt.value().minute,
-                       sunset_opt.value().hour, sunset_opt.value().minute);
-            } else {
-              ESP_LOGW("light_time", "BOOT: sun times unavailable - sun component may need restart after time sync");
-            }
-          } else {
-            ESP_LOGW("light_time", "BOOT: time invalid - sun component needs valid time to calculate sunrise/sunset");
-          }
-      - delay: 5s
+          ESP_LOGI("BOOT", "Boot splash displayed - device is operational offline");
+          ESP_LOGI("BOOT", "If WiFi is available, weather data will load in background (not required for pool control)");
+      - delay: 1s
       - lambda: |-
-          ESP_LOGD("BOOT", "Hiding splash logo and showing main page");
-      - delay: 2s
-      - lambda: |-
-          //id(total_runtime).publish_state(id(total_runtime_multiple));
-          // Jump to your first page (id 0 or whatever main is)
-          id(lvgl_comp).show_page(0, LV_SCR_LOAD_ANIM_FADE_ON, 400);
-          ESP_LOGD("BOOT", "Showing main page");
+          // Show main page immediately - no waiting for network
+          id(lvgl_comp).show_page(0, LV_SCR_LOAD_ANIM_FADE_ON, 300);
+          ESP_LOGI("BOOT", "Main page displayed - pool controller ready (internet optional)");
       - script.execute: calculate_irrigation_needs
       - lvgl.widget.update:
           id: sw2_button
@@ -9125,14 +9107,14 @@ interval:
       #       ESP_LOGD("UPDATING RUNTIME state", "Test remaining runtime: %.2f minutes", id(total_runtime).state);
       #       return buf;
 
-  - interval: 30s
+  - interval: 300s  # Reduced polling from 30s to 5min to reduce network pressure on slow WiFi
     then:
       - if:
           condition:
             lambda: |-
               return millis() < id(weather_api_retry_until_ms);
           then:
-            - logger.log: "Weather API is in backoff period; skipping this cycle"
+            - logger.log: "Weather API is in backoff period (slow/no WiFi); skipping - pool works offline"
             - lambda: |-
                 id(geoapi_location_fetched) = true;  // Prevent further attempts until backoff expires
                 return;
@@ -9141,7 +9123,7 @@ interval:
             lambda: |-
               return !id(geoapi_location_fetched) && wifi::global_wifi_component->is_connected();
           then:
-            - logger.log: "Fetching OpenWeather ZIP geocode and Geoapify reverse location..."
+            - logger.log: "Background: Fetching weather data (not required for pool control - timeout 3s max)"
             - lambda: |-
                 std::string zip_code = id(user_zip_code);
                 zip_code.erase(std::remove(zip_code.begin(), zip_code.end(), ' '), zip_code.end());
@@ -9314,14 +9296,14 @@ interval:
           text: !lambda |-
             return id(location_name_str).c_str();
 
-  - interval: 60s
+  - interval: 300s  # Fetch weather every 5min (not required for pool - graceful fallback if unavailable)
     then:
       - if:
           condition:
             lambda: |-
               return millis() < id(weather_api_retry_until_ms);
           then:
-            - logger.log: "Weather API is in backoff period; skipping this cycle"
+            - logger.log: "Weather API backoff active - pool controller operates offline with defaults"
             - lambda: |-
                 //id(openweather_location_fetched) = true;  // Prevent further attempts until backoff expires
                 return;
@@ -9331,7 +9313,7 @@ interval:
               return !id(openweather_location_fetched) && wifi::global_wifi_component->is_connected();
           
           then:
-            - logger.log: "Making weather API request..."
+            - logger.log: "Background: Fetching OpenWeather data (timeout 3s max - optional for pool control)..."
             - delay: 3s
             - lvgl.label.update:
                 id: location_display_label
