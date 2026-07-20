@@ -517,8 +517,6 @@ ota:
   - platform: esphome
     id: my_ota
     password: !secret ota_password
-    # On slow WiFi (2-3 Mbps), reduce OTA chunk size to avoid watchdog timeout
-    max_http_update: 512  # Smaller chunks for slow networks
     on_begin:
       then:
         - logger.log: "OTA start"
