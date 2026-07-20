@@ -4,7 +4,7 @@ substitutions:
   friendly_name: "Phijo Smart"
   device_description: " Smart Controller"
   project_name: "Guition.ESP32_S3_4848S040"
-  project_version: "18.07.26.2"
+  project_version: "19.07.26.1"
   wifi_ssid: ""
   wifi_password: ""
 
@@ -501,6 +501,8 @@ web_server:
 # Enable Home Assistant API
 api:
   reboot_timeout: 0s # Disable automatic reboot on API connection loss
+  # For slow WiFi: reduce socket timeout to prevent blocking main loop
+  socket_recv_buffer_size: 4096
   encryption:
     key: !secret encryption_key
   id: api_server
@@ -517,6 +519,8 @@ ota:
   - platform: esphome
     id: my_ota
     password: !secret ota_password
+    # On slow WiFi (2-3 Mbps), reduce OTA chunk size to avoid watchdog timeout
+    max_http_update: 512  # Smaller chunks for slow networks
     on_begin:
       then:
         - logger.log: "OTA start"
@@ -689,7 +693,7 @@ sensor:
 http_request:
   id: http_requests
   useragent: "ESPHome/1.0"
-  timeout: 30s # Increase timeout
+  timeout: 3s # Reduced from 30s - on 2-3 Mbps, long timeouts trigger watchdog reset
   verify_ssl: false
   follow_redirects: true
   buffer_size_rx: 1024 # Add buffer size
