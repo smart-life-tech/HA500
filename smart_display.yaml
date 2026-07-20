@@ -501,8 +501,6 @@ web_server:
 # Enable Home Assistant API
 api:
   reboot_timeout: 0s # Disable automatic reboot on API connection loss
-  # For slow WiFi: reduce socket timeout to prevent blocking main loop
-  socket_recv_buffer_size: 4096
   encryption:
     key: !secret encryption_key
   id: api_server
