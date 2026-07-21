@@ -9,12 +9,12 @@ substitutions:
   friendly_name: "Phijo Smart"
   device_description: " Smart Controller"
   project_name: "Guition.ESP32_S3_4848S040"
-  project_version: "19.07.26.1"
+  project_version: "21.07.26.1"
   wifi_ssid: ""
   wifi_password: ""
 
   # Per-section log toggles: force full diagnostics for debugging.
-  log_main: "DEBUG"
+  log_main: "ERROR"
   log_boot: "DEBUG"
   log_light_time: "ERROR"
   log_irrigation: "ERROR"
@@ -452,12 +452,12 @@ logger:
     touch: ${log_touch}
     swipe: ${log_touch}
     switch_state: ${log_switch_state}
-    ota: DEBUG
-    api: DEBUG
-    wifi: DEBUG
-    time: DEBUG
-    lvgl: DEBUG
-    lvgl_comp: DEBUG
+    ota: ERROR
+    api: ERROR
+    wifi: ERROR
+    time: ERROR
+    lvgl: ERROR
+    lvgl_comp: ERROR
 
 external_components:
   source: components
