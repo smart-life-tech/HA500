@@ -8050,13 +8050,24 @@ script:
           if (id(owm_sunrise_time).has_state() && id(owm_sunset_time).has_state()) {
             std::string sunrise_str = id(owm_sunrise_time).state;
             std::string sunset_str = id(owm_sunset_time).state;
+            auto parse_hhmm = [](const std::string &value, int &hour, int &minute) -> bool {
+              if (value.size() < 5 || value[2] != ':') {
+                return false;
+              }
+              if (!std::isdigit(static_cast<unsigned char>(value[0])) ||
+                  !std::isdigit(static_cast<unsigned char>(value[1])) ||
+                  !std::isdigit(static_cast<unsigned char>(value[3])) ||
+                  !std::isdigit(static_cast<unsigned char>(value[4]))) {
+                return false;
+              }
+              hour = (value[0] - '0') * 10 + (value[1] - '0');
+              minute = (value[3] - '0') * 10 + (value[4] - '0');
+              return hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59;
+            };
             
             // Parse "HH:MM" format
-            if (sunrise_str.length() >= 5 && sunset_str.length() >= 5) {
-              sunrise_h = std::stoi(sunrise_str.substr(0, 2));
-              sunrise_m = std::stoi(sunrise_str.substr(3, 2));
-              sunset_h = std::stoi(sunset_str.substr(0, 2));
-              sunset_m = std::stoi(sunset_str.substr(3, 2));
+            if (parse_hhmm(sunrise_str, sunrise_h, sunrise_m) &&
+                parse_hhmm(sunset_str, sunset_h, sunset_m)) {
               
               sunrise_ts = day_start_ts + (uint32_t)(sunrise_h * 3600 + sunrise_m * 60);
               sunset_ts = day_start_ts + (uint32_t)(sunset_h * 3600 + sunset_m * 60);
@@ -8065,6 +8076,9 @@ script:
               ESP_LOGI("light_time", "SW1: OWM API now=%02d:%02d sunrise=%02d:%02d sunset=%02d:%02d mode=%d state=%d",
                        now.hour, now.minute, sunrise_h, sunrise_m, sunset_h, sunset_m,
                        id(automation_mode), id(sw1).state ? 1 : 0);
+            } else {
+              ESP_LOGW("light_time", "Ignoring malformed OWM sunrise/sunset values: '%s' '%s'",
+                       sunrise_str.c_str(), sunset_str.c_str());
             }
           }
           
@@ -9172,7 +9186,14 @@ interval:
                           size_t start = lat_pos + 6;
                           size_t end = body.find_first_of(",}", start);
                           if (end != std::string::npos) {
-                            id(current_lat) = std::stof(body.substr(start, end - start));
+                            std::string lat_str = body.substr(start, end - start);
+                            char *lat_end = nullptr;
+                            float lat_val = strtof(lat_str.c_str(), &lat_end);
+                            if (lat_end != lat_str.c_str()) {
+                              id(current_lat) = lat_val;
+                            } else {
+                              ESP_LOGW("geo", "Invalid latitude value: %s", lat_str.c_str());
+                            }
                           }
                         }
 
@@ -9181,7 +9202,14 @@ interval:
                           size_t start = lon_pos + 6;
                           size_t end = body.find_first_of(",}", start);
                           if (end != std::string::npos) {
-                            id(current_lon) = std::stof(body.substr(start, end - start));
+                            std::string lon_str = body.substr(start, end - start);
+                            char *lon_end = nullptr;
+                            float lon_val = strtof(lon_str.c_str(), &lon_end);
+                            if (lon_end != lon_str.c_str()) {
+                              id(current_lon) = lon_val;
+                            } else {
+                              ESP_LOGW("geo", "Invalid longitude value: %s", lon_str.c_str());
+                            }
                           }
                         }
 
@@ -9405,8 +9433,14 @@ interval:
                             
                             if (end != std::string::npos) {
                               std::string lat_str = body.substr(start, end - start);
-                              id(current_lat) = std::stof(lat_str);
-                              ESP_LOGI("geo", "✓ Latitude: %.4f", id(current_lat));
+                              char *lat_end = nullptr;
+                              float lat_val = strtof(lat_str.c_str(), &lat_end);
+                              if (lat_end != lat_str.c_str()) {
+                                id(current_lat) = lat_val;
+                                ESP_LOGI("geo", "✓ Latitude: %.4f", id(current_lat));
+                              } else {
+                                ESP_LOGW("geo", "Invalid geocoding latitude value: %s", lat_str.c_str());
+                              }
                             }
                           }
 
@@ -9419,8 +9453,14 @@ interval:
                             
                             if (end != std::string::npos) {
                               std::string lon_str = body.substr(start, end - start);
-                              id(current_lon) = std::stof(lon_str);
-                              ESP_LOGI("geo", "✓ Longitude: %.4f", id(current_lon));
+                              char *lon_end = nullptr;
+                              float lon_val = strtof(lon_str.c_str(), &lon_end);
+                              if (lon_end != lon_str.c_str()) {
+                                id(current_lon) = lon_val;
+                                ESP_LOGI("geo", "✓ Longitude: %.4f", id(current_lon));
+                              } else {
+                                ESP_LOGW("geo", "Invalid geocoding longitude value: %s", lon_str.c_str());
+                              }
                             }
                           }
 
@@ -9515,6 +9555,18 @@ interval:
                           }
 
                           ESP_LOGD("weather", "Response body: %s", body.c_str());
+                          auto parse_float = [](const std::string &value, float &out) -> bool {
+                            char *end_ptr = nullptr;
+                            const char *start_ptr = value.c_str();
+                            out = strtof(start_ptr, &end_ptr);
+                            return end_ptr != start_ptr;
+                          };
+                          auto parse_long = [](const std::string &value, long &out) -> bool {
+                            char *end_ptr = nullptr;
+                            const char *start_ptr = value.c_str();
+                            out = strtol(start_ptr, &end_ptr, 10);
+                            return end_ptr != start_ptr;
+                          };
                           
                           // Parse temperature
                           size_t temp_pos = body.find("\"temp\":");
@@ -9525,9 +9577,11 @@ interval:
                             
                             if (end != std::string::npos) {
                               std::string temp_str = body.substr(start, end - start);
-                              float temperature = std::stof(temp_str);
-                              id(owm_temperature).publish_state(temperature);
-                              ESP_LOGD("weather", "Temperature: %.1f°C", temperature);
+                              float temperature = 0.0f;
+                              if (parse_float(temp_str, temperature)) {
+                                id(owm_temperature).publish_state(temperature);
+                                ESP_LOGD("weather", "Temperature: %.1f°C", temperature);
+                              }
                             }
                           }
                           
@@ -9540,8 +9594,10 @@ interval:
                             
                             if (end != std::string::npos) {
                               std::string feels_str = body.substr(start, end - start);
-                              float feels_like = std::stof(feels_str);
-                              id(owm_feels_like).publish_state(feels_like);
+                              float feels_like = 0.0f;
+                              if (parse_float(feels_str, feels_like)) {
+                                id(owm_feels_like).publish_state(feels_like);
+                              }
                             }
                           }
                           
@@ -9554,8 +9610,10 @@ interval:
                             
                             if (end != std::string::npos) {
                               std::string humidity_str = body.substr(start, end - start);
-                              float humidity = std::stof(humidity_str);
-                              id(owm_humidity).publish_state(humidity);
+                              float humidity = 0.0f;
+                              if (parse_float(humidity_str, humidity)) {
+                                id(owm_humidity).publish_state(humidity);
+                              }
                             }
                           }
 
@@ -9569,8 +9627,11 @@ interval:
                             size_t end = body.find_first_of(",}", start);
                             if (end != std::string::npos) {
                               std::string rain_str = body.substr(start, end - start);
-                              rain_mm = std::stof(rain_str) * 24.0f;
-                              rain_found = true;
+                              float rain_1h = 0.0f;
+                              if (parse_float(rain_str, rain_1h)) {
+                                rain_mm = rain_1h * 24.0f;
+                                rain_found = true;
+                              }
                             }
                           }
 
@@ -9581,8 +9642,11 @@ interval:
                               size_t end = body.find_first_of(",}", start);
                               if (end != std::string::npos) {
                                 std::string rain_str = body.substr(start, end - start);
-                                rain_mm = std::stof(rain_str) * 8.0f;
-                                rain_found = true;
+                                float rain_3h = 0.0f;
+                                if (parse_float(rain_str, rain_3h)) {
+                                  rain_mm = rain_3h * 8.0f;
+                                  rain_found = true;
+                                }
                               }
                             }
                           }
@@ -9602,8 +9666,10 @@ interval:
                             
                             if (end != std::string::npos) {
                               std::string pressure_str = body.substr(start, end - start);
-                              float pressure = std::stof(pressure_str);
-                              id(owm_pressure).publish_state(pressure);
+                              float pressure = 0.0f;
+                              if (parse_float(pressure_str, pressure)) {
+                                id(owm_pressure).publish_state(pressure);
+                              }
                             }
                           }
                           
@@ -9616,8 +9682,10 @@ interval:
                             
                             if (end != std::string::npos) {
                               std::string wind_str = body.substr(start, end - start);
-                              float wind_speed = std::stof(wind_str);
-                              id(owm_wind_speed).publish_state(wind_speed);
+                              float wind_speed = 0.0f;
+                              if (parse_float(wind_str, wind_speed)) {
+                                id(owm_wind_speed).publish_state(wind_speed);
+                              }
                             }
                           }
                           
@@ -9629,8 +9697,10 @@ interval:
                             
                             if (end != std::string::npos) {
                               std::string gust_str = body.substr(start, end - start);
-                              float wind_gust = std::stof(gust_str);
-                              id(owm_wind_gust).publish_state(wind_gust);
+                              float wind_gust = 0.0f;
+                              if (parse_float(gust_str, wind_gust)) {
+                                id(owm_wind_gust).publish_state(wind_gust);
+                              }
                             }
                           }
                           
@@ -9643,8 +9713,10 @@ interval:
                             
                             if (end != std::string::npos) {
                               std::string deg_str = body.substr(start, end - start);
-                              float wind_direction = std::stof(deg_str);
-                              id(owm_wind_direction).publish_state(wind_direction);
+                              float wind_direction = 0.0f;
+                              if (parse_float(deg_str, wind_direction)) {
+                                id(owm_wind_direction).publish_state(wind_direction);
+                              }
                             }
                           }
                           
@@ -9657,8 +9729,10 @@ interval:
                             
                             if (end != std::string::npos) {
                               std::string vis_str = body.substr(start, end - start);
-                              float visibility = std::stof(vis_str) / 1000.0;
-                              id(owm_visibility).publish_state(visibility);
+                              float visibility = 0.0f;
+                              if (parse_float(vis_str, visibility)) {
+                                id(owm_visibility).publish_state(visibility / 1000.0f);
+                              }
                             }
                           }
                           
@@ -9671,8 +9745,10 @@ interval:
                             
                             if (end != std::string::npos) {
                               std::string clouds_str = body.substr(start, end - start);
-                              float cloud_coverage = std::stof(clouds_str);
-                              id(owm_clouds).publish_state(cloud_coverage);
+                              float cloud_coverage = 0.0f;
+                              if (parse_float(clouds_str, cloud_coverage)) {
+                                id(owm_clouds).publish_state(cloud_coverage);
+                              }
                             }
                           }
                           
@@ -9738,17 +9814,22 @@ interval:
                             
                             if (end != std::string::npos) {
                               std::string sunrise_str = body.substr(start, end - start);
-                              time_t sunrise_unix = std::stol(sunrise_str);
+                              long sunrise_unix_long = 0;
+                              if (!parse_long(sunrise_str, sunrise_unix_long)) {
+                                ESP_LOGW("weather", "Invalid sunrise unix value: %s", sunrise_str.c_str());
+                              } else {
+                                time_t sunrise_unix = (time_t) sunrise_unix_long;
                               
-                              ESPTime sunrise_time = ESPTime::from_epoch_utc(sunrise_unix);
-                              int sunrise_total_min = sunrise_time.hour * 60 + sunrise_time.minute + owm_local_offset_minutes;
-                              sunrise_total_min = (sunrise_total_min % 1440 + 1440) % 1440;
-                              int sunrise_h = sunrise_total_min / 60;
-                              int sunrise_m = sunrise_total_min % 60;
-                              char time_str[20];
-                              snprintf(time_str, sizeof(time_str), "%02d:%02d", sunrise_h, sunrise_m);
-                              id(owm_sunrise_time).publish_state(time_str);
-                              ESP_LOGD("weather", "Sunrise: %s (Unix: %ld)", time_str, sunrise_unix);
+                                ESPTime sunrise_time = ESPTime::from_epoch_utc(sunrise_unix);
+                                int sunrise_total_min = sunrise_time.hour * 60 + sunrise_time.minute + owm_local_offset_minutes;
+                                sunrise_total_min = (sunrise_total_min % 1440 + 1440) % 1440;
+                                int sunrise_h = sunrise_total_min / 60;
+                                int sunrise_m = sunrise_total_min % 60;
+                                char time_str[20];
+                                snprintf(time_str, sizeof(time_str), "%02d:%02d", sunrise_h, sunrise_m);
+                                id(owm_sunrise_time).publish_state(time_str);
+                                ESP_LOGD("weather", "Sunrise: %s (Unix: %ld)", time_str, sunrise_unix);
+                              }
                             }
                           }
                           
@@ -9761,17 +9842,22 @@ interval:
                             
                             if (end != std::string::npos) {
                               std::string sunset_str = body.substr(start, end - start);
-                              time_t sunset_unix = std::stol(sunset_str);
+                              long sunset_unix_long = 0;
+                              if (!parse_long(sunset_str, sunset_unix_long)) {
+                                ESP_LOGW("weather", "Invalid sunset unix value: %s", sunset_str.c_str());
+                              } else {
+                                time_t sunset_unix = (time_t) sunset_unix_long;
                               
-                              ESPTime sunset_time = ESPTime::from_epoch_utc(sunset_unix);
-                              int sunset_total_min = sunset_time.hour * 60 + sunset_time.minute + owm_local_offset_minutes;
-                              sunset_total_min = (sunset_total_min % 1440 + 1440) % 1440;
-                              int sunset_h = sunset_total_min / 60;
-                              int sunset_m = sunset_total_min % 60;
-                              char time_str[20];
-                              snprintf(time_str, sizeof(time_str), "%02d:%02d", sunset_h, sunset_m);
-                              id(owm_sunset_time).publish_state(time_str);
-                              ESP_LOGD("weather", "Sunset: %s (Unix: %ld)", time_str, sunset_unix);
+                                ESPTime sunset_time = ESPTime::from_epoch_utc(sunset_unix);
+                                int sunset_total_min = sunset_time.hour * 60 + sunset_time.minute + owm_local_offset_minutes;
+                                sunset_total_min = (sunset_total_min % 1440 + 1440) % 1440;
+                                int sunset_h = sunset_total_min / 60;
+                                int sunset_m = sunset_total_min % 60;
+                                char time_str[20];
+                                snprintf(time_str, sizeof(time_str), "%02d:%02d", sunset_h, sunset_m);
+                                id(owm_sunset_time).publish_state(time_str);
+                                ESP_LOGD("weather", "Sunset: %s (Unix: %ld)", time_str, sunset_unix);
+                              }
                             }
                           }
 
