@@ -15,14 +15,14 @@ substitutions:
 
   # Per-section log toggles: force full diagnostics for debugging.
   log_main: "ERROR"
-  log_boot: "DEBUG"
+  log_boot: "INFO"
   log_light_time: "ERROR"
   log_irrigation: "ERROR"
   log_automation: "ERROR"
   log_pump: "ERROR"
   log_weather: "ERROR"
   log_ui: "ERROR"
-  log_touch: "DEBUG"
+  log_touch: "ERROR"
   log_switch_state: "ERROR"
 
   lightbulb: "\U000F0335"
@@ -430,7 +430,7 @@ psram:
 
 # Enable logging
 logger:
-  level: DEBUG
+  level: INFO
   baud_rate: 115200
   logs:
     # Change any section below from ERROR to INFO or DEBUG when needed.
@@ -9040,27 +9040,15 @@ interval:
       - lambda: |-
           // Check if 60 seconds have passed since last touch
           if (millis() - id(last_touch_time) > 60000) {
-            // Go to page 1 if not already there
+            // Return to main page if not already there
             if (id(lvgl_comp).get_current_page() != 0) {
-            id(current_page) = 1; // Update current page
+            id(current_page) = 0; // Update current page
             ESP_LOGD("lvgl", "Switching to page 0 due to inactivity");
               id(lvgl_comp).show_page(0, LV_SCR_LOAD_ANIM_FADE_ON, 300);
             }
             // Reset the timer to prevent constant page switching
             //id(last_touch_time) = millis();
           }
-          ESP_LOGI("POOL Length", ": %.2f meters", id(pool_length).state);
-          ESP_LOGI("runtime multiple", ": %.2f minutes", id(total_runtime_multiple));
-          ESP_LOGI("runtime", ": %.2f minutes", id(total_runtime).state);
-          ESP_LOGI("POOL Width", ": %.2f meters", id(pool_width).state);
-          ESP_LOGI("POOL Depth", ": %.2f meters", id(pool_depth).state);
-          ESP_LOGI("POOL Volume", ": %.2f liters", id(pool_volume).state);
-          ESP_LOGI("PUMP Flow Rate", ": %.2f L/min", id(valve_flow_rate_input).state);
-          ESP_LOGI("CALCULATED cycle", ": %.2f minutes", id(cycle_number).state);
-          ESP_LOGI("cycle", ": %.2f minutes", id(global_cycles_count));
-          ESP_LOGI("BLOCKS ", ": %d", id(pump_runtime_blocks));
-          ESP_LOGI("CENTER BLOCK ", ": %.2f ", id(block_number).state);
-          ESP_LOGI("PUMP RUNTIME BLOCKS ", ": %.2f minutes", id(center_block_runtime));
       # - lvgl.label.update:
       #     id: cycles_number
       #     text: !lambda |-
@@ -9086,7 +9074,7 @@ interval:
       - script.execute: time_display_update
       #- script.execute: update_qr_display
 
-  - interval: 10s
+  - interval: 30s
     then:
       - script.execute: notify_web_portal
       - script.execute: check_light_schedules
@@ -9107,7 +9095,7 @@ interval:
       #       ESP_LOGD("UPDATING RUNTIME state", "Test remaining runtime: %.2f minutes", id(total_runtime).state);
       #       return buf;
 
-  - interval: 300s  # Reduced polling from 30s to 5min to reduce network pressure on slow WiFi
+  - interval: 900s  # Poll less often to keep UI responsive on slow/unreliable WiFi
     then:
       - if:
           condition:
@@ -9296,7 +9284,7 @@ interval:
           text: !lambda |-
             return id(location_name_str).c_str();
 
-  - interval: 300s  # Fetch weather every 5min (not required for pool - graceful fallback if unavailable)
+  - interval: 900s  # Fetch weather every 15min (non-critical, keep UI thread free)
     then:
       - if:
           condition:
@@ -9314,7 +9302,6 @@ interval:
           
           then:
             - logger.log: "Background: Fetching OpenWeather data (timeout 3s max - optional for pool control)..."
-            - delay: 3s
             - lvgl.label.update:
                 id: location_display_label
                 text: !lambda |-
@@ -9477,7 +9464,7 @@ interval:
                               };
                               id(location_name_str) = normalize_ascii(city_name);
                               ESP_LOGI("geo", "✓ Location: %s", id(location_name_str).c_str());
-                              id(weather_api_retry_until_ms) = millis() + 900000UL;
+                              id(weather_api_retry_until_ms) = 0;
                             }
                           }
                         
@@ -9488,10 +9475,9 @@ interval:
                         ESP_LOGW("geo", "⚠ Failed to fetch coordinates - API unavailable or network error");
                         ESP_LOGW("geo", "Will retry next interval. Current fallback: lat=%.4f lon=%.4f", 
                                  id(current_lat), id(current_lon));
-                        //id(weather_api_retry_until_ms) = millis() + 900000UL;
+                        id(weather_api_retry_until_ms) = millis() + 1800000UL;
 
             # Step 2: Get weather data using coordinates (only if coordinates are valid)
-            - delay: 2s
             - logger.log: "Making OpenWeatherMap weather API request..."
             - lambda: |-
                 // Validate coordinates before making weather request
@@ -9726,7 +9712,6 @@ interval:
                               std::string city_name = body.substr(start, end - start);
                               // Keep geocoding ZIP name as the source of truth for location label.
                               ESP_LOGW("weather", "Weather city parsed (ignored for label): %s", city_name.c_str());
-                              id(weather_api_retry_until_ms) = millis() + 900000UL;
                             }
                           }
 
@@ -9907,7 +9892,6 @@ interval:
                           if (id(owm_sunset_time).has_state()) {
                             return id(owm_sunset_time).state.c_str();
                           }
-                          id(weather_api_retry_until_ms) = millis() + 900000UL;
                           id(openweather_location_fetched) = true;
                           return "--:--";
 
@@ -9918,6 +9902,6 @@ interval:
                     - lambda: |-
                         ESP_LOGW("weather", "⚠ Weather API request failed - will retry next interval");
                         ESP_LOGW("weather", "This is normal when internet is unavailable");
-                        id(weather_api_retry_until_ms) = millis() + 900000UL;
+                        id(weather_api_retry_until_ms) = millis() + 1800000UL;
           else:
             - logger.log: "WiFi not connected, skipping weather update"
