@@ -9,7 +9,7 @@ substitutions:
   friendly_name: "Phijo Smart"
   device_description: " Smart Controller"
   project_name: "Guition.ESP32_S3_4848S040"
-  project_version: "23.07.26.1"
+  project_version: "23.07.26.2"
   wifi_ssid: ""
   wifi_password: ""
 
@@ -9160,6 +9160,8 @@ interval:
                   std::string zip = id(user_zip_code);
                   zip.erase(std::remove(zip.begin(), zip.end(), ' '), zip.end());
                   std::string country = id(user_country);
+                  country.erase(std::remove(country.begin(), country.end(), ' '), country.end());
+                  country.erase(std::remove(country.begin(), country.end(), ','), country.end());
                   std::string enc_zip = url_encode(zip);
                   std::string enc_country = url_encode(country);
                   char url[512];
@@ -9321,12 +9323,12 @@ interval:
           then:
             - logger.log: "Weather API backoff active - pool controller operates offline with defaults"
             - lambda: |-
-                //id(openweather_location_fetched) = true;  // Prevent further attempts until backoff expires
+                // Backoff is time-based; do not mark weather polling as permanently complete.
                 return;
       - if:
           condition:
             lambda: |-
-              return !id(openweather_location_fetched) && wifi::global_wifi_component->is_connected();
+              return wifi::global_wifi_component->is_connected();
           
           then:
             - logger.log: "Background: Fetching OpenWeather data (timeout 3s max - optional for pool control)..."
@@ -9341,6 +9343,9 @@ interval:
                 // URL encode the zip code and country to handle spaces and special characters
                 std::string zip_code = id(user_zip_code);
                 std::string country = id(user_country);
+                zip_code.erase(std::remove(zip_code.begin(), zip_code.end(), ' '), zip_code.end());
+                country.erase(std::remove(country.begin(), country.end(), ' '), country.end());
+                country.erase(std::remove(country.begin(), country.end(), ','), country.end());
                 
                 // Basic validation
                 if (zip_code.empty() || country.empty()) {
@@ -9404,7 +9409,10 @@ interval:
                   std::string zip_clean = id(user_zip_code);
                   zip_clean.erase(std::remove(zip_clean.begin(), zip_clean.end(), ' '), zip_clean.end());
                   std::string enc_zip = url_encode(zip_clean);
-                  std::string enc_country = url_encode(id(user_country));
+                  std::string country_clean = id(user_country);
+                  country_clean.erase(std::remove(country_clean.begin(), country_clean.end(), ' '), country_clean.end());
+                  country_clean.erase(std::remove(country_clean.begin(), country_clean.end(), ','), country_clean.end());
+                  std::string enc_country = url_encode(country_clean);
                   snprintf(url, sizeof(url),
                     "http://api.openweathermap.org/geo/1.0/zip?zip=%s,%s&appid=b0fed035f1b875bafaf66f85d33f4e71",
                     enc_zip.c_str(), enc_country.c_str());
@@ -9978,7 +9986,6 @@ interval:
                           if (id(owm_sunset_time).has_state()) {
                             return id(owm_sunset_time).state.c_str();
                           }
-                          id(openweather_location_fetched) = true;
                           return "--:--";
 
                     - logger.log: "✓ All weather display labels updated"
