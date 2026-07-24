@@ -20,7 +20,7 @@ substitutions:
   log_irrigation: "ERROR"
   log_automation: "ERROR"
   log_pump: "ERROR"
-  log_weather: "ERROR"
+  log_weather: "INFO"
   log_ui: "ERROR"
   log_touch: "ERROR"
   log_switch_state: "ERROR"
