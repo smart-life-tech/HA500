@@ -1932,6 +1932,11 @@ globals:
     type: std::string
     restore_value: true
     initial_value: '"Sao Bartolomeu de Messines, Portugal"'
+
+  - id: last_geoapi_localidade
+    type: std::string
+    restore_value: true
+    initial_value: '"Sao Bartolomeu de Messines"'
   # Timer tracking
   - id: sw1_off_time
     type: int
@@ -7234,41 +7239,55 @@ script:
                 on_response:
                   then:
                     - lambda: |-
+                        auto restore_last_localidade = [&]() {
+                          if (!id(last_geoapi_localidade).empty()) {
+                            id(location_name_str) = id(last_geoapi_localidade);
+                            ESP_LOGI("geo", "GeoAPI PT fallback restored: %s", id(location_name_str).c_str());
+                          }
+                        };
+
                         if (response->status_code != 200 || body.empty()) {
                           ESP_LOGW("geo", "GeoAPI PT response invalid (status=%d)", response->status_code);
+                          restore_last_localidade();
                           return;
                         }
 
                         size_t key_pos = body.find("\"Localidade\"");
                         if (key_pos == std::string::npos) {
                           ESP_LOGW("geo", "GeoAPI PT response missing Localidade array");
+                          restore_last_localidade();
                           return;
                         }
 
                         size_t arr_start = body.find('[', key_pos);
                         if (arr_start == std::string::npos) {
                           ESP_LOGW("geo", "GeoAPI PT Localidade array start not found");
+                          restore_last_localidade();
                           return;
                         }
 
                         size_t first_quote = body.find('"', arr_start);
                         if (first_quote == std::string::npos) {
                           ESP_LOGW("geo", "GeoAPI PT Localidade first item not found");
+                          restore_last_localidade();
                           return;
                         }
 
                         size_t second_quote = body.find('"', first_quote + 1);
                         if (second_quote == std::string::npos || second_quote <= first_quote + 1) {
                           ESP_LOGW("geo", "GeoAPI PT Localidade first item invalid");
+                          restore_last_localidade();
                           return;
                         }
 
                         std::string locality = body.substr(first_quote + 1, second_quote - first_quote - 1);
                         if (locality.empty()) {
                           ESP_LOGW("geo", "GeoAPI PT Localidade first item empty");
+                          restore_last_localidade();
                           return;
                         }
 
+                        id(last_geoapi_localidade) = locality;
                         id(location_name_str) = locality;
                         ESP_LOGI("geo", "GeoAPI PT location set to: %s", id(location_name_str).c_str());
                     - lvgl.label.update:
@@ -7279,6 +7298,14 @@ script:
                   then:
                     - lambda: |-
                         ESP_LOGW("geo", "GeoAPI PT request failed (one-shot already consumed for this boot)");
+                        if (!id(last_geoapi_localidade).empty()) {
+                          id(location_name_str) = id(last_geoapi_localidade);
+                          ESP_LOGI("geo", "GeoAPI PT fallback restored: %s", id(location_name_str).c_str());
+                        }
+                    - lvgl.label.update:
+                        id: location_display_label
+                        text: !lambda |-
+                          return id(location_name_str).c_str();
 
   - id: save_and_refresh_runtime
     then:
