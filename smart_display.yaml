@@ -7859,7 +7859,6 @@ script:
 
   - id: update_qr_display
     then:
-      - component.update: ip_address # Force update the IP sensor first
       - delay: 500ms
       - lvgl.qrcode.update:
           id: settings_qr
@@ -7879,7 +7878,6 @@ script:
 
   - id: notify_web_portal
     then:
-      - component.update: ip_address # Force update IP sensor
       - delay: 500ms
       - if:
           condition:
