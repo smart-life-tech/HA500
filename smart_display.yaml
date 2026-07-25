@@ -1247,7 +1247,7 @@ number:
 
   - platform: template
     id: valve_flow_rate_input
-    name: "Valve Flow Rate (L/H)"
+    name: "Valve Flow Rate (L-H)"
     min_value: 1
     max_value: 100
     step: 0.5
@@ -6291,7 +6291,7 @@ lvgl:
               # Pump Flow Rate
               - label:
                   {
-                    text: "Flow Rate(L/H):",
+                    text: "Flow Rate (L-H):",
                     text_font: roboto,
                     x: 10,
                     y: 170,
@@ -8976,67 +8976,80 @@ display:
       #     - lambda: |-
       #         ESP_LOGD("display", "Page changed from ppol to 2");
 image:
-  - file: "images/background.jpg"
+  - platform: file
+    file: "images/background.jpg"
     id: background_image
     resize: 480x480
     type: RGB565
 
-  - file: "images/logo.png"
+  - platform: file
+    file: "images/logo.png"
     id: logo_image
     resize: 480x480
     type: RGB565
 
-  - file: "images/wifi.png"
+  - platform: file
+    file: "images/wifi.png"
     id: wifi_icon
     resize: 50x50
     type: RGB565
 
-  - file: "images/wifi_icons.jpg"
+  - platform: file
+    file: "images/wifi_icons.jpg"
     id: wifi_icon_online
     resize: 50x50
     type: RGB565
 
-  - file: "images/wt.png"
+  - platform: file
+    file: "images/wt.png"
     id: wifi_icon_onlines
     resize: 50x50
     type: RGB565
 
-  - file: "images/offline.jpg"
+  - platform: file
+    file: "images/offline.jpg"
     id: wifi_icon_offline
     resize: 50x50
     type: RGB565
 
-  - file: "images/cloud.png"
+  - platform: file
+    file: "images/cloud.png"
     id: cloud_icon
     resize: 24x24
 
     type: RGB565
-  - file: "images/settings.jpg"
+  - platform: file
+    file: "images/settings.jpg"
     id: settings_icon
     resize: 60x60
 
     type: RGB565
-  - file: "images/pressure.png"
+  - platform: file
+    file: "images/pressure.png"
     id: pressure
     resize: 24x24
     type: RGB565
 
-  - file: "images/temp.png"
+  - platform: file
+    file: "images/temp.png"
     id: thermometer_icon
     resize: 24x24
     type: RGB565
 
-  - file: "images/humidity.png"
+  - platform: file
+    file: "images/humidity.png"
     id: humidity_icon
     resize: 24x24
     type: RGB565
 
-  - file: "images/wind.png"
+  - platform: file
+    file: "images/wind.png"
     id: wind_icon
     resize: 24x24
     type: RGB565
 
-  - file: "images/visibility.png"
+  - platform: file
+    file: "images/visibility.png"
     id: visibility_icon
     resize: 24x24
     type: RGB565
