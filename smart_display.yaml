@@ -9,7 +9,7 @@ substitutions:
   friendly_name: "Phijo Smart"
   device_description: " Smart Controller"
   project_name: "Guition.ESP32_S3_4848S040"
-  project_version: "24.07.26.2"
+  project_version: "25.07.26.1"
   wifi_ssid: ""
   wifi_password: ""
 
@@ -1931,12 +1931,12 @@ globals:
   - id: location_name_str
     type: std::string
     restore_value: true
-    initial_value: '"Sao Bartolomeu de Messines, Portugal"'
+    initial_value: '"Cordeiros"'
 
   - id: last_geoapi_localidade
     type: std::string
     restore_value: true
-    initial_value: '"Sao Bartolomeu de Messines"'
+    initial_value: '"Cordeiros"'
   # Timer tracking
   - id: sw1_off_time
     type: int
@@ -9435,11 +9435,26 @@ interval:
                                 }
                                 return out;
                               };
-                              id(location_name_str) = normalize_ascii(city_name);
-                              ESP_LOGI("geo", "✓ Location: %s", id(location_name_str).c_str());
+                              std::string country = id(user_country);
+                              country.erase(std::remove_if(country.begin(), country.end(), ::isspace), country.end());
+                              std::transform(country.begin(), country.end(), country.begin(), ::toupper);
+
+                              // For Portugal, keep GeoAPI locality (more granular than OWM ZIP city).
+                              if (country == "PT" && !id(last_geoapi_localidade).empty()) {
+                                id(location_name_str) = id(last_geoapi_localidade);
+                                ESP_LOGI("geo", "✓ Geocoding city: %s (label preserved: %s)",
+                                         city_name.c_str(), id(location_name_str).c_str());
+                              } else {
+                                id(location_name_str) = normalize_ascii(city_name);
+                                ESP_LOGI("geo", "✓ Location: %s", id(location_name_str).c_str());
+                              }
                               id(weather_api_retry_until_ms) = 0;
                             }
                           }
+                    - lvgl.label.update:
+                        id: location_display_label
+                        text: !lambda |-
+                          return id(location_name_str).c_str();
                         
 
                 on_error:
