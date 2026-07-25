@@ -9,7 +9,7 @@ substitutions:
   friendly_name: "Phijo Smart"
   device_description: " Smart Controller"
   project_name: "Guition.ESP32_S3_4848S040"
-  project_version: "25.07.26.1"
+  project_version: "25.07.26.2"
   wifi_ssid: ""
   wifi_password: ""
 
@@ -6847,6 +6847,9 @@ lvgl:
                   y: -3
             on_click:
               then:
+                - lambda: |-
+                    id(geoapi_location_fetched) = false;
+                    ESP_LOGI("location_setup", "Manual location save requested - forcing GeoAPI refresh");
                 - script.execute: fetch_portugal_localidade_once
                 - lambda: |-
                     // go to main page
