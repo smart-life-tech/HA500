@@ -23,7 +23,7 @@ substitutions:
   log_weather: "INFO"
   log_ui: "ERROR"
   log_touch: "ERROR"
-  log_switch_state: "ERROR"
+  log_switch_state: "WARN"
 
   lightbulb: "\U000F0335"
   ceiling_light: "\U000F0769"
@@ -2094,6 +2094,17 @@ globals:
     type: bool
     restore_value: no
     initial_value: "false"
+
+  # Pump anti-short-cycle tracking (millis uptime based)
+  - id: sw2_last_on_ms
+    type: unsigned long
+    restore_value: no
+    initial_value: "0"
+
+  - id: sw2_last_off_ms
+    type: unsigned long
+    restore_value: no
+    initial_value: "0"
 
 button:
   - platform: template
@@ -6970,6 +6981,7 @@ switch:
     on_turn_on:
       then:
         - lambda: |-
+            id(sw2_last_on_ms) = millis();
             ESP_LOGW("switch_state", "SW2 Water Pump -> now ON | trigger=%s | seasonal=%s | override=%s | runtime=%d min | blocks=%d",
                      id(sw2_last_trigger).c_str(),
                      id(seasonal_pump_enabled) ? "YES" : "NO",
@@ -6992,6 +7004,7 @@ switch:
     on_turn_off:
       then:
         - lambda: |-
+            id(sw2_last_off_ms) = millis();
             ESP_LOGW("switch_state", "SW2 Water Pump -> OFF | trigger=%s | seasonal=%s | override=%s | runtime=%d min | blocks=%d",
                      id(sw2_last_trigger).c_str(),
                      id(seasonal_pump_enabled) ? "YES" : "NO",
@@ -8029,6 +8042,11 @@ script:
                   return;
                 }
 
+                if (runtime_minutes < 1) {
+                  ESP_LOGW("switch_state", "SW2 guard: computed runtime was %d min, clamping to 1 min to prevent short cycling", runtime_minutes);
+                  runtime_minutes = 1;
+                }
+
                 id(irrigation_duration_remaining) = runtime_minutes;
 
                 // Check if it's summer (add water) or winter (remove water)
@@ -8676,16 +8694,30 @@ script:
             
             // Turn pump ON if in window and not already on
             if (in_runtime_window && !id(sw2).state) {
-              id(sw2_last_trigger) = "Pool runtime block schedule";
-              id(sw2).turn_on();
-              ESP_LOGI("automation", "✓✓✓ SW2 PUMP turned ON - runtime block active (daily: %d min)", daily_runtime);
+              const unsigned long min_off_ms = 120000UL;  // 2 min minimum OFF time before restart
+              unsigned long elapsed_off_ms = (id(sw2_last_off_ms) > 0) ? (millis() - id(sw2_last_off_ms)) : min_off_ms;
+              if (elapsed_off_ms < min_off_ms) {
+                unsigned long wait_s = (min_off_ms - elapsed_off_ms) / 1000UL;
+                ESP_LOGW("switch_state", "SW2 guard: blocked ON (min OFF window active, wait %lus)", wait_s);
+              } else {
+                id(sw2_last_trigger) = "Pool runtime block schedule";
+                id(sw2).turn_on();
+                ESP_LOGI("automation", "✓✓✓ SW2 PUMP turned ON - runtime block active (daily: %d min)", daily_runtime);
+              }
             }
             // Turn pump OFF if outside window and currently on
             else if (!in_runtime_window && id(sw2).state) {
-              id(sw2_last_trigger) = "Outside pool runtime window";
-              id(sw2).turn_off();
-              id(sw2_off_time) = 0;  // clear any pending timers when schedule says OFF
-              ESP_LOGI("automation", "SW2 PUMP turned OFF - outside runtime window");
+              const unsigned long min_on_ms = 120000UL;  // 2 min minimum ON runtime before stop
+              unsigned long elapsed_on_ms = (id(sw2_last_on_ms) > 0) ? (millis() - id(sw2_last_on_ms)) : min_on_ms;
+              if (elapsed_on_ms < min_on_ms) {
+                unsigned long wait_s = (min_on_ms - elapsed_on_ms) / 1000UL;
+                ESP_LOGW("switch_state", "SW2 guard: blocked OFF (min ON runtime active, wait %lus)", wait_s);
+              } else {
+                id(sw2_last_trigger) = "Outside pool runtime window";
+                id(sw2).turn_off();
+                id(sw2_off_time) = 0;  // clear any pending timers when schedule says OFF
+                ESP_LOGI("automation", "SW2 PUMP turned OFF - outside runtime window");
+              }
             }
             else if (in_runtime_window && id(sw2).state) {
               // Already on - no action needed
