@@ -7306,15 +7306,22 @@ script:
                           locality = body.substr(value_pos + 1, end_quote - value_pos - 1);
                         } else if (value_pos < body.size() && body[value_pos] == '[') {
                           // Older payload format: "Localidade": ["..."]
-                          size_t first_quote = body.find('"', value_pos);
-                          if (first_quote == std::string::npos) {
+                          size_t arr_end = body.find(']', value_pos + 1);
+                          if (arr_end == std::string::npos) {
+                            ESP_LOGW("geo", "GeoAPI PT Localidade array closing bracket not found");
+                            restore_last_localidade();
+                            return;
+                          }
+
+                          size_t first_quote = body.find('"', value_pos + 1);
+                          if (first_quote == std::string::npos || first_quote > arr_end) {
                             ESP_LOGW("geo", "GeoAPI PT Localidade array first item not found");
                             restore_last_localidade();
                             return;
                           }
 
                           size_t second_quote = body.find('"', first_quote + 1);
-                          if (second_quote == std::string::npos || second_quote <= first_quote + 1) {
+                          if (second_quote == std::string::npos || second_quote <= first_quote + 1 || second_quote > arr_end) {
                             ESP_LOGW("geo", "GeoAPI PT Localidade array first item invalid");
                             restore_last_localidade();
                             return;
