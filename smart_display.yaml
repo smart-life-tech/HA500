@@ -7262,35 +7262,60 @@ script:
 
                         size_t key_pos = body.find("\"Localidade\"");
                         if (key_pos == std::string::npos) {
-                          ESP_LOGW("geo", "GeoAPI PT response missing Localidade array");
+                          ESP_LOGW("geo", "GeoAPI PT response missing Localidade field");
                           restore_last_localidade();
                           return;
                         }
 
-                        size_t arr_start = body.find('[', key_pos);
-                        if (arr_start == std::string::npos) {
-                          ESP_LOGW("geo", "GeoAPI PT Localidade array start not found");
+                        size_t colon = body.find(':', key_pos);
+                        if (colon == std::string::npos) {
+                          ESP_LOGW("geo", "GeoAPI PT Localidade field malformed (missing colon)");
                           restore_last_localidade();
                           return;
                         }
 
-                        size_t first_quote = body.find('"', arr_start);
-                        if (first_quote == std::string::npos) {
-                          ESP_LOGW("geo", "GeoAPI PT Localidade first item not found");
+                        size_t value_pos = colon + 1;
+                        while (value_pos < body.size() &&
+                               (body[value_pos] == ' ' || body[value_pos] == '\t' ||
+                                body[value_pos] == '\r' || body[value_pos] == '\n')) {
+                          value_pos++;
+                        }
+
+                        std::string locality;
+                        if (value_pos < body.size() && body[value_pos] == '"') {
+                          // Newer payload format: "Localidade": "Gaviao de Cima"
+                          size_t end_quote = body.find('"', value_pos + 1);
+                          if (end_quote == std::string::npos || end_quote <= value_pos + 1) {
+                            ESP_LOGW("geo", "GeoAPI PT Localidade string value invalid");
+                            restore_last_localidade();
+                            return;
+                          }
+                          locality = body.substr(value_pos + 1, end_quote - value_pos - 1);
+                        } else if (value_pos < body.size() && body[value_pos] == '[') {
+                          // Older payload format: "Localidade": ["..."]
+                          size_t first_quote = body.find('"', value_pos);
+                          if (first_quote == std::string::npos) {
+                            ESP_LOGW("geo", "GeoAPI PT Localidade array first item not found");
+                            restore_last_localidade();
+                            return;
+                          }
+
+                          size_t second_quote = body.find('"', first_quote + 1);
+                          if (second_quote == std::string::npos || second_quote <= first_quote + 1) {
+                            ESP_LOGW("geo", "GeoAPI PT Localidade array first item invalid");
+                            restore_last_localidade();
+                            return;
+                          }
+
+                          locality = body.substr(first_quote + 1, second_quote - first_quote - 1);
+                        } else {
+                          ESP_LOGW("geo", "GeoAPI PT Localidade value has unexpected type");
                           restore_last_localidade();
                           return;
                         }
 
-                        size_t second_quote = body.find('"', first_quote + 1);
-                        if (second_quote == std::string::npos || second_quote <= first_quote + 1) {
-                          ESP_LOGW("geo", "GeoAPI PT Localidade first item invalid");
-                          restore_last_localidade();
-                          return;
-                        }
-
-                        std::string locality = body.substr(first_quote + 1, second_quote - first_quote - 1);
                         if (locality.empty()) {
-                          ESP_LOGW("geo", "GeoAPI PT Localidade first item empty");
+                          ESP_LOGW("geo", "GeoAPI PT Localidade empty");
                           restore_last_localidade();
                           return;
                         }
