@@ -673,7 +673,7 @@ http_request:
   useragent: "ESPHome/1.0"
   timeout: 3s # Reduced from 30s - on 2-3 Mbps, long timeouts trigger watchdog reset
   verify_ssl: false
-  follow_redirects: true
+  follow_redirects: false
   buffer_size_rx: 1024 # Add buffer size
 
 wifi:
@@ -7238,7 +7238,7 @@ script:
                   zip.erase(std::remove(zip.begin(), zip.end(), ' '), zip.end());
                   std::string enc_zip = url_encode(zip);
                   char url[256];
-                  snprintf(url, sizeof(url), "https://json.geoapi.pt/cp/%s", enc_zip.c_str());
+                  snprintf(url, sizeof(url), "http://json.geoapi.pt/cp/%s", enc_zip.c_str());
                   ESP_LOGI("geo", "GeoAPI PT ZIP request: %s", url);
                   return std::string(url);
                 request_headers:
