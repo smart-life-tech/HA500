@@ -9,7 +9,7 @@ substitutions:
   friendly_name: "Phijo Smart"
   device_description: " Smart Controller"
   project_name: "Guition.ESP32_S3_4848S040"
-  project_version: "25.07.26.2"
+  project_version: "26.07.26.1"
   wifi_ssid: ""
   wifi_password: ""
 
@@ -9261,13 +9261,10 @@ interval:
               return millis() < id(weather_api_retry_until_ms);
           then:
             - logger.log: "Weather API backoff active - pool controller operates offline with defaults"
-            - lambda: |-
-                // Backoff is time-based; do not mark weather polling as permanently complete.
-                return;
       - if:
           condition:
             lambda: |-
-              return wifi::global_wifi_component->is_connected();
+              return wifi::global_wifi_component->is_connected() && millis() >= id(weather_api_retry_until_ms);
           
           then:
             - logger.log: "Background: Fetching OpenWeather data (timeout 3s max - optional for pool control)..."
@@ -9508,11 +9505,13 @@ interval:
                           // Check for valid response
                           if (response->status_code != 200) {
                             ESP_LOGW("weather", "Weather API returned status %d", response->status_code);
+                            id(weather_api_retry_until_ms) = millis() + 1800000UL;
                             return;
                           }
 
                           if (body.length() == 0) {
                             ESP_LOGW("weather", "Empty response from weather API");
+                            id(weather_api_retry_until_ms) = millis() + 1800000UL;
                             return;
                           }
 
@@ -9824,7 +9823,7 @@ interval:
                           }
 
                           ESP_LOGI("weather", "✓ Weather data parsing complete");
-                            //id(weather_api_retry_until_ms) = millis() + 7200000UL;
+                          id(weather_api_retry_until_ms) = 0;
 
                         
 
@@ -9951,4 +9950,9 @@ interval:
                         ESP_LOGW("weather", "This is normal when internet is unavailable");
                         id(weather_api_retry_until_ms) = millis() + 1800000UL;
           else:
-            - logger.log: "WiFi not connected, skipping weather update"
+            - lambda: |-
+                if (!wifi::global_wifi_component->is_connected()) {
+                  ESP_LOGI("weather", "WiFi not connected, skipping weather update");
+                } else {
+                  ESP_LOGI("weather", "Weather API backoff active, skipping weather update");
+                }
