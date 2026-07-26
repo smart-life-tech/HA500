@@ -8981,80 +8981,67 @@ display:
       #     - lambda: |-
       #         ESP_LOGD("display", "Page changed from ppol to 2");
 image:
-  - platform: file
-    file: "images/background.jpg"
+  - file: "images/background.jpg"
     id: background_image
     resize: 480x480
     type: RGB565
 
-  - platform: file
-    file: "images/logo.png"
+  - file: "images/logo.png"
     id: logo_image
     resize: 480x480
     type: RGB565
 
-  - platform: file
-    file: "images/wifi.png"
+  - file: "images/wifi.png"
     id: wifi_icon
     resize: 50x50
     type: RGB565
 
-  - platform: file
-    file: "images/wifi_icons.jpg"
+  - file: "images/wifi_icons.jpg"
     id: wifi_icon_online
     resize: 50x50
     type: RGB565
 
-  - platform: file
-    file: "images/wt.png"
+  - file: "images/wt.png"
     id: wifi_icon_onlines
     resize: 50x50
     type: RGB565
 
-  - platform: file
-    file: "images/offline.jpg"
+  - file: "images/offline.jpg"
     id: wifi_icon_offline
     resize: 50x50
     type: RGB565
 
-  - platform: file
-    file: "images/cloud.png"
+  - file: "images/cloud.png"
     id: cloud_icon
     resize: 24x24
 
     type: RGB565
-  - platform: file
-    file: "images/settings.jpg"
+  - file: "images/settings.jpg"
     id: settings_icon
     resize: 60x60
 
     type: RGB565
-  - platform: file
-    file: "images/pressure.png"
+  - file: "images/pressure.png"
     id: pressure
     resize: 24x24
     type: RGB565
 
-  - platform: file
-    file: "images/temp.png"
+  - file: "images/temp.png"
     id: thermometer_icon
     resize: 24x24
     type: RGB565
 
-  - platform: file
-    file: "images/humidity.png"
+  - file: "images/humidity.png"
     id: humidity_icon
     resize: 24x24
     type: RGB565
 
-  - platform: file
-    file: "images/wind.png"
+  - file: "images/wind.png"
     id: wind_icon
     resize: 24x24
     type: RGB565
 
-  - platform: file
-    file: "images/visibility.png"
+  - file: "images/visibility.png"
     id: visibility_icon
     resize: 24x24
     type: RGB565
