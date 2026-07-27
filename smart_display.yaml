@@ -7251,7 +7251,7 @@ script:
                   zip.erase(std::remove(zip.begin(), zip.end(), ' '), zip.end());
                   std::string enc_zip = url_encode(zip);
                   char url[256];
-                  snprintf(url, sizeof(url), "https://json.geoapi.pt/cp/%s", enc_zip.c_str());
+                  snprintf(url, sizeof(url), "http://json.geoapi.pt/cp/%s", enc_zip.c_str());
                   ESP_LOGI("geo", "GeoAPI PT ZIP request: %s", url);
                   return std::string(url);
                 request_headers:
