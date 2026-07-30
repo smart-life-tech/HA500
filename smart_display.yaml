@@ -9333,6 +9333,7 @@ interval:
       - script.execute: fetch_portugal_localidade_once
 
   - interval: 900s  # Fetch weather every 15min (non-critical, keep UI thread free)
+    startup_delay: 25s  # Also run soon after boot instead of waiting full 900s
     then:
       - if:
           condition:
