@@ -2174,14 +2174,13 @@ lvgl:
         time: 400ms
 
   on_idle:
-    - timeout: 30s
+    - timeout: 5min
       then:
-        - logger.log: idle 30s timeout
-        - light.turn_off:
+        - logger.log: idle timeout -> dimming backlight
+        - light.turn_on:
             id: backlight
-            transition_length: 5s
-        - lvgl.pause:
-            show_snow: true
+            brightness: 25%
+            transition_length: 2s
 
   style_definitions:
     - id: style_line
@@ -8879,6 +8878,16 @@ touchscreen:
   display: my_display
 
   on_touch:
+    - if:
+        condition: lvgl.is_paused
+        then:
+          - logger.log: "Touch wake: resuming LVGL"
+          - lvgl.resume:
+          - lvgl.widget.redraw:
+    - light.turn_on:
+        id: backlight
+        brightness: 100%
+        transition_length: 500ms
     - lambda: |-
         ESP_LOGD("touch", "Touch at (%d, %d)", touch.x, touch.y);
         id(last_touch_time) = millis();
@@ -9288,6 +9297,20 @@ interval:
     then:
       - script.execute: notify_web_portal
       - script.execute: check_light_schedules
+      - if:
+          condition:
+            lambda: "return !id(backlight).current_values.is_on();"
+          then:
+            - logger.log: "Failsafe: backlight was OFF unexpectedly, restoring"
+            - light.turn_on:
+                id: backlight
+                brightness: 70%
+                transition_length: 1s
+            - if:
+                condition: lvgl.is_paused
+                then:
+                  - lvgl.resume:
+                  - lvgl.widget.redraw:
       #- lvgl.widget.refresh: summer_max_display
 
       # - lvgl.label.update:
