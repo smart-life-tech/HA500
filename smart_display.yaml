@@ -507,6 +507,7 @@ ota:
         #- lvgl.widget.show: popup_obj
         - lvgl.resume:
         - lvgl.widget.redraw:
+  - platform: web_server
     # on_progress:
     #   then:
     #     - lvgl.bar.update:
