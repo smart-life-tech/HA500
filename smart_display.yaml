@@ -478,7 +478,6 @@ web_server:
   port: 80
   version: 3
   include_internal: false
-  local: true
 
 # Enable Home Assistant API
 api:
@@ -738,6 +737,13 @@ time:
               ESP_LOGI("TIME", "Recorded last_valid_time_ts=%u last_valid_millis=%lu", id(last_valid_time_ts), id(last_valid_millis));
             }
     on_time:
+      # Soft reboot at midnight to prevent accumulation of state/memory issues
+      - seconds: 0
+        minutes: 0
+        hours: 0
+        then:
+          - logger.log: "Midnight scheduled soft reboot"
+          - lambda: "App.safe_reboot();"
       # Check every minute if we should start irrigation
       - seconds: 0
         then:
@@ -4607,7 +4613,7 @@ lvgl:
                   size: 150
                   text: !lambda |-
                     if (id(ip_address).has_state() && !id(ip_address).state.empty()) {
-                     return "phijo-smart-device.local/";
+                     return "http://phijo-smart-device.local/";
                     }
                     return "http://192.168.4.1/";
 
@@ -7251,7 +7257,7 @@ script:
                   zip.erase(std::remove(zip.begin(), zip.end(), ' '), zip.end());
                   std::string enc_zip = url_encode(zip);
                   char url[256];
-                  snprintf(url, sizeof(url), "http://json.geoapi.pt/cp/%s", enc_zip.c_str());
+                  snprintf(url, sizeof(url), "https://json.geoapi.pt/cp/%s", enc_zip.c_str());
                   ESP_LOGI("geo", "GeoAPI PT ZIP request: %s", url);
                   return std::string(url);
                 request_headers:
