@@ -475,7 +475,7 @@ preferences:
 #     ota: DEBUG
 #     time: DEBUG
 web_server:
-  port: 80
+  port: 8080
   version: 2
   include_internal: false
 
@@ -4580,7 +4580,7 @@ lvgl:
                       // Validate IP format
                       int dot_count = std::count(clean_ip.begin(), clean_ip.end(), '.');
                       if (dot_count == 3 && clean_ip.length() >= 7 && clean_ip.length() <= 15) {
-                        return "http://" + clean_ip;
+                        return "http://" + clean_ip + ":8080";
                       }
                     }
                     return "Waiting for IP address...";
@@ -4613,7 +4613,7 @@ lvgl:
                   size: 150
                   text: !lambda |-
                     if (id(ip_address).has_state() && !id(ip_address).state.empty()) {
-                     return "http://phijo-smart-device.local/";
+                     return "http://phijo-smart-device.local:8080/";
                     }
                     return "http://192.168.4.1/";
 
@@ -7920,7 +7920,7 @@ script:
           id: settings_qr
           text: !lambda |-
             if (id(ip_address).has_state() && !id(ip_address).state.empty()) {
-              return "phijo-smart-device.local/";
+              return "http://phijo-smart-device.local:8080/";
             }
             return "http://192.168.4.1/";
 
@@ -7928,7 +7928,7 @@ script:
           id: qr_url_label
           text: !lambda |-
             if (id(ip_address).has_state() && !id(ip_address).state.empty()) {
-              return ("http://" + id(ip_address).state).c_str();
+              return ("http://" + id(ip_address).state + ":8080").c_str();
             }
             return "Waiting for IP address...";
 
@@ -7955,12 +7955,12 @@ script:
                 #Update QR code when WiFi is connected
             - lvgl.qrcode.update:
                 id: settings_qr
-                text: http://phijo-smart-device.local
+                text: http://phijo-smart-device.local:8080
             - lvgl.label.update:
                 id: qr_url_label
                 text: !lambda |-
                   if (id(ip_address).has_state() && !id(ip_address).state.empty()) {
-                    return ("http://" + id(ip_address).state + "/").c_str();
+                    return ("http://" + id(ip_address).state + ":8080/").c_str();
                   }
                   return "Getting IP address...";
           else:
@@ -7984,7 +7984,7 @@ script:
           id: ip_address_label
           text: !lambda |-
             if (id(ip_address).has_state() && !id(ip_address).state.empty()) {
-              return "WiFi: " + id(ip_address).state;
+              return "WiFi: " + id(ip_address).state + ":8080";
             } else {
               return "WiFi: Not connected";
             }
