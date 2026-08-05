@@ -7296,6 +7296,14 @@ script:
                           return;
                         }
 
+                        // API returns {"erro":"Postal Code not found!"} for unknown ZIPs
+                        if (body.find("\"erro\"") != std::string::npos) {
+                          ESP_LOGW("geo", "GeoAPI PT ZIP not found: %s", body.c_str());
+                          id(location_name_str) = "Location not found";
+                          id(geoapi_location_fetched) = false; // allow retry after user corrects ZIP
+                          return;
+                        }
+
                         size_t key_pos = body.find("\"Localidade\"");
                         if (key_pos == std::string::npos) {
                           ESP_LOGW("geo", "GeoAPI PT response missing Localidade field");
