@@ -7683,8 +7683,8 @@ script:
           text_color: orange_color
       - delay: 1s
       - lambda: |-
-          esp_wifi_restore();
-          ESP_LOGI("wifi", "All WiFi networks cleared from NVS");
+          clear_wifi_credentials();
+          ESP_LOGI("wifi", "WiFi clear initiated - device will restart");
       - delay: 500ms
       - lambda: "App.safe_reboot();"
 
