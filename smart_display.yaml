@@ -7673,6 +7673,7 @@ script:
           text_color: orange_color
       - delay: 1s
       - lambda: |-
+          extern "C" esp_err_t esp_wifi_restore(void);
           esp_wifi_restore();
           ESP_LOGI("wifi", "All WiFi networks cleared from NVS");
       - delay: 500ms
