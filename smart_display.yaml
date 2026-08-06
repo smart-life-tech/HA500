@@ -50,6 +50,8 @@ esphome:
   on_boot:
     - priority: 800.0
       then:
+          - lambda: |-
+              ESP_LOGI("wifi_clear", "Boot flag wifi_clear_pending=%d", id(wifi_clear_pending));
           - if:
               condition:
                 lambda: "return id(wifi_clear_pending);"
@@ -7704,8 +7706,10 @@ script:
           value: 'true'
       - delay: 1s
       - lambda: |-
-          ESP_LOGI("wifi_clear", "WiFi clear queued for next boot");
-      - delay: 500ms
+          ESP_LOGI("wifi_clear", "Executing immediate WiFi clear before reboot");
+          clear_wifi_credentials();
+          ESP_LOGI("wifi_clear", "Immediate WiFi clear finished; rebooting");
+      - delay: 2s
       - lambda: "App.safe_reboot();"
 
   - id: goto_settings
