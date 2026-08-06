@@ -10106,16 +10106,12 @@ interval:
                         id(weather_api_retry_until_ms) = 0;
                         id(weather_poll_in_progress) = false;
 
-                      on_error:
-                        then:
-                          - lambda: |-
-                              ESP_LOGW("weather", "⚠ Weather API request failed - will retry next interval");
-                              ESP_LOGW("weather", "This is normal when internet is unavailable");
-                              id(weather_api_retry_until_ms) = millis() + 1800000UL;
-                              id(weather_poll_in_progress) = false;
-                else:
-                  - lambda: |-
-                      ESP_LOGW("geo", "Skipping geocoding request due to empty ZIP/country");
-                      id(weather_poll_in_progress) = false;
+                on_error:
+                  then:
+                    - lambda: |-
+                        ESP_LOGW("weather", "⚠ Weather API request failed - will retry next interval");
+                        ESP_LOGW("weather", "This is normal when internet is unavailable");
+                        id(weather_api_retry_until_ms) = millis() + 1800000UL;
+                        id(weather_poll_in_progress) = false;
           else:
             - logger.log: "WiFi not connected, skipping weather update"
