@@ -3359,11 +3359,20 @@ lvgl:
                             ESP_LOGW("pump_debug", "Cannot set manual duration - system time not available");
                           }
                       - switch.turn_on: sw2
+                      - lvgl.widget.update:
+                          id: sw2_button
+                          state:
+                            checked: true
                       - lvgl.widget.hide: pump_duration_popup
                       - lambda: |-
                           id(sw2_hold_confirmed) = false;
-                          id(sw2_long_press_suppressed) = false;
+                          // Keep suppression active briefly to absorb any post-close ghost tap
+                          // that might otherwise toggle the underlying SW2 button.
+                          id(sw2_long_press_suppressed) = true;
                           id(lvgl_comp).show_page(1, LV_SCR_LOAD_ANIM_FADE_ON, 300);
+                      - delay: 300ms
+                      - lambda: |-
+                          id(sw2_long_press_suppressed) = false;
 
               # Cancel button
               - button:
@@ -3388,9 +3397,14 @@ lvgl:
                             checked: !lambda "return id(sw2_popup_previous_state);"
                       - lambda: |-
                           id(sw2_hold_confirmed) = false;
-                          id(sw2_long_press_suppressed) = false;
+                          // Keep suppression active briefly to avoid a close-click propagating
+                          // to the underlying SW2 button.
+                          id(sw2_long_press_suppressed) = true;
                           id(sw2_popup_restore_pending) = false;
                           id(lvgl_comp).show_page(1, LV_SCR_LOAD_ANIM_FADE_ON, 300);
+                      - delay: 300ms
+                      - lambda: |-
+                          id(sw2_long_press_suppressed) = false;
 
         # ===== END PUMP DURATION PICKER =====
 
