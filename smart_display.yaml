@@ -2120,6 +2120,11 @@ globals:
     restore_value: no
     initial_value: "false"
 
+  - id: sw2_last_popup_action_ms
+    type: unsigned long
+    restore_value: no
+    initial_value: "0"
+
   # Pump anti-short-cycle tracking (millis uptime based)
   - id: sw2_last_on_ms
     type: unsigned long
@@ -2931,10 +2936,21 @@ lvgl:
               then:
                 - if:
                     condition:
-                      lambda: "return id(sw2_hold_confirmed) || id(sw2_long_press_suppressed);"
+                      lambda: |-
+                        // Block normal click handling immediately after long-press/popup actions
+                        // to prevent release/click propagation from toggling SW2 unexpectedly.
+                        if (id(sw2_hold_confirmed) || id(sw2_long_press_suppressed)) {
+                          return true;
+                        }
+                        const unsigned long post_popup_guard_ms = 1500UL;
+                        if (id(sw2_last_popup_action_ms) > 0 &&
+                            (millis() - id(sw2_last_popup_action_ms)) < post_popup_guard_ms) {
+                          return true;
+                        }
+                        return false;
                     then:
                       - lambda: |-
-                          ESP_LOGD("ui", "SW2 click suppressed after long press handling");
+                          ESP_LOGD("ui", "SW2 click suppressed after long press/popup handling");
                     else:
                       - lambda: |-
                           id(sw2_last_trigger) = id(sw2).state ? "UI button requested OFF" : "UI button requested ON";
@@ -3369,6 +3385,7 @@ lvgl:
                           // Keep suppression active briefly to absorb any post-close ghost tap
                           // that might otherwise toggle the underlying SW2 button.
                           id(sw2_long_press_suppressed) = true;
+                          id(sw2_last_popup_action_ms) = millis();
                           id(lvgl_comp).show_page(1, LV_SCR_LOAD_ANIM_FADE_ON, 300);
                       - delay: 300ms
                       - lambda: |-
@@ -3391,16 +3408,20 @@ lvgl:
                   on_click:
                     then:
                       - lvgl.widget.hide: pump_duration_popup
-                      - lvgl.widget.update:
-                          id: sw2_button
-                          state:
-                            checked: !lambda "return id(sw2_popup_previous_state);"
+                      - if:
+                          condition:
+                            lambda: "return id(sw2_popup_previous_state);"
+                          then:
+                            - switch.turn_on: sw2
+                          else:
+                            - switch.turn_off: sw2
                       - lambda: |-
                           id(sw2_hold_confirmed) = false;
                           // Keep suppression active briefly to avoid a close-click propagating
                           // to the underlying SW2 button.
                           id(sw2_long_press_suppressed) = true;
                           id(sw2_popup_restore_pending) = false;
+                          id(sw2_last_popup_action_ms) = millis();
                           id(lvgl_comp).show_page(1, LV_SCR_LOAD_ANIM_FADE_ON, 300);
                       - delay: 300ms
                       - lambda: |-
@@ -7463,6 +7484,7 @@ script:
           }
           id(sw2_hold_confirmed) = true;
           id(sw2_long_press_suppressed) = true;
+          id(sw2_last_popup_action_ms) = millis();
           id(sw2_popup_previous_state) = id(sw2).state;
           id(sw2_popup_restore_pending) = true;
           id(sw2_manual_duration_minutes) = 300;
