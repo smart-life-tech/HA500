@@ -490,9 +490,9 @@ preferences:
 #     time: DEBUG
 web_server:
   port: 80
-  version: 1
+  version: 2
   include_internal: false
-  local: false
+  local: true
 
 # Enable Home Assistant API
 api:
