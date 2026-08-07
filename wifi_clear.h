@@ -5,6 +5,8 @@
 
 // Clears persisted WiFi state before normal connection logic runs again.
 inline void clear_wifi_credentials() {
+  ESP_LOGW("wifi_clear", "clear_wifi_credentials() invoked");
+
   nvs_handle_t nvs_handle;
   esp_err_t err = nvs_open("nvs.net80211", NVS_READWRITE, &nvs_handle);
   if (err != ESP_OK) {
@@ -33,5 +35,6 @@ inline void clear_wifi_credentials() {
   }
 
   esp_wifi_disconnect();
+  ESP_LOGW("wifi_clear", "clear_wifi_credentials() completed");
 }
 

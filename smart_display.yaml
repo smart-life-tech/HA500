@@ -7065,7 +7065,7 @@ switch:
         - lvgl.widget.update:
             id: sw2_button
             state:
-              checked: !lambda "return id(sw2).state;"
+              checked: true
         - lvgl.label.update:
             id: status_label
             text: "Water Pump ON"
@@ -7088,7 +7088,7 @@ switch:
         - lvgl.widget.update:
             id: sw2_button
             state:
-              checked: !lambda "return id(sw2).state;"
+              checked: false
         - lvgl.label.update:
             id: status_label
             text: "Water Pump OFF"
@@ -7283,6 +7283,36 @@ switch:
 # Scripts for automation logic
 #-------------------------------------------
 script:
+  - id: sync_switch_ui_states
+    then:
+      - lvgl.widget.update:
+          id: sw1_button
+          state:
+            checked: !lambda "return id(sw1).state;"
+      - lvgl.widget.update:
+          id: sw2_button
+          state:
+            checked: !lambda "return id(sw2).state;"
+      - lvgl.widget.update:
+          id: sw3_button
+          state:
+            checked: !lambda "return id(sw3).state;"
+      - lvgl.widget.update:
+          id: relay_light_indicator
+          bg_color: !lambda "return id(sw1).state ? lv_color_hex(0xFFCC00) : lv_color_hex(0x000000);"
+          bg_opa: !lambda "return id(sw1).state ? LV_OPA_COVER : LV_OPA_TRANSP;"
+          border_color: !lambda "return id(sw1).state ? lv_color_hex(0xFFCC00) : lv_color_hex(0x444444);"
+      - lvgl.widget.update:
+          id: relay_pump_indicator
+          bg_color: !lambda "return id(sw2).state ? lv_color_hex(0x00AA00) : lv_color_hex(0x000000);"
+          bg_opa: !lambda "return id(sw2).state ? LV_OPA_COVER : LV_OPA_TRANSP;"
+          border_color: !lambda "return id(sw2).state ? lv_color_hex(0x00AA00) : lv_color_hex(0x444444);"
+      - lvgl.widget.update:
+          id: relay_valve_indicator
+          bg_color: !lambda "return id(sw3).state ? lv_color_hex(0x0088FF) : lv_color_hex(0x000000);"
+          bg_opa: !lambda "return id(sw3).state ? LV_OPA_COVER : LV_OPA_TRANSP;"
+          border_color: !lambda "return id(sw3).state ? lv_color_hex(0x0088FF) : lv_color_hex(0x444444);"
+
   - id: fetch_portugal_localidade_once
     then:
       - if:
@@ -9147,6 +9177,7 @@ display:
         - 15 #b5
     on_page_change:
       #- lvgl.widget.refresh: summer_max_display
+      - script.execute: sync_switch_ui_states
       - lvgl.label.update:
           id: summer_max_display
           text: !lambda |-
@@ -9226,6 +9257,10 @@ image:
     type: RGB565
 
 interval:
+  - interval: 1s
+    then:
+      - script.execute: sync_switch_ui_states
+
   # Fallback interval: run every minute and trigger scheduled irrigation even when network time sources are unavailable
   - interval: 60s
     then:
