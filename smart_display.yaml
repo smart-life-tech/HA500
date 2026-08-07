@@ -492,6 +492,7 @@ web_server:
   port: 80
   version: 2
   include_internal: false
+  local: false
 
 # Enable Home Assistant API
 api:
