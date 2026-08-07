@@ -490,7 +490,7 @@ preferences:
 #     time: DEBUG
 web_server:
   port: 80
-  version: 2
+  version: 1
   include_internal: false
   local: false
 
