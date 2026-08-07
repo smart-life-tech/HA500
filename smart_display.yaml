@@ -7770,12 +7770,14 @@ script:
       - globals.set:
           id: wifi_clear_pending
           value: 'true'
-      - delay: 1s
       - lambda: |-
           ESP_LOGI("wifi_clear", "Executing immediate WiFi clear before reboot");
           clear_wifi_credentials();
+          // Stop STA/AP immediately so it cannot reconnect in the pre-reboot window.
+          esp_wifi_disconnect();
+          esp_wifi_stop();
           ESP_LOGI("wifi_clear", "Immediate WiFi clear finished; rebooting");
-      - delay: 2s
+      - delay: 200ms
       - lambda: "App.safe_reboot();"
 
   - id: goto_settings
