@@ -4,11 +4,11 @@
 #include "esp_wifi.h"
 
 inline void disable_wifi_autoconnect() {
-  esp_err_t err = esp_wifi_set_auto_connect(false);
+  esp_err_t err = esp_wifi_set_mode(WIFI_MODE_NULL);
   if (err != ESP_OK) {
-    ESP_LOGW("wifi_clear", "Failed to disable WiFi auto-connect: %s", esp_err_to_name(err));
+    ESP_LOGW("wifi_clear", "Failed to disable WiFi mode: %s", esp_err_to_name(err));
   } else {
-    ESP_LOGI("wifi_clear", "WiFi auto-connect disabled");
+    ESP_LOGI("wifi_clear", "WiFi mode set to NULL to prevent reconnects");
   }
 
   err = esp_wifi_disconnect();
