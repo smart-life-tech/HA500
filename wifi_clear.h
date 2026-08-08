@@ -2,9 +2,29 @@
 #include "esp_log.h"
 #include "nvs.h"
 #include "esp_wifi.h"
+#include <string.h>
 
 inline void disable_wifi_autoconnect() {
-  esp_err_t err = esp_wifi_set_mode(WIFI_MODE_NULL);
+  esp_err_t err = esp_wifi_set_storage(WIFI_STORAGE_RAM);
+  if (err != ESP_OK) {
+    ESP_LOGW("wifi_clear", "Failed to set RAM storage: %s", esp_err_to_name(err));
+  }
+
+  err = esp_wifi_clear_fast_connect();
+  if (err != ESP_OK) {
+    ESP_LOGW("wifi_clear", "Failed to clear fast connect state: %s", esp_err_to_name(err));
+  } else {
+    ESP_LOGI("wifi_clear", "Fast-connect state cleared");
+  }
+
+  wifi_config_t wifi_config;
+  memset(&wifi_config, 0, sizeof(wifi_config));
+  err = esp_wifi_set_config(WIFI_IF_STA, &wifi_config);
+  if (err != ESP_OK) {
+    ESP_LOGW("wifi_clear", "Failed to clear station config: %s", esp_err_to_name(err));
+  }
+
+  err = esp_wifi_set_mode(WIFI_MODE_NULL);
   if (err != ESP_OK) {
     ESP_LOGW("wifi_clear", "Failed to disable WiFi mode: %s", esp_err_to_name(err));
   } else {
@@ -12,12 +32,12 @@ inline void disable_wifi_autoconnect() {
   }
 
   err = esp_wifi_disconnect();
-  if (err != ESP_OK) {
+  if (err != ESP_OK && err != ESP_ERR_WIFI_NOT_STARTED) {
     ESP_LOGW("wifi_clear", "Failed to disconnect WiFi: %s", esp_err_to_name(err));
   }
 
   err = esp_wifi_stop();
-  if (err != ESP_OK) {
+  if (err != ESP_OK && err != ESP_ERR_WIFI_NOT_STARTED) {
     ESP_LOGW("wifi_clear", "Failed to stop WiFi: %s", esp_err_to_name(err));
   }
 }
