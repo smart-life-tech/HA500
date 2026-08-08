@@ -6851,12 +6851,6 @@ lvgl:
                 - lambda: |-
                     id(user_zip_code) = text;
                     ESP_LOGI("location_setup", "ZIP Code set to: %s", id(user_zip_code).c_str());
-            on_ready:
-              then:
-                - lvgl.keyboard.update:
-                    id: keyboard_1
-
-                    textarea: zip_text
             on_click:
               then:
                 - lvgl.keyboard.update:
@@ -6891,12 +6885,6 @@ lvgl:
                 - lambda: |-
                     id(user_country) = text;
                     ESP_LOGI("location_setup", "Country set to: %s", id(user_country).c_str());
-            on_ready:
-              then:
-                - lvgl.keyboard.update:
-                    id: keyboard_1
-                    mode: LV_KEYBOARD_MODE_TEXT_LOWER
-                    textarea: country_text
 
             on_click:
               then:
